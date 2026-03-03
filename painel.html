@@ -290,10 +290,13 @@
 
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
+      console.log("RESERVE token prefix:", token ? token.slice(0,20) : "NULL");
       if (!token) {
         reserveMsg.textContent = "Sessão expirada. Faça login novamente.";
         return;
       }
+
+      console.log("RESERVE calling:", `${SUPABASE_URL}/functions/v1/reserve`);
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/reserve`, {
         method: "POST",
