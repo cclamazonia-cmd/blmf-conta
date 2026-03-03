@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BLMF — Cadastro</title>
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>Cadastro — Conta do leitor</h1>
+
+    <form id="cadastroForm">
+      <div class="grid2">
+        <div>
+          <label>Nome</label>
+          <input type="text" id="firstName" required />
+        </div>
+        <div>
+          <label>Sobrenome</label>
+          <input type="text" id="lastName" required />
+        </div>
+      </div>
+
+      <label>E-mail</label>
+      <input type="email" id="email" required />
+
+      <label>Telefone</label>
+      <input type="tel" id="phone" />
+
+      <label>Endereço postal</label>
+      <textarea id="address" rows="3"></textarea>
+
+      <label>Gênero</label>
+      <select id="gender">
+        <option value="">—</option>
+        <option value="feminino">Feminino</option>
+        <option value="masculino">Masculino</option>
+        <option value="neutro">Neutro</option>
+        <option value="não informar">Prefiro não informar</option>
+      </select>
+
+      <label class="checkbox">
+        <input type="checkbox" id="consent" required />
+        <span>
+          J’accepte que mon adresse de messagerie soit utilisée pour l’envoi d’informations sur mon compte lecteur :
+          mise à disposition de documents réservés, indication de la date de retour des documents et avis de retard des documents empruntés
+        </span>
+      </label>
+
+      <button type="submit">Enviar cadastro</button>
+      <button type="button" class="secondary" id="back">Voltar</button>
+    </form>
+
+    <p id="msg" class="msg"></p>
+  </main>
+
+  <script type="module">
+    import { CONFIG } from "./js/config.js";
+
+    document.getElementById("back").addEventListener("click", () => {
+      window.location.href = "./conta.html";
+    });
+
+    document.getElementById("cadastroForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msg");
+      msg.textContent = "";
+
+      const payload = {
+        email: document.getElementById("email").value.trim(),
+        first_name: document.getElementById("firstName").value.trim(),
+        last_name: document.getElementById("lastName").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        gender: document.getElementById("gender").value,
+        consent_email: document.getElementById("consent").checked
+      };
+
+      const res = await fetch(`${CONFIG.FUNCTIONS_BASE_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msg.textContent = (data.error || "Erro no cadastro.");
+        return;
+      }
+
+      msg.textContent = "Cadastro enviado. Verifique seu e-mail para receber sua senha.";
+    });
+  </script>
+</body>
+</html>
