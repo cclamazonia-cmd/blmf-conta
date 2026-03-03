@@ -430,16 +430,22 @@
 
       try {
         const res = await fetch(`${CONFIG.FUNCTIONS_BASE_URL}/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "apikey": CONFIG.SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+  },
+  body: JSON.stringify(payload)
+});
+const text = await res.text();          // on lit le corps brut
+let data = {};
+try { data = JSON.parse(text); } catch {}
 
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          msg.textContent = (data.error || "Erro ao enviar o cadastro.");
-          return;
-        }
+if (!res.ok) {
+  msg.textContent = data.error || `Erro ao enviar o cadastro (HTTP ${res.status}).`;
+  return;
+}
 
         msg.textContent = "Cadastro enviado com sucesso. Verifique seu e-mail para receber sua senha.";
         form.reset();
