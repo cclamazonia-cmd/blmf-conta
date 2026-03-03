@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BLMF — Painel do leitor</title>
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <main class="card">
+    <header class="row">
+      <h1>Painel do leitor</h1>
+      <button id="logout" class="secondary">Sair</button>
+    </header>
+
+    <section>
+      <h2>Seus dados</h2>
+      <div id="profile"></div>
+    </section>
+
+    <section>
+      <h2>Empréstimos em curso</h2>
+      <div id="loans"></div>
+    </section>
+
+    <section>
+      <h2>Reservar um livro</h2>
+      <form id="reserveForm" class="row">
+        <input type="number" id="bookId" placeholder="ID do livro" min="1" required />
+        <button type="submit">Reservar</button>
+      </form>
+      <p id="reserveMsg" class="msg"></p>
+    </section>
+
+    <section>
+      <h2>Histórico</h2>
+      <div id="history"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { supabase, requireSessionOrRedirect, signOut } from "./js/auth.js";
+
+    document.getElementById("logout").addEventListener("click", signOut);
+
+    const session = await requireSessionOrRedirect();
+    if (!session) throw new Error("No session");
+
+    // Profil
+    {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("email, first_name, last_name, phone, address, gender, consent_email, created_at")
+        .eq("id", session.user.id)
+        .single();
+
+      document.getElementById("profile").textContent = error
+        ? ("Erro: " + error.message)
+        : `${data.first_name} ${data.last_name} — ${data.email}`;
+    }
+
+    async function renderLoans() {
+      const { data, error } = await supabase
+        .from("loans")
+        .select("id, due_date, checkout_date, returned_date, books(title, author)")
+        .eq("user_id", session.user.id)
+        .is("returned_date", null)
+        .order("due_date", { ascending: true });
+
+      if (error) {
+        document.getElementById("loans").textContent = "Erro: " + error.message;
+        return;
+      }
+
+      const today = new Date();
+      const rows = (data || []).map(l => {
+        const due = new Date(l.due_date + "T00:00:00");
+        const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+        return `<li>#${l.id} — ${l.books?.title || "Livro"} (${l.books?.author || ""}) — devolução: ${l.due_date} — faltam ${daysLeft} dia(s)</li>`;
+      });
+
+      document.getElementById("loans").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Nenhum empréstimo em curso.</p>";
+    }
+    await renderLoans();
+
+    async function renderHistory() {
+      const { data, error } = await supabase
+        .from("loans")
+        .select("id, due_date, checkout_date, returned_date, books(title, author)")
+        .eq("user_id", session.user.id)
+        .order("checkout_date", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        document.getElementById("history").textContent = "Erro: " + error.message;
+        return;
+      }
+
+      const rows = (data || []).map(l => {
+        const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
+        return `<li>#${l.id} — ${l.books?.title || "Livro"} — ${status}</li>`;
+      });
+
+      document.getElementById("history").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Sem histórico.</p>";
+    }
+    await renderHistory();
+
+    document.getElementById("reserveForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const reserveMsg = document.getElementById("reserveMsg");
+      reserveMsg.textContent = "";
+
+      const book_id = Number(document.getElementById("bookId").value);
+      const { error } = await supabase.from("reservations").insert({
+        user_id: session.user.id,
+        book_id,
+        status: "active"
+      });
+
+      reserveMsg.textContent = error ? ("Erro: " + error.message) : "Reserva registrada.";
+    });
+  </script>
+</body>
+</html>
