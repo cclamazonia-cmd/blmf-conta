@@ -68,12 +68,11 @@
 
     const BLOG_URL = "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/";
 
-    document.getElementById("backBlog").addEventListener("click", () => {
-      if (window.history.length > 1) window.history.back();
-      else window.location.href = BLOG_URL;
+    document.getElementById("backBlog").addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.href = BLOG_URL;
     });
-
-    document.getElementById("goCadastro").addEventListener("click", () => {
+document.getElementById("goCadastro").addEventListener("click", () => {
       window.location.href = "./cadastro.html";
     });
 
