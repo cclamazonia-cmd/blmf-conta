@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BLMF — Conta do leitor</title>
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>Conta do leitor — BLMF</h1>
+
+    <form id="loginForm">
+      <label>E-mail</label>
+      <input type="email" id="email" required />
+
+      <label>Senha</label>
+      <input type="password" id="password" required />
+
+      <button type="submit">Entrar</button>
+    </form>
+
+    <hr />
+
+    <button id="goCadastro" class="secondary">Cadastrar-se</button>
+
+    <p id="msg" class="msg"></p>
+  </main>
+
+  <script type="module">
+    import { supabase } from "./js/auth.js";
+
+    document.getElementById("goCadastro").addEventListener("click", () => {
+      window.location.href = "./cadastro.html";
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msg");
+      msg.textContent = "";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        msg.textContent = "Falha no login: " + error.message;
+        return;
+      }
+      window.location.href = "./painel.html";
+    });
+  </script>
+</body>
+</html>
