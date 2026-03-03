@@ -1,5 +1,5 @@
 export const CONFIG = {
-  SUPABASE_URL: "https://EXEMPLE.supabase.co",
-  SUPABASE_ANON_KEY: "EXEMPLE_ANON_KEY",
-  FUNCTIONS_BASE_URL: "https://EXEMPLE.supabase.co/functions/v1"
+  SUPABASE_URL: https://asptfmokzykwzlshsncw.supabase.co,
+  SUPABASE_ANON_KEY: sb_publishable_38cFV9vsGhmqMp-Z5gmV4w_HY6ReWSF,
+  FUNCTIONS_BASE_URL: https://asptfmokzykwzlshsncw.supabase.co/functions/v1
 };
