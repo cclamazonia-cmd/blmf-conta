@@ -291,23 +291,25 @@
         return;
       }
 
-      const res = await fetch(`${CONFIG.FUNCTIONS_BASE_URL}/reserve`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ bib_ref })
-      });
-
-      const text = await res.text();
-      let data = {};
-      try { data = JSON.parse(text); } catch {}
-
-      if (!res.ok) {
-        reserveMsg.textContent = data.error || `Erro ao reservar (HTTP ${res.status}).`;
+      
+      // Reserva direto no banco (RLS) — sem Edge Function
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) {
+        reserveMsg.textContent = "Sessão inválida — faça login de novo.";
         return;
       }
+
+      const { error: insErr } = await supabase
+        .from("reservas")
+        .insert([{ bib_ref, user_id: user.id }]);
+
+      if (insErr) {
+        reserveMsg.textContent = "Erro ao reservar: " + insErr.message;
+        return;
+      }
+
+      reserveMsg.textContent = "Reserva registrada com sucesso.";
+      document.getElementById("bib_ref").value = "";
 
       reserveMsg.textContent = "Reserva registrada e enviada para a biblioteca. Em breve entraremos em contato para combinar a retirada.";
       document.getElementById("bibRef").value = "";
