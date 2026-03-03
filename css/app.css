@@ -1,0 +1,14 @@
+:root { font-family: system-ui, Arial, sans-serif; }
+body { margin: 0; padding: 24px; background: #111; color: #eee; }
+.card { max-width: 760px; margin: 0 auto; background: #1b1b1b; padding: 20px; border-radius: 14px; border: 1px solid #2a2a2a; }
+label { display:block; margin-top: 12px; margin-bottom: 6px; color: #cfcfcf; }
+input, textarea, select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #333; background: #121212; color: #eee; }
+button { margin-top: 14px; padding: 10px 14px; border-radius: 10px; border: 1px solid #444; background: #e53935; color: #fff; cursor: pointer; }
+button.secondary { background: transparent; }
+hr { border: none; border-top: 1px solid #333; margin: 18px 0; }
+.msg { margin-top: 12px; color: #ddd; }
+.row { display:flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.checkbox { display:flex; gap: 10px; align-items:flex-start; margin-top: 14px; }
+.checkbox input { width: auto; margin-top: 3px; }
+@media (max-width: 700px){ .grid2{ grid-template-columns: 1fr; } }
