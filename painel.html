@@ -3,33 +3,145 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BLMF — Painel do leitor</title>
+  <title>Painel — Biblioteca Libertária Maxwell Ferreira</title>
   <link rel="stylesheet" href="./css/app.css" />
+  <style>
+    .brand { display:flex; gap:14px; align-items:center; margin-bottom:14px; }
+    .brand img { width:56px; height:56px; object-fit:contain; }
+    .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
+    .small { color:#cfcfcf; font-size:.9rem; }
+  </style>
 </head>
+
 <body>
   <main class="card">
-    <header class="row">
-      <h1>Painel do leitor</h1>
-      <button id="logout" class="secondary">Sair</button>
-    </header>
+    <div class="brand">
+      <img
+        src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png"
+        alt="Logotipo BLMF"
+        onerror="this.style.display='none'"
+      />
+      <div style="flex:1;">
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <h1 style="margin:0;">Painel — Biblioteca Libertária Maxwell Ferreira</h1>
+            <p class="subtitle">Conta do/a/e leitor/a/e</p>
+          </div>
+          <button id="logout" class="secondary">Sair</button>
+        </div>
+      </div>
+    </div>
 
     <section>
-      <h2>Seus dados</h2>
-      <div id="profile"></div>
+      <h2>Seus dados (editar)</h2>
+      <p class="small">Você pode atualizar seus dados abaixo. O e-mail de login permanece o mesmo.</p>
+
+      <form id="profileForm" novalidate>
+        <div class="grid2">
+          <div>
+            <label for="firstName">Nome</label>
+            <input type="text" id="firstName" required />
+          </div>
+          <div>
+            <label for="lastName">Sobrenome</label>
+            <input type="text" id="lastName" required />
+          </div>
+        </div>
+
+        <label for="phone">Telefone</label>
+        <input type="tel" id="phone" placeholder="+55 (xx) xxxxx-xxxx" />
+
+        <label for="gender">Gênero</label>
+        <select id="gender">
+          <option value="">—</option>
+          <option value="feminino">Feminino</option>
+          <option value="masculino">Masculino</option>
+          <option value="neutro">Neutro</option>
+          <option value="não informar">Prefiro não informar</option>
+          <option value="outro">Outro</option>
+        </select>
+
+        <hr />
+        <h3 style="margin: 0 0 10px;">Endereço</h3>
+
+        <label for="addr1">Endereço 1</label>
+        <input type="text" id="addr1" required />
+
+        <label for="addr2">Endereço 2</label>
+        <input type="text" id="addr2" />
+
+        <div class="grid3">
+          <div>
+            <label for="unit">Casa ou Apartamento nº</label>
+            <input type="text" id="unit" placeholder="Ex.: Casa 2 / Ap. 301" />
+          </div>
+          <div>
+            <label for="cep">CEP</label>
+            <input type="text" id="cep" placeholder="00000-000" required />
+          </div>
+          <div>
+            <label for="city">Cidade</label>
+            <input type="text" id="city" required />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <label for="state">Estado</label>
+            <select id="state" required>
+              <option value="">— selecione —</option>
+              <option value="AC">Acre (AC)</option><option value="AL">Alagoas (AL)</option><option value="AP">Amapá (AP)</option>
+              <option value="AM">Amazonas (AM)</option><option value="BA">Bahia (BA)</option><option value="CE">Ceará (CE)</option>
+              <option value="DF">Distrito Federal (DF)</option><option value="ES">Espírito Santo (ES)</option><option value="GO">Goiás (GO)</option>
+              <option value="MA">Maranhão (MA)</option><option value="MT">Mato Grosso (MT)</option><option value="MS">Mato Grosso do Sul (MS)</option>
+              <option value="MG">Minas Gerais (MG)</option><option value="PA">Pará (PA)</option><option value="PB">Paraíba (PB)</option>
+              <option value="PR">Paraná (PR)</option><option value="PE">Pernambuco (PE)</option><option value="PI">Piauí (PI)</option>
+              <option value="RJ">Rio de Janeiro (RJ)</option><option value="RN">Rio Grande do Norte (RN)</option><option value="RS">Rio Grande do Sul (RS)</option>
+              <option value="RO">Rondônia (RO)</option><option value="RR">Roraima (RR)</option><option value="SC">Santa Catarina (SC)</option>
+              <option value="SP">São Paulo (SP)</option><option value="SE">Sergipe (SE)</option><option value="TO">Tocantins (TO)</option>
+            </select>
+          </div>
+          <div>
+            <label for="country">País</label>
+            <select id="country" required>
+              <option value="Brasil">Brasil</option>
+              <option value="">— selecione —</option>
+              <option value="Argentina">Argentina</option>
+              <option value="França">França</option>
+              <option value="Portugal">Portugal</option>
+              <option value="Estados Unidos">Estados Unidos</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit">Salvar alterações</button>
+        <p id="profileMsg" class="msg" aria-live="polite"></p>
+      </form>
     </section>
+
+    <hr />
+
+    <section>
+      <h2>Reservar livro</h2>
+      <p class="small">
+        No catálogo, clique em <b>copiar referência</b> e cole aqui a referência BibLivre.
+        Sua reserva será enviada para a biblioteca (para combinar a retirada).
+      </p>
+
+      <form id="reserveForm" class="row" style="justify-content:flex-start;">
+        <input type="text" id="bibRef" placeholder="Ex.: BIBLIVRE-000123" style="max-width:380px;" required />
+        <button type="submit">Reservar</button>
+      </form>
+      <p id="reserveMsg" class="msg" aria-live="polite"></p>
+    </section>
+
+    <hr />
 
     <section>
       <h2>Empréstimos em curso</h2>
       <div id="loans"></div>
-    </section>
-
-    <section>
-      <h2>Reservar um livro</h2>
-      <form id="reserveForm" class="row">
-        <input type="number" id="bookId" placeholder="ID do livro" min="1" required />
-        <button type="submit">Reservar</button>
-      </form>
-      <p id="reserveMsg" class="msg"></p>
     </section>
 
     <section>
@@ -40,25 +152,135 @@
 
   <script type="module">
     import { supabase, requireSessionOrRedirect, signOut } from "./js/auth.js";
+    import { CONFIG } from "./js/config.js";
 
     document.getElementById("logout").addEventListener("click", signOut);
 
     const session = await requireSessionOrRedirect();
     if (!session) throw new Error("No session");
 
-    // Profil
-    {
+    // --- helpers: pack/unpack address in profiles.address (text)
+    function packAddress() {
+      const lines = [
+        document.getElementById("addr1").value.trim(),
+        document.getElementById("addr2").value.trim(),
+        document.getElementById("unit").value.trim() ? `Casa/Apto: ${document.getElementById("unit").value.trim()}` : "",
+        `CEP: ${document.getElementById("cep").value.trim()}`,
+        `Cidade: ${document.getElementById("city").value.trim()}`,
+        `Estado: ${document.getElementById("state").value}`,
+        `País: ${document.getElementById("country").value}`
+      ].filter(Boolean);
+      return lines.join("\n");
+    }
+
+    function extract(prefix, text) {
+      const re = new RegExp(`^${prefix}\\s*:\\s*(.*)$`, "mi");
+      const m = (text || "").match(re);
+      return m ? m[1].trim() : "";
+    }
+
+    function loadAddressFields(addressText) {
+      // address_1 + address_2: on prend les deux premières lignes "libres"
+      const lines = (addressText || "").split("\n").map(l => l.trim()).filter(Boolean);
+
+      // Heuristique: addr1 = première ligne qui n'est pas "CEP:" etc.
+      const free = lines.filter(l => !/^(Casa\/Apto:|CEP:|Cidade:|Estado:|País:)/i.test(l));
+      document.getElementById("addr1").value = free[0] || "";
+      document.getElementById("addr2").value = free[1] || "";
+
+      document.getElementById("unit").value = extract("Casa\\/Apto", addressText);
+      document.getElementById("cep").value = extract("CEP", addressText);
+      document.getElementById("city").value = extract("Cidade", addressText);
+      document.getElementById("state").value = extract("Estado", addressText);
+      document.getElementById("country").value = extract("País", addressText) || "Brasil";
+    }
+
+    // --- Load profile
+    async function loadProfile() {
       const { data, error } = await supabase
         .from("profiles")
-        .select("email, first_name, last_name, phone, address, gender, consent_email, created_at")
+        .select("email, first_name, last_name, phone, address, gender")
         .eq("id", session.user.id)
         .single();
 
-      document.getElementById("profile").textContent = error
-        ? ("Erro: " + error.message)
-        : `${data.first_name} ${data.last_name} — ${data.email}`;
+      if (error) {
+        document.getElementById("profileMsg").textContent = "Erro ao carregar perfil: " + error.message;
+        return;
+      }
+
+      document.getElementById("firstName").value = data.first_name || "";
+      document.getElementById("lastName").value = data.last_name || "";
+      document.getElementById("phone").value = data.phone || "";
+      document.getElementById("gender").value = data.gender || "";
+      loadAddressFields(data.address || "");
     }
 
+    await loadProfile();
+
+    // --- Save profile
+    document.getElementById("profileForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const profileMsg = document.getElementById("profileMsg");
+      profileMsg.textContent = "";
+
+      const payload = {
+        first_name: document.getElementById("firstName").value.trim(),
+        last_name: document.getElementById("lastName").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        gender: document.getElementById("gender").value,
+        address: packAddress()
+      };
+
+      const { error } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", session.user.id);
+
+      profileMsg.textContent = error ? ("Erro ao salvar: " + error.message) : "Dados atualizados com sucesso.";
+    });
+
+    // --- Reserve: call edge function (JWT required)
+    document.getElementById("reserveForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const reserveMsg = document.getElementById("reserveMsg");
+      reserveMsg.textContent = "";
+
+      const bib_ref = document.getElementById("bibRef").value.trim();
+      if (!bib_ref) {
+        reserveMsg.textContent = "Cole a referência BibLivre para reservar.";
+        return;
+      }
+
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) {
+        reserveMsg.textContent = "Sessão expirada. Faça login novamente.";
+        return;
+      }
+
+      const res = await fetch(`${CONFIG.FUNCTIONS_BASE_URL}/reserve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ bib_ref })
+      });
+
+      const text = await res.text();
+      let data = {};
+      try { data = JSON.parse(text); } catch {}
+
+      if (!res.ok) {
+        reserveMsg.textContent = data.error || `Erro ao reservar (HTTP ${res.status}).`;
+        return;
+      }
+
+      reserveMsg.textContent = "Reserva registrada e enviada para a biblioteca. Em breve entraremos em contato para combinar a retirada.";
+      document.getElementById("bibRef").value = "";
+    });
+
+    // --- Loans / history (comme avant)
     async function renderLoans() {
       const { data, error } = await supabase
         .from("loans")
@@ -81,7 +303,6 @@
 
       document.getElementById("loans").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Nenhum empréstimo em curso.</p>";
     }
-    await renderLoans();
 
     async function renderHistory() {
       const { data, error } = await supabase
@@ -103,22 +324,9 @@
 
       document.getElementById("history").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Sem histórico.</p>";
     }
+
+    await renderLoans();
     await renderHistory();
-
-    document.getElementById("reserveForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const reserveMsg = document.getElementById("reserveMsg");
-      reserveMsg.textContent = "";
-
-      const book_id = Number(document.getElementById("bookId").value);
-      const { error } = await supabase.from("reservations").insert({
-        user_id: session.user.id,
-        book_id,
-        status: "active"
-      });
-
-      reserveMsg.textContent = error ? ("Erro: " + error.message) : "Reserva registrada.";
-    });
   </script>
 </body>
 </html>
