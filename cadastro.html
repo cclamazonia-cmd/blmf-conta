@@ -1,3 +1,4 @@
+<!-- cadastro.html -->
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -6,6 +7,17 @@
   <title>Cadastro — Biblioteca Libertária Maxwell Ferreira</title>
   <link rel="stylesheet" href="./css/app.css" />
   <style>
+    body{
+      background-image:url("https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg");
+      background-size:cover;
+      background-position:center;
+      background-attachment:fixed;
+      background-repeat:no-repeat;
+    }
+    .card{
+      background: rgba(27,27,27,0.92);
+      backdrop-filter: blur(2px);
+    }
     .brand { display:flex; gap:14px; align-items:center; margin-bottom:14px; }
     .brand img { width:56px; height:56px; object-fit:contain; }
     .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
@@ -92,7 +104,7 @@
           <label for="state">Estado</label>
           <select id="state" required>
             <option value="">— selecione —</option>
-            <option value="Não se aplica">NSA</option>
+            <option value="NSA">Não se aplica (NSA)</option>
             <option value="AC">Acre (AC)</option>
             <option value="AL">Alagoas (AL)</option>
             <option value="AP">Amapá (AP)</option>
@@ -132,9 +144,13 @@
             <option value="Bolívia">Bolívia</option>
             <option value="Chile">Chile</option>
             <option value="Colômbia">Colômbia</option>
+            <option value="Equador">Equador</option>
+            <option value="Guiana">Guiana</option>
+            <option value="Paraguai">Paraguai</option>
+            <option value="Peru">Peru</option>
+            <option value="Suriname">Suriname</option>
             <option value="Uruguai">Uruguai</option>
             <option value="Venezuela">Venezuela</option>
-            <!-- (tu peux remettre la liste complète si tu veux, je l’avais donnée) -->
           </select>
         </div>
       </div>
@@ -227,7 +243,15 @@
           return;
         }
 
-        msg.textContent = "Cadastro enviado com sucesso. Verifique seu e-mail para receber sua senha.";
+        // Affiche un succès même si les e-mails échouent (register est patché pour ne pas planter)
+        if (data.email_usuaria_enviado === false) {
+          msg.textContent =
+            "Cadastro concluído, mas houve um problema ao enviar o e-mail automaticamente. " +
+            "Entre em contato com a biblioteca para receber sua senha.";
+        } else {
+          msg.textContent = "Cadastro enviado com sucesso. Verifique seu e-mail (e Spam/Lixo eletrônico) para receber sua senha.";
+        }
+
         form.reset();
       } catch (err) {
         msg.textContent = "Falha de rede ao enviar o cadastro. Tente novamente.";
