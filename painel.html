@@ -162,6 +162,31 @@
     </section>
 
     <hr />
+    <section>
+      <h2>Alterar senha</h2>
+      <p class="small">Para sua segurança, informe a senha atual e escolha uma nova senha.</p>
+
+      <form id="passwordForm" novalidate>
+        <div class="grid2">
+          <div>
+            <label for="currentPassword">Senha atual</label>
+            <input type="password" id="currentPassword" autocomplete="current-password" required />
+          </div>
+          <div>
+            <label for="newPassword">Nova senha</label>
+            <input type="password" id="newPassword" autocomplete="new-password" required />
+          </div>
+        </div>
+
+        <label for="confirmPassword">Confirmar nova senha</label>
+        <input type="password" id="confirmPassword" autocomplete="new-password" required />
+
+        <button type="submit">Salvar nova senha</button>
+        <p id="passwordMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <hr />
 
     <section>
       <h2>Reservar livro</h2>
@@ -194,7 +219,10 @@
     import { supabase, requireSessionOrRedirect, signOut } from "./js/auth.js";
     import { CONFIG } from "./js/config.js";
 
-    document.getElementById("logout").addEventListener("click", signOut);
+    // Supabase (defaults for this project)
+    const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_38cFV9vsGhmqMp-Z5gmV4w_HY6ReWSF";
+document.getElementById("logout").addEventListener("click", signOut);
 
     const session = await requireSessionOrRedirect();
     if (!session) throw new Error("No session");
@@ -273,6 +301,60 @@
       profileMsg.textContent = error ? ("Erro ao salvar: " + error.message) : "Dados atualizados com sucesso.";
     });
 
+
+    // Alterar senha (requer sessão ativa)
+    document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("passwordMsg");
+      msg.textContent = "";
+
+      const currentPassword = document.getElementById("currentPassword").value;
+      const newPassword = document.getElementById("newPassword").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        msg.textContent = "Preencha todos os campos de senha.";
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        msg.textContent = "A confirmação não corresponde à nova senha.";
+        return;
+      }
+      if (newPassword.length < 8) {
+        msg.textContent = "A nova senha deve ter pelo menos 8 caracteres.";
+        return;
+      }
+
+      try {
+        // Tenta atualizar direto
+        let { error: updErr } = await supabase.auth.updateUser({ password: newPassword });
+
+        // Se exigir login recente, reautentica e tenta de novo
+        if (updErr && /recent|reauth|login/i.test(updErr.message || "")) {
+          const email = session.user.email;
+          const { error: signErr } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+          if (signErr) {
+            msg.textContent = "Senha atual incorreta (ou sessão expirada).";
+            return;
+          }
+          const res2 = await supabase.auth.updateUser({ password: newPassword });
+          updErr = res2.error;
+        }
+
+        if (updErr) {
+          msg.textContent = "Erro ao alterar senha: " + updErr.message;
+          return;
+        }
+
+        msg.textContent = "Senha atualizada com sucesso.";
+        document.getElementById("currentPassword").value = "";
+        document.getElementById("newPassword").value = "";
+        document.getElementById("confirmPassword").value = "";
+      } catch (err) {
+        msg.textContent = "Erro ao alterar senha: " + (err?.message || String(err));
+      }
+    });
+
     document.getElementById("reserveForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const reserveMsg = document.getElementById("reserveMsg");
@@ -295,7 +377,8 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
+          "apikey": (CONFIG.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY)
         },
         body: JSON.stringify({ bib_ref })
       });
