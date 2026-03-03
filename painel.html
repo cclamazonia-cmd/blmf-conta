@@ -194,10 +194,6 @@
     import { supabase, requireSessionOrRedirect, signOut } from "./js/auth.js";
     import { CONFIG } from "./js/config.js";
 
-    // Supabase defaults (BLMF)
-    const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_38cFV9vsGhmqMp-Z5gmV4w_HY6ReWSF";
-
     document.getElementById("logout").addEventListener("click", signOut);
 
     const session = await requireSessionOrRedirect();
@@ -290,20 +286,16 @@
 
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
-      console.log("RESERVE token prefix:", token ? token.slice(0,20) : "NULL");
       if (!token) {
         reserveMsg.textContent = "Sessão expirada. Faça login novamente.";
         return;
       }
 
-      console.log("RESERVE calling:", `${SUPABASE_URL}/functions/v1/reserve`);
-
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/reserve`, {
+      const res = await fetch(`${CONFIG.FUNCTIONS_BASE_URL}/reserve`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "apikey": (CONFIG.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY)
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ bib_ref })
       });
