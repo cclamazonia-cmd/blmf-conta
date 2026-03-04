@@ -118,6 +118,9 @@
     .list-table td small{ color:#cfcfcf; }
     .inline-select{ max-width:160px; }
 
+  
+    .table-scroll{ width:100%; overflow-x:auto; }
+
   </style>
 </head>
 
@@ -873,10 +876,11 @@
 
     if (refreshPendentes) refreshPendentes.addEventListener("click", renderPendingReservas);
 
-
     async function renderPendingReservas() {
       const box = document.getElementById("pendingReservas");
       const msg = document.getElementById("pendingMsg");
+      const fulfillIdInput = document.getElementById("fulfillReservaId");
+      const fulfillBatchSelect = document.getElementById("fulfillBatchSize");
       if (!box || !msg) return;
 
       msg.textContent = "";
@@ -902,88 +906,72 @@
       }
 
       const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
       const batchOptions = (selected) => [1,2,3,4,5].map(n => `<option value="${n}" ${String(n)===String(selected) ? "selected":""}>${n}</option>`).join("");
 
       box.innerHTML = `
-        <table class="list-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Data</th>
-              <th>Livro</th>
-              <th>Leitor(a/e)</th>
-              <th>Lote</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(r => `
+        <div class="table-scroll">
+          <table class="list-table">
+            <thead>
               <tr>
-                <td><b>${esc(r.reserva_id)}</b></td>
-                <td><small>${esc(r.reserva_em)}</small></td>
-                <td>
-                  <div><b>${esc(r.titulo || "—")}</b></div>
-                  <div><small>${esc(r.autor || "")}</small></div>
-                  <div><small>bib_ref: ${esc(r.bib_ref || "")}</small></div>
-                </td>
-                <td>
-                  <div>${esc(((r.first_name || "") + " " + (r.last_name || "")).trim() || "—")}</div>
-                  <div><small>${esc(r.user_email || "")}</small></div>
-                </td>
-                <td>
-                  <select class="inline-select" data-batch-size="${esc(r.reserva_id)}">
-                    ${batchOptions(1)}
-                  </select>
-                </td>
-                <td>
-                  <span class="loan-actions"><button type="button" class="secondary mini-btn" data-fulfill-inline="${esc(r.reserva_id)}">Confirmar retirada</button><button type="button" class="secondary mini-btn" data-cancel-inline="${esc(r.reserva_id)}">Cancelar</button></span>
-                </td>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Livro</th>
+                <th>Leitor(a/e)</th>
+                <th>Lote</th>
               </tr>
-            `).join("")}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr data-select-reserva="${esc(r.reserva_id)}" style="cursor:pointer;">
+                  <td><b>${esc(r.reserva_id)}</b></td>
+                  <td><small>${esc(r.reserva_em)}</small></td>
+                  <td>
+                    <div><b>${esc(r.titulo || "—")}</b></div>
+                    <div><small>${esc(r.autor || "")}</small></div>
+                    <div><small>bib_ref: ${esc(r.bib_ref || "")}</small></div>
+                  </td>
+                  <td>
+                    <div>${esc(((r.first_name || "") + " " + (r.last_name || "")).trim() || "—")}</div>
+                    <div><small>${esc(r.user_email || "")}</small></div>
+                  </td>
+                  <td>
+                    <span class="loan-actions">
+                      <select class="inline-select" data-batch-size="${esc(r.reserva_id)}" aria-label="Lote">
+                        ${batchOptions(1)}
+                      </select>
+                      <button type="button" class="secondary mini-btn" data-cancel-inline="${esc(r.reserva_id)}">Cancelar</button>
+                    </span>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
       `;
 
-      box.querySelectorAll("[data-fulfill-inline]").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const rid = Number(btn.getAttribute("data-fulfill-inline"));
+      // Clique na linha: preenche o formulário de confirmação (ID + lote)
+      box.querySelectorAll("[data-select-reserva]").forEach((tr) => {
+        tr.addEventListener("click", (ev) => {
+          const target = ev.target;
+          if (target && (target.tagName === "SELECT" || target.tagName === "OPTION" || target.closest("[data-cancel-inline]"))) return;
+
+          const rid = tr.getAttribute("data-select-reserva");
           const sel = box.querySelector(`[data-batch-size="${rid}"]`);
           const batch = sel ? (parseInt(sel.value, 10) || 1) : 1;
 
-          btn.setAttribute("disabled", "disabled");
-          msg.textContent = "Confirmando retirada...";
+          if (fulfillIdInput) fulfillIdInput.value = String(rid);
+          if (fulfillBatchSelect) fulfillBatchSelect.value = String(batch);
 
-          const { data, error } = await supabase.rpc("fulfill_reserva", {
-            p_reserva_id: rid,
-            p_batch_size: batch
-          });
-
-          btn.removeAttribute("disabled");
-
-          if (error) {
-            console.error("fulfill_reserva error:", error);
-            msg.textContent = "Erro ao confirmar retirada: " + error.message;
-            return;
-          }
-
-          const row = Array.isArray(data) ? data[0] : data;
-          const ok = row?.ok === true;
-          const message = row?.message || (ok ? "Reserva retirada." : "Não foi possível confirmar retirada.");
-          const extraLoan = row?.loan_id ? ` (Empréstimo ID: ${row.loan_id})` : "";
-          const extraDue = row?.due_date ? ` Devolução: ${row.due_date}.` : "";
-          msg.textContent = message + extraLoan + extraDue;
-
-          await renderPendingReservas();
-          await renderLoans();
-          await renderHistory();
+          msg.textContent = `Reserva selecionada: ${rid}. Agora clique em “Confirmar retirada”.`;
+          const f = document.getElementById("fulfillForm");
+          if (f) f.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       });
-    }
 
-      // Cancelar reserva (marca status='cancelled')
+      // Cancelar reserva (status='cancelled')
       box.querySelectorAll("[data-cancel-inline]").forEach((btn) => {
-        btn.addEventListener("click", async () => {
+        btn.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
           const rid = Number(btn.getAttribute("data-cancel-inline"));
           if (!rid) return;
 
@@ -1004,12 +992,18 @@
           }
 
           const row = Array.isArray(data) ? data[0] : data;
-          const message = row?.message || "Reserva cancelada.";
-          msg.textContent = message;
+          msg.textContent = row?.message || "Reserva cancelada.";
+
+          if (fulfillIdInput && String(fulfillIdInput.value || "") === String(rid)) {
+            fulfillIdInput.value = "";
+          }
 
           await renderPendingReservas();
         });
       });
+    }
+
+
 
 
 
