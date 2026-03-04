@@ -1,4 +1,3 @@
-<!-- conta.html -->
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -29,6 +28,19 @@
     }
     .subtitle{ margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
     .topActions{ display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 14px; }
+
+    /* NEW: forgot password blocks, without removing existing elements */
+    .notice{
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.22);
+      padding:10px 12px;
+      border-radius:12px;
+      margin: 12px 0 10px;
+      color:#fff;
+    }
+    .small{ color:#cfcfcf; font-size:.9rem; }
+    .rowbtn { display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+    .hide { display:none !important; }
   </style>
 </head>
 <body>
@@ -50,17 +62,65 @@
       <button id="goCadastro" class="secondary">Cadastrar-se</button>
     </div>
 
-    <form id="loginForm">
-      <label for="email">E-mail</label>
-      <input type="email" id="email" required />
+    <!-- LOGIN (kept) -->
+    <section id="loginBox">
+      <form id="loginForm">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" required />
 
-      <label for="password">Senha</label>
-      <input type="password" id="password" required />
+        <label for="password">Senha</label>
+        <input type="password" id="password" required />
 
-      <button type="submit">Entrar</button>
-    </form>
+        <button type="submit">Entrar</button>
+      </form>
 
-    <p id="msg" class="msg" aria-live="polite"></p>
+      <p id="msg" class="msg" aria-live="polite"></p>
+
+      <!-- NEW: forgot password UI -->
+      <div class="notice" aria-label="Recuperação de senha">
+        <b>Esqueceu a senha?</b>
+        <div class="small">Envie um link para redefinir sua senha (fora do Painel).</div>
+      </div>
+
+      <div class="rowbtn">
+        <button id="forgotBtn" class="secondary" type="button">Esqueci minha senha</button>
+      </div>
+
+      <form id="forgotForm" class="hide" novalidate style="margin-top:10px;">
+        <label for="forgotEmail">E-mail da conta</label>
+        <input id="forgotEmail" type="email" autocomplete="email" required />
+
+        <div class="rowbtn">
+          <button type="submit">Enviar link</button>
+          <button type="button" id="cancelForgot" class="secondary">Cancelar</button>
+        </div>
+
+        <p id="forgotMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <!-- NEW: RECOVERY MODE (reset password) -->
+    <section id="recoveryBox" class="hide" aria-label="Redefinir senha">
+      <div class="notice">
+        <b>Redefinir senha</b>
+        <div class="small">Escolha uma nova senha para sua conta.</div>
+      </div>
+
+      <form id="resetForm" novalidate>
+        <label for="newPassword">Nova senha</label>
+        <input id="newPassword" type="password" autocomplete="new-password" required />
+
+        <label for="newPassword2">Confirmar nova senha</label>
+        <input id="newPassword2" type="password" autocomplete="new-password" required />
+
+        <div class="rowbtn">
+          <button type="submit">Salvar nova senha</button>
+          <button type="button" id="toggleResetPw" class="secondary">Mostrar senha</button>
+        </div>
+
+        <p id="resetMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
   </main>
 
   <script type="module">
@@ -72,10 +132,59 @@
       e.preventDefault();
       window.location.href = BLOG_URL;
     });
-document.getElementById("goCadastro").addEventListener("click", () => {
+
+    document.getElementById("goCadastro").addEventListener("click", () => {
       window.location.href = "./cadastro.html";
     });
 
+    const loginBox = document.getElementById("loginBox");
+    const recoveryBox = document.getElementById("recoveryBox");
+
+    const forgotBtn = document.getElementById("forgotBtn");
+    const forgotForm = document.getElementById("forgotForm");
+    const forgotMsg = document.getElementById("forgotMsg");
+    const cancelForgot = document.getElementById("cancelForgot");
+
+    // Toggle forgot form
+    forgotBtn.addEventListener("click", () => {
+      forgotForm.classList.remove("hide");
+      forgotBtn.classList.add("hide");
+      document.getElementById("forgotEmail").value = document.getElementById("email").value.trim();
+      forgotMsg.textContent = "";
+    });
+
+    cancelForgot.addEventListener("click", () => {
+      forgotForm.classList.add("hide");
+      forgotBtn.classList.remove("hide");
+      forgotMsg.textContent = "";
+    });
+
+    function parseHashParams() {
+      const raw = (window.location.hash || "").replace(/^#/, "");
+      return new URLSearchParams(raw);
+    }
+
+    // Detect recovery mode (Supabase email link adds: #access_token=...&type=recovery&refresh_token=...)
+    const params = parseHashParams();
+    const isRecovery = params.get("type") === "recovery" && !!params.get("access_token");
+
+    if (isRecovery) {
+      // Establish session from hash tokens so updateUser works
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token") || "";
+
+      try {
+        await supabase.auth.setSession({ access_token, refresh_token });
+      } catch (e) {
+        // if it fails, still show UI; user can request a new link
+        console.warn("setSession failed:", e);
+      }
+
+      loginBox.classList.add("hide");
+      recoveryBox.classList.remove("hide");
+    }
+
+    // LOGIN (kept)
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const msg = document.getElementById("msg");
@@ -90,6 +199,79 @@ document.getElementById("goCadastro").addEventListener("click", () => {
         return;
       }
       window.location.href = "./painel.html";
+    });
+
+    // FORGOT PASSWORD: send reset link
+    document.getElementById("forgotForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      forgotMsg.textContent = "";
+
+      const email = document.getElementById("forgotEmail").value.trim();
+      if (!email) { forgotMsg.textContent = "Informe um e-mail válido."; return; }
+
+      // redirectTo must be allowed in Supabase Auth settings
+      const redirectTo = "https://cclamazonia-cmd.github.io/blmf-conta/conta.html";
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        forgotMsg.textContent = "Erro ao enviar link: " + error.message;
+        return;
+      }
+
+      forgotMsg.textContent = "Link enviado. Verifique seu e-mail (e Spam/Lixo eletrônico).";
+    });
+
+    // RESET PASSWORD (recovery)
+    const resetMsg = document.getElementById("resetMsg");
+    const rp1 = document.getElementById("newPassword");
+    const rp2 = document.getElementById("newPassword2");
+    const toggleResetPw = document.getElementById("toggleResetPw");
+
+    toggleResetPw.addEventListener("click", () => {
+      const show = rp1.type === "password";
+      rp1.type = show ? "text" : "password";
+      rp2.type = show ? "text" : "password";
+      toggleResetPw.textContent = show ? "Ocultar senha" : "Mostrar senha";
+    });
+
+    document.getElementById("resetForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      resetMsg.textContent = "";
+
+      const p1 = rp1.value;
+      const p2 = rp2.value;
+
+      if (!p1 || p1.length < 10) { resetMsg.textContent = "A senha deve ter pelo menos 10 caracteres."; return; }
+      if (p1 !== p2) { resetMsg.textContent = "As senhas não coincidem."; return; }
+
+      const { error } = await supabase.auth.updateUser({ password: p1 });
+      if (error) {
+        resetMsg.textContent = "Erro ao salvar senha: " + error.message;
+        return;
+      }
+
+      // Optional: unlock painel enforcement if columns exist
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        if (userId) {
+          const { error: profErr } = await supabase
+            .from("profiles")
+            .update({ must_change_password: false, password_changed_at: new Date().toISOString() })
+            .eq("id", userId);
+
+          if (profErr) console.warn("profiles update warn:", profErr.message);
+        }
+      } catch (e) {
+        console.warn("profiles update skipped:", e);
+      }
+
+      resetMsg.textContent = "Senha redefinida com sucesso. Agora você pode entrar.";
+
+      // Clean the URL hash
+      history.replaceState(null, "", window.location.pathname);
+
+      setTimeout(() => { window.location.href = "./conta.html"; }, 900);
     });
   </script>
 </body>
