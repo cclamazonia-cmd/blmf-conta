@@ -47,7 +47,7 @@
       border:1px solid rgba(255,255,255,0.14);
       background: rgba(0,0,0,0.22);
       color:#fff;
-      transition: transform .06s ease, background .12s ease, border-color .12s ease;
+      transition: transform .06s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
     }
     .tab-btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.22); }
     .tab-btn.active{
@@ -61,6 +61,12 @@
       font-size:.85rem;
       line-height:1.2;
     }
+    .tab-btn:disabled{
+      cursor:not-allowed;
+      opacity:0.45;
+      transform:none !important;
+    }
+
     .tabs-panels{ flex:1 1 auto; min-width:0; }
     .tab-panel{ display:none; }
     .tab-panel.active{ display:block; }
@@ -83,6 +89,16 @@
 
     .panel-head{ margin-bottom: 10px; }
     .panel-head h2{ margin-top:0; }
+
+    .notice{
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(200, 0, 0, 0.16);
+      padding:10px 12px;
+      border-radius:12px;
+      margin: 0 0 12px;
+      color:#fff;
+    }
+    .notice .small{ color:#f0f0f0; }
   </style>
 </head>
 
@@ -117,7 +133,7 @@
         </button>
         <button class="tab-btn" type="button" data-tab="curso" role="tab" aria-selected="false" aria-controls="tab-curso">
           Empréstimos em curso
-          <span class="hint">O que você está com você</span>
+          <span class="hint">O que está com você</span>
         </button>
         <button class="tab-btn" type="button" data-tab="historico" role="tab" aria-selected="false" aria-controls="tab-historico">
           Histórico
@@ -128,6 +144,13 @@
       <div class="tabs-panels">
         <!-- PERFIL -->
         <section id="tab-perfil" class="tab-panel active" data-tab="perfil" role="tabpanel">
+          <div id="mustChangeNotice" class="notice" style="display:none">
+            <b>Segurança:</b>
+            <div class="small">
+              Por segurança, altere sua senha após o primeiro acesso. Enquanto isso, as outras abas ficam bloqueadas.
+            </div>
+          </div>
+
           <div class="panel-head">
             <h2>Seus dados (editar)</h2>
             <p class="small">Você pode atualizar seus dados abaixo. O e-mail de login permanece o mesmo.</p>
@@ -242,6 +265,28 @@
             <button type="submit">Salvar alterações</button>
             <p id="profileMsg" class="msg" aria-live="polite"></p>
           </form>
+
+          <hr />
+
+          <section aria-label="Alterar senha">
+            <h2>Segurança — Alterar senha</h2>
+            <p class="small">Escolha uma senha forte (mínimo 10 caracteres). Depois de alterar, você precisará usar a nova senha no próximo login.</p>
+
+            <form id="passwordForm" novalidate>
+              <label for="newPassword">Nova senha</label>
+              <input type="password" id="newPassword" autocomplete="new-password" required />
+
+              <label for="newPassword2">Confirmar nova senha</label>
+              <input type="password" id="newPassword2" autocomplete="new-password" required />
+
+              <div class="row" style="justify-content:flex-start; gap:10px;">
+                <button type="submit">Salvar senha</button>
+                <button type="button" id="togglePw" class="secondary">Mostrar senha</button>
+              </div>
+
+              <p id="passwordMsg" class="msg" aria-live="polite"></p>
+            </form>
+          </section>
         </section>
 
         <!-- RESERVAR -->
@@ -292,6 +337,9 @@
     // Tabs
     const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
     const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+    const mustChangeNotice = document.getElementById("mustChangeNotice");
+
+    let mustChangePassword = false;
 
     function setActiveTab(key, { pushHash = true } = {}) {
       tabButtons.forEach(btn => {
@@ -305,10 +353,26 @@
       if (pushHash) location.hash = "#" + key;
     }
 
+    function enforcePasswordChangeUI(enforce) {
+      mustChangePassword = !!enforce;
+      mustChangeNotice.style.display = enforce ? "block" : "none";
+
+      // Bloqueia outras abas enquanto must_change_password = true
+      tabButtons.forEach(btn => {
+        if (btn.dataset.tab !== "perfil") btn.disabled = enforce;
+      });
+
+      if (enforce) setActiveTab("perfil", { pushHash: true });
+    }
+
     tabButtons.forEach(btn => {
-      btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+      btn.addEventListener("click", () => {
+        if (mustChangePassword && btn.dataset.tab !== "perfil") return;
+        setActiveTab(btn.dataset.tab);
+      });
     });
 
+    // Init tab via hash (mas se enforce=true, ficará no perfil)
     const initial = (location.hash || "").replace("#", "");
     if (initial && tabPanels.some(p => p.dataset.tab === initial)) {
       setActiveTab(initial, { pushHash: false });
@@ -342,7 +406,7 @@
       document.getElementById("addr1").value = free[0] || "";
       document.getElementById("addr2").value = free[1] || "";
 
-      document.getElementById("unit").value = extract("Casa\\/Apto", addressText);
+      document.getElementById("unit").value = extract("Casa\/Apto", addressText);
       document.getElementById("cep").value = extract("CEP", addressText);
       document.getElementById("city").value = extract("Cidade", addressText);
       document.getElementById("state").value = extract("Estado", addressText);
@@ -350,11 +414,29 @@
     }
 
     async function loadProfile() {
-      const { data, error } = await supabase
+      // Tenta carregar também os campos opcionais (must_change_password / password_changed_at).
+      // Se ainda não existirem no schema, cai em fallback sem travar a página.
+      let data = null;
+      let error = null;
+
+      const q1 = await supabase
         .from("profiles")
-        .select("email, first_name, last_name, phone, address, gender")
+        .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at")
         .eq("id", session.user.id)
         .single();
+
+      if (!q1.error) {
+        data = q1.data;
+      } else {
+        // fallback sem os campos opcionais
+        const q2 = await supabase
+          .from("profiles")
+          .select("email, first_name, last_name, phone, address, gender")
+          .eq("id", session.user.id)
+          .single();
+        data = q2.data;
+        error = q2.error;
+      }
 
       if (error) {
         document.getElementById("profileMsg").textContent = "Erro ao carregar perfil: " + error.message;
@@ -366,6 +448,11 @@
       document.getElementById("phone").value = data.phone || "";
       document.getElementById("gender").value = data.gender || "";
       loadAddressFields(data.address || "");
+
+      // Enforce optional
+      if (typeof data.must_change_password === "boolean") {
+        enforcePasswordChangeUI(data.must_change_password);
+      }
     }
 
     await loadProfile();
@@ -391,6 +478,71 @@
       profileMsg.textContent = error ? ("Erro ao salvar: " + error.message) : "Dados atualizados com sucesso.";
     });
 
+    // Password UI
+    const pwInput = document.getElementById("newPassword");
+    const pwInput2 = document.getElementById("newPassword2");
+    const pwMsg = document.getElementById("passwordMsg");
+    const togglePwBtn = document.getElementById("togglePw");
+
+    togglePwBtn.addEventListener("click", () => {
+      const show = pwInput.type === "password";
+      pwInput.type = show ? "text" : "password";
+      pwInput2.type = show ? "text" : "password";
+      togglePwBtn.textContent = show ? "Ocultar senha" : "Mostrar senha";
+    });
+
+    document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      pwMsg.textContent = "";
+
+      const p1 = pwInput.value;
+      const p2 = pwInput2.value;
+
+      if (!p1 || p1.length < 10) {
+        pwMsg.textContent = "A senha deve ter pelo menos 10 caracteres.";
+        return;
+      }
+      if (p1 !== p2) {
+        pwMsg.textContent = "As senhas não coincidem.";
+        return;
+      }
+
+      // Atualiza senha no Supabase Auth
+      const { error } = await supabase.auth.updateUser({ password: p1 });
+      if (error) {
+        console.error("updateUser password error:", error);
+        pwMsg.textContent = "Erro ao alterar senha: " + error.message + " (se necessário, faça login novamente).";
+        return;
+      }
+
+      // Atualiza flag no profile (opcional)
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({
+          must_change_password: false,
+          password_changed_at: new Date().toISOString()
+        })
+        .eq("id", session.user.id);
+
+      if (profErr) {
+        console.error("profiles update password flags error:", profErr);
+        // Mesmo se isso falhar, a senha já foi alterada. Só avisamos.
+        pwMsg.textContent = "Senha alterada. (Aviso: não foi possível atualizar o status no perfil.)";
+        enforcePasswordChangeUI(false);
+      } else {
+        pwMsg.textContent = "Senha alterada com sucesso.";
+        enforcePasswordChangeUI(false);
+      }
+
+      // limpa e volta ao modo password
+      pwInput.value = "";
+      pwInput2.value = "";
+      pwInput.type = "password";
+      pwInput2.type = "password";
+      togglePwBtn.textContent = "Mostrar senha";
+    });
+
+    // Reserve
     document.getElementById("reserveForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const reserveMsg = document.getElementById("reserveMsg");
