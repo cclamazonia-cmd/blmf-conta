@@ -25,7 +25,6 @@
     .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
     @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
 
-    /* NEW: notice about changing password */
     .notice{
       border:1px solid rgba(255,255,255,0.18);
       background: rgba(200, 0, 0, 0.14);
@@ -35,6 +34,19 @@
       color:#fff;
     }
     .notice small{ color:#f0f0f0; display:block; margin-top:4px; line-height:1.25; }
+
+    .rules{
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.22);
+      padding:10px 12px;
+      border-radius:12px;
+      margin: 12px 0 10px;
+      color:#fff;
+    }
+    .rules summary{ cursor:pointer; }
+    .rules ul{ margin:10px 0 0 18px; color:#f0f0f0; }
+    .rules a{ color:#fff; text-decoration:underline; }
+    .muted{ color:#cfcfcf; font-size:.92rem; }
   </style>
 </head>
 
@@ -52,7 +64,6 @@
       </div>
     </div>
 
-    <!-- NEW (keeps everything else): warning about password change -->
     <div class="notice" role="note" aria-label="Aviso de segurança">
       <b>Importante (segurança):</b>
       <small>
@@ -66,6 +77,24 @@
         Se você não encontrar o e-mail de criação de conta, verifique “Spam/Lixo eletrônico”.
       </small>
     </div>
+
+    <details class="rules">
+      <summary><b>Regimento (resumo)</b> <span class="muted">— leia antes de criar sua conta</span></summary>
+      <ul>
+        <li>A biblioteca empresta <b>apenas livros</b>. Periódicos e brochuras são para <b>consulta local</b>.</li>
+        <li>Você pode emprestar <b>até 5 livros</b> ao mesmo tempo.</li>
+        <li>Prazos de empréstimo (conforme quantidade de livros emprestados):
+          <ul>
+            <li>1 livro: <b>21 dias</b></li>
+            <li>2–3 livros: <b>30 dias</b></li>
+            <li>4–5 livros: <b>38 dias</b></li>
+          </ul>
+        </li>
+        <li>Prorrogações: em geral, é possível solicitar <b>1 prorrogação</b>, quando não houver reserva pendente do mesmo exemplar.</li>
+        <li>Em caso de atraso, a biblioteca envia avisos. Se a situação não for regularizada em até <b>30 dias</b> após o aviso de atraso, o acesso a novos empréstimos pode ficar <b>suspenso</b> até regularização.</li>
+        <li>Regimento completo: <a id="regLinkTop" href="#" rel="noopener">abrir</a></li>
+      </ul>
+    </details>
 
     <p class="hint">
       Preencha os campos abaixo para criar sua conta. Campos obrigatórios devem ser preenchidos.
@@ -183,16 +212,23 @@
 
       <hr />
 
+      <label class="checkbox" for="acceptRules">
+        <input type="checkbox" id="acceptRules" required />
+        <span>
+          Eu li e aceito o <a id="regLink" href="#" rel="noopener">Regimento</a> da Biblioteca (empréstimos, prazos, prorrogações e atrasos).
+        </span>
+      </label>
+
       <label class="checkbox" for="consent">
         <input type="checkbox" id="consent" required />
         <span>
-          Eu aceito que meu endereço de e-mail seja usado para o envio de informações sobre minha conta de leitor/a/e:
-          disponibilização de documentos reservados, indicação da data de devolução dos documentos e avisos de atraso dos documentos emprestados.
+          Eu aceito que meu endereço de e-mail seja usado para o envio de informações sobre minha conta:
+          <b>reservas</b>, <b>empréstimos</b>, <b>prorrogações</b>, <b>devoluções</b> e <b>avisos de atraso</b>.
         </span>
       </label>
 
       <p id="requiredMsg" class="required" style="display:none;">
-        Você precisa marcar a caixa de consentimento para enviar o cadastro.
+        Você precisa marcar as caixas obrigatórias para enviar o cadastro.
       </p>
 
       <button type="submit">Enviar cadastro</button>
@@ -205,18 +241,36 @@
   <script type="module">
     import { CONFIG } from "./js/config.js";
 
+    const REGIMENTO_URL = 'https://cclamazonia.noblogs.org/regimento-blmf/';
+
+    // Wire regimento links
+    for (const id of ["regLinkTop", "regLink"]) {
+      const a = document.getElementById(id);
+      if (a) a.href = REGIMENTO_URL;
+    }
+
     const form = document.getElementById("cadastroForm");
     const msg = document.getElementById("msg");
     const requiredMsg = document.getElementById("requiredMsg");
-    const consent = document.getElementById("consent");
 
-    consent.addEventListener("invalid", () => {
-      consent.setCustomValidity("Você precisa marcar esta caixa para continuar.");
-    });
-    consent.addEventListener("change", () => {
-      consent.setCustomValidity("");
-      requiredMsg.style.display = consent.checked ? "none" : "block";
-    });
+    const consent = document.getElementById("consent");
+    const acceptRules = document.getElementById("acceptRules");
+
+    function validateCheckboxes() {
+      const ok = consent.checked && acceptRules.checked;
+      requiredMsg.style.display = ok ? "none" : "block";
+      return ok;
+    }
+
+    for (const cb of [consent, acceptRules]) {
+      cb.addEventListener("invalid", () => {
+        cb.setCustomValidity("Você precisa marcar esta caixa para continuar.");
+      });
+      cb.addEventListener("change", () => {
+        cb.setCustomValidity("");
+        validateCheckboxes();
+      });
+    }
 
     document.getElementById("back").addEventListener("click", () => {
       window.location.href = "./conta.html";
@@ -227,9 +281,9 @@
       msg.textContent = "";
       requiredMsg.style.display = "none";
 
-      if (!consent.checked) {
+      if (!validateCheckboxes()) {
         requiredMsg.style.display = "block";
-        consent.focus();
+        (!acceptRules.checked ? acceptRules : consent).focus();
         return;
       }
       if (!form.checkValidity()) {
@@ -250,7 +304,8 @@
         city: document.getElementById("city").value.trim(),
         state: document.getElementById("state").value,
         country: document.getElementById("country").value,
-        consent_email: true
+        consent_email: true,
+        accept_rules: true
       };
 
       try {
@@ -269,7 +324,6 @@
           return;
         }
 
-        // Affiche un succès même si les e-mails échouent (register est patché pour ne pas planter)
         if (data.email_usuaria_enviado === false) {
           msg.textContent =
             "Cadastro concluído, mas houve um problema ao enviar o e-mail automaticamente. " +
