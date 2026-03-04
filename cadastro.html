@@ -1,3 +1,4 @@
+<!-- cadastro.html -->
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -20,16 +21,10 @@
     .brand { display:flex; gap:14px; align-items:center; margin-bottom:14px; }
     .brand img { width:56px; height:56px; object-fit:contain; }
     .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
-    .small { color:#cfcfcf; font-size:.9rem; }
-    .notice{
-      border:1px solid rgba(255,255,255,0.18);
-      background: rgba(200, 0, 0, 0.14);
-      padding:10px 12px;
-      border-radius:12px;
-      margin: 0 0 12px;
-      color:#fff;
-    }
-    .rowbtn { display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+    .hint { color:#cfcfcf; font-size:.95rem; margin-top:10px; }
+    .required { color:#ffb4b4; font-size:.95rem; margin-top:10px; }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
   </style>
 </head>
 
@@ -41,96 +36,227 @@
         alt="Logotipo BLMF"
         onerror="this.style.display='none'"
       />
-      <div style="flex:1;">
-        <h1 style="margin:0;">Cadastro</h1>
-        <p class="subtitle">Crie sua conta de leitor/a/e</p>
+      <div>
+        <h1 style="margin:0;">Cadastro — Biblioteca Libertária Maxwell Ferreira</h1>
+        <p class="subtitle">Conta do/a/e leitor/a/e</p>
       </div>
     </div>
 
-    <div class="notice">
-      <b>Importante (segurança):</b>
-      <div class="small">
-        Após o primeiro acesso, você deverá alterar sua senha no <b>Painel</b>.
-      </div>
-    </div>
+    <p class="hint">
+      Preencha os campos abaixo para criar sua conta. Campos obrigatórios devem ser preenchidos.
+    </p>
 
-    <form id="signupForm" novalidate>
+    <form id="cadastroForm" novalidate>
+      <div class="grid2">
+        <div>
+          <label for="firstName">Nome</label>
+          <input type="text" id="firstName" autocomplete="given-name" required />
+        </div>
+        <div>
+          <label for="lastName">Sobrenome</label>
+          <input type="text" id="lastName" autocomplete="family-name" required />
+        </div>
+      </div>
+
       <label for="email">E-mail</label>
-      <input id="email" type="email" autocomplete="email" required />
+      <input type="email" id="email" autocomplete="email" required />
 
-      <label for="password">Senha provisória</label>
-      <input id="password" type="password" autocomplete="new-password" required />
+      <label for="phone">Telefone</label>
+      <input type="tel" id="phone" autocomplete="tel" placeholder="+55 (xx) xxxxx-xxxx" />
 
-      <label for="password2">Confirmar senha</label>
-      <input id="password2" type="password" autocomplete="new-password" required />
+      <label for="gender">Gênero</label>
+      <select id="gender">
+        <option value="">—</option>
+        <option value="feminino">Feminino</option>
+        <option value="masculino">Masculino</option>
+        <option value="neutro">Neutro</option>
+        <option value="não informar">Prefiro não informar</option>
+        <option value="outro">Outro</option>
+      </select>
 
-      <div class="rowbtn">
-        <button type="submit">Criar conta</button>
-        <button type="button" id="togglePw" class="secondary">Mostrar senha</button>
-        <a href="./conta.html" class="secondary" style="text-decoration:none; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.14);">Já tenho conta</a>
+      <hr />
+
+      <h2 style="margin: 0 0 10px;">Endereço</h2>
+
+      <label for="addr1">Endereço 1</label>
+      <input type="text" id="addr1" autocomplete="address-line1" required />
+
+      <label for="addr2">Endereço 2</label>
+      <input type="text" id="addr2" autocomplete="address-line2" />
+
+      <div class="grid3">
+        <div>
+          <label for="unit">Casa ou Apartamento nº</label>
+          <input type="text" id="unit" placeholder="Ex.: Casa 2 / Ap. 301" />
+        </div>
+        <div>
+          <label for="cep">CEP</label>
+          <input type="text" id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" required />
+        </div>
+        <div>
+          <label for="city">Cidade</label>
+          <input type="text" id="city" autocomplete="address-level2" required />
+        </div>
       </div>
+
+      <div class="grid2">
+        <div>
+          <label for="state">Estado</label>
+          <select id="state" required>
+            <option value="">— selecione —</option>
+            <option value="NSA">Não se aplica (NSA)</option>
+            <option value="AC">Acre (AC)</option>
+            <option value="AL">Alagoas (AL)</option>
+            <option value="AP">Amapá (AP)</option>
+            <option value="AM">Amazonas (AM)</option>
+            <option value="BA">Bahia (BA)</option>
+            <option value="CE">Ceará (CE)</option>
+            <option value="DF">Distrito Federal (DF)</option>
+            <option value="ES">Espírito Santo (ES)</option>
+            <option value="GO">Goiás (GO)</option>
+            <option value="MA">Maranhão (MA)</option>
+            <option value="MT">Mato Grosso (MT)</option>
+            <option value="MS">Mato Grosso do Sul (MS)</option>
+            <option value="MG">Minas Gerais (MG)</option>
+            <option value="PA">Pará (PA)</option>
+            <option value="PB">Paraíba (PB)</option>
+            <option value="PR">Paraná (PR)</option>
+            <option value="PE">Pernambuco (PE)</option>
+            <option value="PI">Piauí (PI)</option>
+            <option value="RJ">Rio de Janeiro (RJ)</option>
+            <option value="RN">Rio Grande do Norte (RN)</option>
+            <option value="RS">Rio Grande do Sul (RS)</option>
+            <option value="RO">Rondônia (RO)</option>
+            <option value="RR">Roraima (RR)</option>
+            <option value="SC">Santa Catarina (SC)</option>
+            <option value="SP">São Paulo (SP)</option>
+            <option value="SE">Sergipe (SE)</option>
+            <option value="TO">Tocantins (TO)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="country">País</label>
+          <select id="country" required>
+            <option value="Brasil">Brasil</option>
+            <option value="">— selecione —</option>
+            <option value="Argentina">Argentina</option>
+            <option value="Bolívia">Bolívia</option>
+            <option value="Chile">Chile</option>
+            <option value="Colômbia">Colômbia</option>
+            <option value="Equador">Equador</option>
+            <option value="Guiana">Guiana</option>
+            <option value="Guiana francesa">Guiana francesa</option>
+            <option value="Paraguai">Paraguai</option>
+            <option value="Peru">Peru</option>
+            <option value="Suriname">Suriname</option>
+            <option value="Uruguai">Uruguai</option>
+            <option value="Venezuela">Venezuela</option>
+          </select>
+        </div>
+      </div>
+
+      <hr />
+
+      <label class="checkbox" for="consent">
+        <input type="checkbox" id="consent" required />
+        <span>
+          Eu aceito que meu endereço de e-mail seja usado para o envio de informações sobre minha conta de leitor/a/e:
+          disponibilização de documentos reservados, indicação da data de devolução dos documentos e avisos de atraso dos documentos emprestados.
+        </span>
+      </label>
+
+      <p id="requiredMsg" class="required" style="display:none;">
+        Você precisa marcar a caixa de consentimento para enviar o cadastro.
+      </p>
+
+      <button type="submit">Enviar cadastro</button>
+      <button type="button" class="secondary" id="back">Voltar</button>
 
       <p id="msg" class="msg" aria-live="polite"></p>
     </form>
   </main>
 
   <script type="module">
-    import { supabase } from "./js/auth.js";
+    import { CONFIG } from "./js/config.js";
 
+    const form = document.getElementById("cadastroForm");
     const msg = document.getElementById("msg");
-    const pw1 = document.getElementById("password");
-    const pw2 = document.getElementById("password2");
-    const togglePw = document.getElementById("togglePw");
+    const requiredMsg = document.getElementById("requiredMsg");
+    const consent = document.getElementById("consent");
 
-    togglePw.addEventListener("click", () => {
-      const show = pw1.type === "password";
-      pw1.type = show ? "text" : "password";
-      pw2.type = show ? "text" : "password";
-      togglePw.textContent = show ? "Ocultar senha" : "Mostrar senha";
+    consent.addEventListener("invalid", () => {
+      consent.setCustomValidity("Você precisa marcar esta caixa para continuar.");
+    });
+    consent.addEventListener("change", () => {
+      consent.setCustomValidity("");
+      requiredMsg.style.display = consent.checked ? "none" : "block";
     });
 
-    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+    document.getElementById("back").addEventListener("click", () => {
+      window.location.href = "./conta.html";
+    });
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msg.textContent = "";
+      requiredMsg.style.display = "none";
 
-      const email = document.getElementById("email").value.trim();
-      const p1 = pw1.value;
-      const p2 = pw2.value;
-
-      if (!email) { msg.textContent = "Informe um e-mail válido."; return; }
-      if (!p1 || p1.length < 8) { msg.textContent = "A senha deve ter pelo menos 8 caracteres."; return; }
-      if (p1 !== p2) { msg.textContent = "As senhas não coincidem."; return; }
-
-      const { data, error } = await supabase.auth.signUp({ email, password: p1 });
-
-      if (error) {
-        msg.textContent = "Erro ao criar conta: " + error.message;
+      if (!consent.checked) {
+        requiredMsg.style.display = "block";
+        consent.focus();
+        return;
+      }
+      if (!form.checkValidity()) {
+        form.reportValidity();
         return;
       }
 
-      // Marca como "deve trocar senha" no perfil (opcional). Se a linha não existir ainda, cria.
-      // Se existir um trigger que cria profiles, isto vira um update benigno depois.
-      const userId = data?.user?.id;
-      if (userId) {
-        const { error: profErr } = await supabase
-          .from("profiles")
-          .upsert({
-            id: userId,
-            email,
-            must_change_password: true,
-            password_changed_at: null
-          }, { onConflict: "id" });
+      const payload = {
+        email: document.getElementById("email").value.trim(),
+        first_name: document.getElementById("firstName").value.trim(),
+        last_name: document.getElementById("lastName").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        gender: document.getElementById("gender").value,
+        address_1: document.getElementById("addr1").value.trim(),
+        address_2: document.getElementById("addr2").value.trim(),
+        address_unit: document.getElementById("unit").value.trim(),
+        cep: document.getElementById("cep").value.trim(),
+        city: document.getElementById("city").value.trim(),
+        state: document.getElementById("state").value,
+        country: document.getElementById("country").value,
+        consent_email: true
+      };
 
-        // Não trava o fluxo se falhar
-        if (profErr) console.warn("profiles upsert warn:", profErr.message);
+      try {
+        const res = await fetch(`${CONFIG.FUNCTIONS_BASE_URL}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const text = await res.text();
+        let data = {};
+        try { data = JSON.parse(text); } catch {}
+
+        if (!res.ok) {
+          msg.textContent = data.error || `Erro ao enviar o cadastro (HTTP ${res.status}).`;
+          return;
+        }
+
+        // Affiche un succès même si les e-mails échouent (register est patché pour ne pas planter)
+        if (data.email_usuaria_enviado === false) {
+          msg.textContent =
+            "Cadastro concluído, mas houve um problema ao enviar o e-mail automaticamente. " +
+            "Entre em contato com a biblioteca para receber sua senha.";
+        } else {
+          msg.textContent = "Cadastro enviado com sucesso. Verifique seu e-mail (e Spam/Lixo eletrônico) para receber sua senha.";
+        }
+
+        form.reset();
+      } catch (err) {
+        msg.textContent = "Falha de rede ao enviar o cadastro. Tente novamente.";
       }
-
-      msg.textContent =
-        "Conta criada. Se você tiver confirmação por e-mail ativada, verifique sua caixa de entrada. " +
-        "Depois, faça login e altere sua senha no Painel.";
-
-      // Redireciona para login
-      setTimeout(() => { window.location.href = "./conta.html"; }, 900);
     });
   </script>
 </body>
