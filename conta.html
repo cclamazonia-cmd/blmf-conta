@@ -29,7 +29,6 @@
     .subtitle{ margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
     .topActions{ display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 14px; }
 
-    /* NEW: forgot password blocks, without removing existing elements */
     .notice{
       border:1px solid rgba(255,255,255,0.18);
       background: rgba(0,0,0,0.22);
@@ -41,6 +40,18 @@
     .small{ color:#cfcfcf; font-size:.9rem; }
     .rowbtn { display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
     .hide { display:none !important; }
+
+    .rules{
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.22);
+      padding:10px 12px;
+      border-radius:12px;
+      margin: 12px 0 10px;
+      color:#fff;
+    }
+    .rules summary{ cursor:pointer; }
+    .rules ul{ margin:10px 0 0 18px; color:#f0f0f0; }
+    .rules a{ color:#fff; text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -60,9 +71,21 @@
     <div class="topActions">
       <button id="backBlog" class="secondary">Voltar ao blogue</button>
       <button id="goCadastro" class="secondary">Cadastrar-se</button>
+      <button id="goRegimento" class="secondary">Regimento</button>
     </div>
 
-    <!-- LOGIN (kept) -->
+    <details class="rules">
+      <summary><b>Regimento (resumo)</b> <span class="small">— empréstimos, prazos e atrasos</span></summary>
+      <ul>
+        <li>A biblioteca empresta <b>apenas livros</b>. Periódicos e brochuras são para <b>consulta local</b>.</li>
+        <li>Até <b>5 livros</b> por pessoa.</li>
+        <li>Prazos: 1 livro (<b>21 dias</b>), 2–3 livros (<b>30 dias</b>), 4–5 livros (<b>38 dias</b>).</li>
+        <li>Em caso de atraso, a biblioteca envia avisos. Após 30 dias sem regularização, pode haver <b>suspensão</b> de novos empréstimos.</li>
+        <li>Regimento completo: <a id="regLink" href="#" rel="noopener">abrir</a></li>
+      </ul>
+    </details>
+
+    <!-- LOGIN -->
     <section id="loginBox">
       <form id="loginForm">
         <label for="email">E-mail</label>
@@ -76,7 +99,6 @@
 
       <p id="msg" class="msg" aria-live="polite"></p>
 
-      <!-- NEW: forgot password UI -->
       <div class="notice" aria-label="Recuperação de senha">
         <b>Esqueceu a senha?</b>
         <div class="small">Envie um link para redefinir sua senha (fora do Painel).</div>
@@ -100,7 +122,7 @@
       </form>
     </section>
 
-    <!-- NEW: RECOVERY MODE (reset password) -->
+    <!-- RECOVERY MODE (reset password) -->
     <section id="recoveryBox" class="hide" aria-label="Redefinir senha">
       <div class="notice">
         <b>Redefinir senha</b>
@@ -128,6 +150,9 @@
     import { supabase } from "./js/auth.js";
 
     const BLOG_URL = "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/";
+    const REGIMENTO_URL = 'https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/';
+
+    document.getElementById("regLink").href = REGIMENTO_URL;
 
     document.getElementById("backBlog").addEventListener("click", (e) => {
       e.preventDefault();
@@ -138,6 +163,10 @@
       window.location.href = "./cadastro.html";
     });
 
+    document.getElementById("goRegimento").addEventListener("click", () => {
+      window.location.href = REGIMENTO_URL;
+    });
+
     const loginBox = document.getElementById("loginBox");
     const recoveryBox = document.getElementById("recoveryBox");
 
@@ -146,7 +175,6 @@
     const forgotMsg = document.getElementById("forgotMsg");
     const cancelForgot = document.getElementById("cancelForgot");
 
-    // Toggle forgot form
     forgotBtn.addEventListener("click", () => {
       forgotForm.classList.remove("hide");
       forgotBtn.classList.add("hide");
@@ -165,19 +193,16 @@
       return new URLSearchParams(raw);
     }
 
-    // Detect recovery mode (Supabase email link adds: #access_token=...&type=recovery&refresh_token=...)
     const params = parseHashParams();
     const isRecovery = params.get("type") === "recovery" && !!params.get("access_token");
 
     if (isRecovery) {
-      // Establish session from hash tokens so updateUser works
       const access_token = params.get("access_token");
       const refresh_token = params.get("refresh_token") || "";
 
       try {
         await supabase.auth.setSession({ access_token, refresh_token });
       } catch (e) {
-        // if it fails, still show UI; user can request a new link
         console.warn("setSession failed:", e);
       }
 
@@ -185,7 +210,6 @@
       recoveryBox.classList.remove("hide");
     }
 
-    // LOGIN (kept)
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const msg = document.getElementById("msg");
@@ -202,7 +226,6 @@
       window.location.href = "./painel.html";
     });
 
-    // FORGOT PASSWORD: send reset link
     document.getElementById("forgotForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       forgotMsg.textContent = "";
@@ -210,7 +233,6 @@
       const email = document.getElementById("forgotEmail").value.trim();
       if (!email) { forgotMsg.textContent = "Informe um e-mail válido."; return; }
 
-      // redirectTo must be allowed in Supabase Auth settings
       const redirectTo = "https://cclamazonia-cmd.github.io/blmf-conta/conta.html";
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
@@ -222,7 +244,6 @@
       forgotMsg.textContent = "Link enviado. Se você não encontrar o e-mail, verifique “Spam/Lixo eletrônico”.";
     });
 
-    // RESET PASSWORD (recovery)
     const resetMsg = document.getElementById("resetMsg");
     const rp1 = document.getElementById("newPassword");
     const rp2 = document.getElementById("newPassword2");
@@ -251,7 +272,6 @@
         return;
       }
 
-      // Optional: unlock painel enforcement if columns exist
       try {
         const { data: userData } = await supabase.auth.getUser();
         const userId = userData?.user?.id;
@@ -269,7 +289,6 @@
 
       resetMsg.textContent = "Senha redefinida com sucesso. Agora você pode entrar.";
 
-      // Clean the URL hash
       history.replaceState(null, "", window.location.pathname);
 
       setTimeout(() => { window.location.href = "./conta.html"; }, 900);
