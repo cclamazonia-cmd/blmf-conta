@@ -80,6 +80,7 @@
       <div class="notice" aria-label="Recuperação de senha">
         <b>Esqueceu a senha?</b>
         <div class="small">Envie um link para redefinir sua senha (fora do Painel).</div>
+        <div class="small">Se você não encontrar o e-mail, verifique “Spam/Lixo eletrônico”.</div>
       </div>
 
       <div class="rowbtn">
@@ -218,7 +219,7 @@
         return;
       }
 
-      forgotMsg.textContent = "Link enviado. Verifique seu e-mail (e Spam/Lixo eletrônico).";
+      forgotMsg.textContent = "Link enviado. Se você não encontrar o e-mail, verifique “Spam/Lixo eletrônico”.";
     });
 
     // RESET PASSWORD (recovery)
