@@ -1,4 +1,3 @@
-<!-- painel.html -->
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -284,15 +283,6 @@
         return;
       }
 
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) {
-        reserveMsg.textContent = "Sessão expirada. Faça login novamente.";
-        return;
-      }
-
-      
-      // Reserva direto no banco (RLS) — sem Edge Function
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
       if (userErr || !user) {
         reserveMsg.textContent = "Sessão inválida — faça login de novo.";
@@ -308,23 +298,23 @@
         return;
       }
 
-      reserveMsg.textContent = "Reserva registrada com sucesso.";
-      document.getElementById("bib_ref").value = "";
-
       reserveMsg.textContent = "Reserva registrada e enviada para a biblioteca. Em breve entraremos em contato para combinar a retirada.";
       document.getElementById("bibRef").value = "";
     });
 
     async function renderLoans() {
+      const el = document.getElementById("loans");
+
       const { data, error } = await supabase
         .from("loans")
-        .select("id, due_date, checkout_date, returned_date, books(title, author)")
+        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
         .eq("user_id", session.user.id)
         .is("returned_date", null)
         .order("due_date", { ascending: true });
 
       if (error) {
-        document.getElementById("loans").textContent = "Erro: " + error.message;
+        console.error("renderLoans error:", error);
+        el.innerHTML = "<p>Não há empréstimos em curso.</p>";
         return;
       }
 
@@ -332,31 +322,37 @@
       const rows = (data || []).map(l => {
         const due = new Date(l.due_date + "T00:00:00");
         const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-        return `<li>#${l.id} — ${l.books?.title || "Livro"} (${l.books?.author || ""}) — devolução: ${l.due_date} — faltam ${daysLeft} dia(s)</li>`;
+        const titulo = l.books?.titulo || "Livro";
+        const autor = l.books?.autor || "";
+        return `<li>#${l.id} — ${titulo}${autor ? ` (${autor})` : ""} — devolução: ${l.due_date} — faltam ${daysLeft} dia(s)</li>`;
       });
 
-      document.getElementById("loans").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Nenhum empréstimo em curso.</p>";
+      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há empréstimos em curso.</p>";
     }
 
     async function renderHistory() {
+      const el = document.getElementById("history");
+
       const { data, error } = await supabase
         .from("loans")
-        .select("id, due_date, checkout_date, returned_date, books(title, author)")
+        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
         .eq("user_id", session.user.id)
         .order("checkout_date", { ascending: false })
         .limit(50);
 
       if (error) {
-        document.getElementById("history").textContent = "Erro: " + error.message;
+        console.error("renderHistory error:", error);
+        el.innerHTML = "<p>Não há histórico de empréstimos.</p>";
         return;
       }
 
       const rows = (data || []).map(l => {
+        const titulo = l.books?.titulo || "Livro";
         const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
-        return `<li>#${l.id} — ${l.books?.title || "Livro"} — ${status}</li>`;
+        return `<li>#${l.id} — ${titulo} — ${status}</li>`;
       });
 
-      document.getElementById("history").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Sem histórico.</p>";
+      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
     }
 
     await renderLoans();
