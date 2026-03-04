@@ -176,7 +176,14 @@
             <div class="small">
               Por segurança, altere sua senha após o primeiro acesso. Enquanto isso, as outras abas ficam bloqueadas.
             </div>
-          </div>
+          
+          <div id="restrictedNotice" class="notice" style="display:none; background: rgba(0,0,0,0.22); border-color: rgba(255,255,255,0.18);">
+            <b>Atenção:</b>
+            <div class="small">
+              Seu cadastro está <b>restrito</b> no momento. Você pode consultar seus empréstimos, mas não pode fazer novas reservas, novos empréstimos nem renovar.
+            </div>
+            <div class="small" id="restrictedReason" style="margin-top:6px;"></div>
+          </div></div>
 
           <div class="panel-head">
             <h2>Seus dados (editar)</h2>
@@ -381,11 +388,12 @@
               <div>
                 <label for="fulfillBatchSize">Quantidade no lote</label>
                 <select id="fulfillBatchSize">
-                  <option value="1">1 livro (21 dias)</option>
-                  <option value="2">2 livros (30 dias)</option>
-                  <option value="3">3 livros (30 dias)</option>
-                  <option value="4">4 livros (38 dias)</option>
-                  <option value="5">5 livros (38 dias)</option>
+
+                  <option value="1">1 livro (prazo calculado automaticamente)</option>
+                  <option value="2">2 livros (prazo calculado automaticamente)</option>
+                  <option value="3">3 livros (prazo calculado automaticamente)</option>
+                  <option value="4">4 livros (prazo calculado automaticamente)</option>
+                  <option value="5">5 livros (prazo calculado automaticamente)</option>
                 </select>
               </div>
             </div>
@@ -416,11 +424,12 @@
               <div>
                 <label for="checkoutBatchSize">Quantidade no lote</label>
                 <select id="checkoutBatchSize">
-                  <option value="1">1 livro (21 dias)</option>
-                  <option value="2">2 livros (30 dias)</option>
-                  <option value="3">3 livros (30 dias)</option>
-                  <option value="4">4 livros (38 dias)</option>
-                  <option value="5">5 livros (38 dias)</option>
+
+                  <option value="1">1 livro (prazo calculado automaticamente)</option>
+                  <option value="2">2 livros (prazo calculado automaticamente)</option>
+                  <option value="3">3 livros (prazo calculado automaticamente)</option>
+                  <option value="4">4 livros (prazo calculado automaticamente)</option>
+                  <option value="5">5 livros (prazo calculado automaticamente)</option>
                 </select>
               </div>
               <div style="display:flex; align-items:flex-end;">
@@ -466,6 +475,7 @@
     const mustChangeNotice = document.getElementById("mustChangeNotice");
 
     let mustChangePassword = false;
+    let userIsRestricted = false;
 
     let isLibrarian = false;
 
@@ -506,6 +516,25 @@
       });
 
       if (enforce) setActiveTab("perfil", { pushHash: true });
+    }
+
+    function enforceRestrictionUI(restricted, reason) {
+      userIsRestricted = !!restricted;
+
+      const notice = document.getElementById("restrictedNotice");
+      const reasonEl = document.getElementById("restrictedReason");
+
+      if (notice) notice.style.display = userIsRestricted ? "block" : "none";
+      if (reasonEl) reasonEl.textContent = userIsRestricted ? (reason || "Entre em contato com a biblioteca para regularizar sua situação.") : "";
+
+      // Regimento: usuário restrito não pode fazer novas reservas nem renovar
+      tabButtons.forEach(btn => {
+        if (btn.dataset.tab === "reservar") btn.disabled = userIsRestricted;
+      });
+
+      // Se estava na aba "reservar" e ficou restrito, volta pro perfil
+      const current = (location.hash || "").replace("#", "");
+      if (userIsRestricted && current === "reservar") setActiveTab("perfil", { pushHash: true });
     }
 
     tabButtons.forEach(btn => {
@@ -568,7 +597,7 @@
 
       const q1 = await supabase
         .from("profiles")
-        .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian")
+        .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian, is_restricted, restricted_since, restricted_reason")
         .eq("id", session.user.id)
         .maybeSingle();
 
@@ -611,7 +640,7 @@
         // Recarrega após criação
         const q3 = await supabase
           .from("profiles")
-          .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian")
+          .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian, is_restricted, restricted_since, restricted_reason")
           .eq("id", session.user.id)
           .maybeSingle();
 
@@ -739,6 +768,11 @@
       const reserveMsg = document.getElementById("reserveMsg");
       reserveMsg.textContent = "";
 
+      if (userIsRestricted) {
+        reserveMsg.textContent = "Seu cadastro está restrito: novas reservas estão bloqueadas. Entre em contato com a biblioteca.";
+        return;
+      }
+
       const bib_ref = document.getElementById("bibRef").value.trim();
       if (!bib_ref) {
         reserveMsg.textContent = "Cole a referência BibLivre para reservar.";
@@ -756,7 +790,12 @@
         .insert([{ bib_ref, user_id: user.id }]);
 
       if (insErr) {
-        reserveMsg.textContent = "Erro ao reservar: " + insErr.message;
+        const em = String(insErr.message || "");
+        if (/duplicate|unique|já existe|violates/i.test(em)) {
+          reserveMsg.textContent = "Você já tem uma reserva ativa para este item.";
+        } else {
+          reserveMsg.textContent = "Erro ao reservar: " + insErr.message;
+        }
         return;
       }
 
@@ -770,73 +809,157 @@
 
     
     
-    async function renderLoans() {
+        async function renderLoans() {
       const el = document.getElementById("loans");
       const loanMsg = document.getElementById("loanMsg");
       if (loanMsg) loanMsg.textContent = "";
 
       el.textContent = "Carregando...";
 
-      const { data, error } = await supabase
-        .from("loans")
-        .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
+      // Try the richer view first (preferred). If it doesn't exist yet, fall back to old query.
+      let data = null;
+      let error = null;
+
+      const qView = await supabase
+        .from("v_loans_detalhes")
+        .select("loan_id, user_id, due_date, checkout_date, returned_date, extended_once, days_overdue, days_until_due, loan_status, can_renew, formal_notice_sent_at, restriction_effective_on, last_reminder_stage, last_reminder_sent_at, book")
         .eq("user_id", session.user.id)
-        .is("returned_date", null)
+        .eq("is_active", true)
         .order("due_date", { ascending: true });
 
-      if (error) {
-        console.error("renderLoans error:", error);
-        return showEmpty(el, "Não há empréstimos em curso.");
+      if (!qView.error) {
+        data = qView.data || [];
+      } else {
+        // fallback: minimal fields from loans
+        const qOld = await supabase
+          .from("loans")
+          .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
+          .eq("user_id", session.user.id)
+          .is("returned_date", null)
+          .order("due_date", { ascending: true });
+
+        data = (qOld.data || []).map(l => ({
+          loan_id: l.id,
+          due_date: l.due_date,
+          checkout_date: l.checkout_date,
+          returned_date: l.returned_date,
+          extended_once: l.extended_once,
+          days_overdue: (() => {
+            const due = new Date(l.due_date + "T00:00:00");
+            const today = new Date();
+            const diff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
+            return diff > 0 ? diff : 0;
+          })(),
+          days_until_due: (() => {
+            const due = new Date(l.due_date + "T00:00:00");
+            const today = new Date();
+            const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+            return diff > 0 ? diff : 0;
+          })(),
+          loan_status: null,
+          can_renew: (!l.extended_once) && (new Date(l.due_date + "T00:00:00") >= new Date()) && !userIsRestricted,
+          formal_notice_sent_at: null,
+          restriction_effective_on: null,
+          last_reminder_stage: null,
+          book: { titulo: l.books?.titulo, autor: l.books?.autor }
+        }));
       }
 
-      const today = new Date();
-      const rows = (data || []).map(l => {
-        const due = new Date(l.due_date + "T00:00:00");
-        const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-        const titulo = l.books?.titulo || "Livro";
-        const autor = l.books?.autor || "";
-        const canExtend = !l.extended_once;
+      if (!data || !data.length) {
+        el.innerHTML = "<p>Não há empréstimos em curso.</p>";
+        return;
+      }
 
-        const actionHtml = canExtend
+      function fmtDateOnly(d) {
+        // expects ISO date or timestamp; returns YYYY-MM-DD
+        const dt = new Date(d);
+        if (!isNaN(dt)) return dt.toISOString().slice(0, 10);
+        return String(d || "");
+      }
+
+      const rows = data.map(l => {
+        const book = l.book || {};
+        const titulo = book.titulo || "Livro";
+        const autor = book.autor || "";
+
+        const dueTxt = l.due_date ? fmtDateOnly(l.due_date) : "—";
+        const overdue = Number(l.days_overdue || 0);
+
+        let statusLine = "";
+        if (overdue > 0) {
+          statusLine = ` <span class="tag-muted">— ATRASO: ${overdue} dia(s)</span>`;
+        } else {
+          statusLine = ` <span class="tag-muted">— faltam ${Number(l.days_until_due || 0)} dia(s)</span>`;
+        }
+
+        let remindLine = "";
+        if (overdue > 0) {
+          if (l.formal_notice_sent_at) {
+            const aviso = fmtDateOnly(l.formal_notice_sent_at);
+            const restr = l.restriction_effective_on ? fmtDateOnly(l.restriction_effective_on) : "";
+            remindLine = `<div><small>Aviso formal enviado em ${aviso}${restr ? ` — restrição a partir de ${restr}` : ""}.</small></div>`;
+          } else if (l.last_reminder_stage) {
+            remindLine = `<div><small>Lembrete enviado (etapa ${l.last_reminder_stage}).</small></div>`;
+          } else {
+            remindLine = `<div><small>Atraso detectado — você receberá lembretes por e-mail.</small></div>`;
+          }
+        }
+
+        const canRenew = !!l.can_renew && !userIsRestricted;
+        const actionHtml = canRenew
           ? `<span class="loan-actions">
-               <button type="button" class="secondary mini-btn" data-extend-loan="${l.id}">Prolongar (+8 dias)</button>
+               <button type="button" class="secondary mini-btn" data-renew-loan="${l.loan_id}">Renovar (R=1)</button>
              </span>`
-          : `<span class="loan-actions"><span class="tag-muted">Prolongação usada</span></span>`;
+          : `<span class="loan-actions"><span class="tag-muted">${userIsRestricted ? "Renovação bloqueada (restrição)" : (l.extended_once ? "Renovação já usada (R=1)" : (overdue > 0 ? "Renovação indisponível (atraso)" : "Renovação indisponível"))}</span></span>`;
 
-        return `<li>#${l.id} — ${titulo}${autor ? ` (${autor})` : ""} — devolução: ${l.due_date} — faltam ${daysLeft} dia(s) ${actionHtml}</li>`;
+        return `
+          <li>
+            <b>#${l.loan_id}</b> — ${titulo}${autor ? ` (${autor})` : ""} — devolução: <b>${dueTxt}</b>${statusLine}
+            ${actionHtml}
+            ${remindLine}
+          </li>
+        `;
       });
 
-      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há empréstimos em curso.</p>";
+      el.innerHTML = `<ul>${rows.join("")}</ul>`;
 
-      // Wire buttons (one-click extension, once per book)
-      el.querySelectorAll("[data-extend-loan]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const loanId = Number(btn.getAttribute("data-extend-loan"));
-          if (!loanId) return;
+      async function doRenew(loanId) {
+        if (loanMsg) loanMsg.textContent = "Processando renovação...";
+        try {
+          // Preferred RPC name (regimento-aligned)
+          let res = await supabase.rpc("renew_loan", { p_loan_id: loanId });
 
-          if (loanMsg) loanMsg.textContent = "Processando prolongação...";
-          btn.setAttribute("disabled", "disabled");
+          // Backward compat: fall back to old RPC if the new one doesn't exist yet
+          if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ""))) {
+            res = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
+          }
 
-          const { data, error } = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
-
-          btn.removeAttribute("disabled");
-
-          if (error) {
-            console.error("extend_loan_once error:", error);
-            if (loanMsg) loanMsg.textContent = "Erro ao prolongar: " + error.message;
+          if (res.error) {
+            console.error("renew/extend rpc error:", res.error);
+            if (loanMsg) loanMsg.textContent = "Erro ao renovar: " + res.error.message;
             return;
           }
 
-          const row = Array.isArray(data) ? data[0] : data;
-          const ok = row?.ok === true;
-          const message = row?.message || (ok ? "Prolongação aplicada (+8 dias)." : "Não foi possível prolongar.");
-          const newDue = row?.new_due_date ? ` Nova devolução: ${row.new_due_date}.` : "";
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+          const newDue = row?.due_date || row?.new_due_date;
+          const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
+          if (loanMsg) loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
 
-          if (loanMsg) loanMsg.textContent = message + newDue;
-
-          // Refresh lists
           await renderLoans();
           await renderHistory();
+        } catch (e) {
+          console.error("doRenew fatal:", e);
+          if (loanMsg) loanMsg.textContent = "Falha ao renovar. Tente novamente.";
+        }
+      }
+
+      el.querySelectorAll("[data-renew-loan]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const loanId = Number(btn.getAttribute("data-renew-loan"));
+          if (!loanId) return;
+          btn.setAttribute("disabled", "disabled");
+          await doRenew(loanId);
+          btn.removeAttribute("disabled");
         });
       });
     }
@@ -899,7 +1022,18 @@
         return;
       }
 
-      const rows = Array.isArray(data) ? data : [];
+      const rows = (Array.isArray(data) ? data : []).map(r => {
+        // W=14: janela de retirada
+        let retirar_ate = "";
+        try {
+          const dt = new Date(r.reserva_em);
+          if (!isNaN(dt)) {
+            dt.setDate(dt.getDate() + 14);
+            retirar_ate = dt.toISOString().slice(0,10);
+          }
+        } catch {}
+        return { ...r, retirar_ate };
+      });
       if (!rows.length) {
         box.innerHTML = "<p>Não há reservas pendentes.</p>";
         return;
@@ -924,7 +1058,9 @@
               ${rows.map(r => `
                 <tr data-select-reserva="${esc(r.reserva_id)}" style="cursor:pointer;">
                   <td><b>${esc(r.reserva_id)}</b></td>
-                  <td><small>${esc(r.reserva_em)}</small></td>
+                  <td><small>${esc(r.reserva_em)}</small>
+                    <div><small>retirar até: ${esc(r.retirar_ate || "")}</small></div>
+                  </td>
                   <td>
                     <div><b>${esc(r.titulo || "—")}</b></div>
                     <div><small>${esc(r.autor || "")}</small></div>
