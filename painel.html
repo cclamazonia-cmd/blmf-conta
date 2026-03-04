@@ -101,6 +101,16 @@
       color:#fff;
     }
     .notice .small{ color:#f0f0f0; }
+  
+    .mini-btn{
+      padding:6px 10px;
+      font-size:.9rem;
+      border-radius:12px;
+      line-height:1.1;
+    }
+    .loan-actions{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:10px; }
+    .tag-muted{ color:#cfcfcf; font-size:.9rem; }
+
   </style>
 </head>
 
@@ -314,6 +324,7 @@
             <h2>Empréstimos em curso</h2>
           </div>
           <div id="loans"></div>
+          <p id="loanMsg" class="msg" aria-live="polite"></p>
         </section>
 
         <!-- HISTÓRICO -->
@@ -579,13 +590,17 @@
       el.innerHTML = `<p>${msg}</p>`;
     }
 
+    
     async function renderLoans() {
       const el = document.getElementById("loans");
+      const loanMsg = document.getElementById("loanMsg");
+      if (loanMsg) loanMsg.textContent = "";
+
       el.textContent = "Carregando...";
 
       const { data, error } = await supabase
         .from("loans")
-        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
+        .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
         .eq("user_id", session.user.id)
         .is("returned_date", null)
         .order("due_date", { ascending: true });
@@ -601,10 +616,51 @@
         const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
         const titulo = l.books?.titulo || "Livro";
         const autor = l.books?.autor || "";
-        return `<li>#${l.id} — ${titulo}${autor ? ` (${autor})` : ""} — devolução: ${l.due_date} — faltam ${daysLeft} dia(s)</li>`;
+
+        const canExtend = !l.extended_once;
+
+        const actionHtml = canExtend
+          ? `<span class="loan-actions">
+               <button type="button" class="secondary mini-btn" data-extend-loan="${l.id}">Prolongar (+8 dias)</button>
+             </span>`
+          : `<span class="loan-actions"><span class="tag-muted">Prolongação usada</span></span>`;
+
+        return `<li>#${l.id} — ${titulo}${autor ? ` (${autor})` : ""} — devolução: ${l.due_date} — faltam ${daysLeft} dia(s) ${actionHtml}</li>`;
       });
 
       el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há empréstimos em curso.</p>";
+
+      // Wire buttons (one-click extension, once per book)
+      el.querySelectorAll("[data-extend-loan]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const loanId = Number(btn.getAttribute("data-extend-loan"));
+          if (!loanId) return;
+
+          if (loanMsg) loanMsg.textContent = "Processando prolongação...";
+          btn.setAttribute("disabled", "disabled");
+
+          const { data, error } = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
+
+          btn.removeAttribute("disabled");
+
+          if (error) {
+            console.error("extend_loan_once error:", error);
+            if (loanMsg) loanMsg.textContent = "Erro ao prolongar: " + error.message;
+            return;
+          }
+
+          const row = Array.isArray(data) ? data[0] : data;
+          const ok = row?.ok === true;
+          const message = row?.message || (ok ? "Prolongação aplicada (+8 dias)." : "Não foi possível prolongar.");
+          const newDue = row?.new_due_date ? ` Nova devolução: ${row.new_due_date}.` : "";
+
+          if (loanMsg) loanMsg.textContent = message + newDue;
+
+          // Refresh lists (due_date/extended_once changed)
+          await renderLoans();
+          await renderHistory();
+        });
+      });
     }
 
     async function renderHistory() {
