@@ -920,9 +920,9 @@
         const canRenew = !!l.can_renew && !userIsRestricted;
         const actionHtml = canRenew
           ? `<span class="loan-actions">
-               <button type="button" class="secondary mini-btn" data-renew-loan="${l.loan_id}">Renovar (R=1)</button>
+               <button type="button" class="secondary mini-btn" data-renew-loan="${l.loan_id}">Renovar (uma única vez)</button>
              </span>`
-          : `<span class="loan-actions"><span class="tag-muted">${userIsRestricted ? "Renovação bloqueada (restrição)" : (l.extended_once ? "Renovação já usada (R=1)" : (overdue > 0 ? "Renovação indisponível (atraso)" : "Renovação indisponível"))}</span></span>`;
+          : `<span class="loan-actions"><span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada: cada empréstimo pode ser renovado apenas uma vez" : (overdue > 0 ? "Renovação indisponível: empréstimo em atraso" : "Renovação indisponível"))}</span></span>`;
 
         return `
           <li>
