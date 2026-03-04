@@ -118,6 +118,9 @@
     .list-table td small{ color:#cfcfcf; }
     .inline-select{ max-width:160px; }
 
+  
+    .table-scroll{ width:100%; overflow-x:auto; }
+
   </style>
 </head>
 
@@ -736,7 +739,9 @@
       const reserveMsg = document.getElementById("reserveMsg");
       reserveMsg.textContent = "";
 
-      const bib_ref = document.getElementById("bibRef").value.trim();
+      const bib_ref_raw = document.getElementById("bibRef").value.trim();
+      const digits = bib_ref_raw.replace(/\D/g, "");
+      const bib_ref = digits ? digits.padStart(7, "0") : bib_ref_raw;
       if (!bib_ref) {
         reserveMsg.textContent = "Cole a referência BibLivre para reservar.";
         return;
@@ -874,9 +879,12 @@
     if (refreshPendentes) refreshPendentes.addEventListener("click", renderPendingReservas);
 
 
+    
     async function renderPendingReservas() {
       const box = document.getElementById("pendingReservas");
       const msg = document.getElementById("pendingMsg");
+      const fulfillIdInput = document.getElementById("fulfillReservaId");
+      const fulfillBatchSelect = document.getElementById("fulfillBatchSize");
       if (!box || !msg) return;
 
       msg.textContent = "";
@@ -894,6 +902,59 @@
         msg.textContent = "Erro ao carregar reservas pendentes: " + error.message;
         return;
       }
+
+      const rows = Array.isArray(data) ? data : [];
+      if (!rows.length) {
+        box.innerHTML = "<p>Não há reservas pendentes.</p>";
+        return;
+      }
+
+      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+      box.innerHTML = `
+        <div class="table-scroll">
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data</th>
+                <th>Livro</th>
+                <th>Leitor(a/e)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr data-select-reserva="${esc(r.reserva_id)}" style="cursor:pointer;">
+                  <td><b>${esc(r.reserva_id)}</b></td>
+                  <td><small>${esc(r.reserva_em)}</small></td>
+                  <td>
+                    <div><b>${esc(r.titulo || "—")}</b></div>
+                    <div><small>${esc(r.autor || "")}</small></div>
+                    <div><small>bib_ref: ${esc(r.bib_ref || "")}</small></div>
+                  </td>
+                  <td>
+                    <div>${esc(((r.first_name || "") + " " + (r.last_name || "")).trim() || "—")}</div>
+                    <div><small>${esc(r.user_email || "")}</small></div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      box.querySelectorAll("[data-select-reserva]").forEach((tr) => {
+        tr.addEventListener("click", () => {
+          const rid = tr.getAttribute("data-select-reserva");
+          if (fulfillIdInput) fulfillIdInput.value = String(rid);
+          if (fulfillBatchSelect) fulfillBatchSelect.value = "1";
+          msg.textContent = "Reserva selecionada: " + rid + ". Agora clique em “Confirmar retirada”.";
+          const f = document.getElementById("fulfillForm");
+          if (f) f.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
+
 
       const rows = Array.isArray(data) ? data : [];
       if (!rows.length) {
@@ -994,7 +1055,9 @@
         }
 
         const email = (document.getElementById("checkoutUserEmail").value || "").trim();
-        const bibRef = (document.getElementById("checkoutBibRef").value || "").trim();
+        const bibRefRaw = (document.getElementById("checkoutBibRef").value || "").trim();
+        const digitsRef = bibRefRaw.replace(/\D/g, "");
+        const bibRef = digitsRef ? digitsRef.padStart(7, "0") : bibRefRaw;
         const batchSize = parseInt((document.getElementById("checkoutBatchSize").value || "1"), 10) || 1;
 
         if (!email || !bibRef) {
