@@ -785,7 +785,137 @@
           if (loanMsg) loanMsg.textContent = message + newDue;
 
           // Refresh lists (due_date/extended_once changed)
-          await renderLoans();
+      
+
+    // Bibliotecário-a-e: registrar saída e devolução
+    const checkoutForm = document.getElementById("checkoutForm");
+    const returnForm = document.getElementById("returnForm");
+
+    if (checkoutForm) {
+      checkoutForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const checkoutMsg = document.getElementById("checkoutMsg");
+        if (checkoutMsg) checkoutMsg.textContent = "";
+
+        if (!isLibrarian) {
+          if (checkoutMsg) checkoutMsg.textContent = "Acesso restrito a bibliotecários.";
+          return;
+        }
+
+        const email = (document.getElementById("checkoutUserEmail").value || "").trim();
+        const bibRef = (document.getElementById("checkoutBibRef").value || "").trim();
+        const batchSize = parseInt((document.getElementById("checkoutBatchSize").value || "1"), 10) || 1;
+
+        if (!email || !bibRef) {
+          if (checkoutMsg) checkoutMsg.textContent = "Preencha o e-mail e a referência BibLivre.";
+          return;
+        }
+
+        if (checkoutMsg) checkoutMsg.textContent = "Buscando usuárie e livro...";
+
+        // 1) usuário (profiles)
+        const { data: u, error: uErr } = await supabase
+          .from("profiles")
+          .select("id, email, first_name, last_name")
+          .ilike("email", email)
+          .maybeSingle();
+
+        if (uErr) {
+          console.error("checkout: profiles lookup error", uErr);
+          if (checkoutMsg) checkoutMsg.textContent = "Erro ao buscar usuárie: " + uErr.message;
+          return;
+        }
+        if (!u) {
+          if (checkoutMsg) checkoutMsg.textContent = "Usuárie não encontrado(a/e) com este e-mail.";
+          return;
+        }
+
+        // 2) livro (books)
+        const { data: bk, error: bkErr } = await supabase
+          .from("books")
+          .select("id, titulo, autor, bib_ref")
+          .eq("bib_ref", bibRef)
+          .maybeSingle();
+
+        if (bkErr) {
+          console.error("checkout: books lookup error", bkErr);
+          if (checkoutMsg) checkoutMsg.textContent = "Erro ao buscar livro: " + bkErr.message;
+          return;
+        }
+        if (!bk) {
+          if (checkoutMsg) checkoutMsg.textContent = "Livro não encontrado para esta referência (bib_ref).";
+          return;
+        }
+
+        if (checkoutMsg) checkoutMsg.textContent = "Registrando saída...";
+
+        // 3) RPC bibliotecário
+        const { data, error } = await supabase.rpc("mark_loan_checkout", {
+          p_user_id: u.id,
+          p_book_id: bk.id,
+          p_batch_size: batchSize
+        });
+
+        if (error) {
+          console.error("mark_loan_checkout error:", error);
+          if (checkoutMsg) checkoutMsg.textContent = "Erro ao registrar saída: " + error.message;
+          return;
+        }
+
+        const row = Array.isArray(data) ? data[0] : data;
+        const ok = row?.ok === true;
+        const msg = row?.message || (ok ? "Saída registrada." : "Não foi possível registrar saída.");
+        const extra = row?.due_date ? ` Devolução: ${row.due_date}.` : "";
+        const lid = row?.loan_id ? ` (ID: ${row.loan_id})` : "";
+
+        if (checkoutMsg) checkoutMsg.textContent = msg + lid + extra;
+
+        // Limpa apenas a referência, mantém o email para agilizar
+        document.getElementById("checkoutBibRef").value = "";
+      });
+    }
+
+    if (returnForm) {
+      returnForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const returnMsg = document.getElementById("returnMsg");
+        if (returnMsg) returnMsg.textContent = "";
+
+        if (!isLibrarian) {
+          if (returnMsg) returnMsg.textContent = "Acesso restrito a bibliotecários.";
+          return;
+        }
+
+        const loanId = parseInt((document.getElementById("returnLoanId").value || "").trim(), 10);
+        if (!loanId) {
+          if (returnMsg) returnMsg.textContent = "Informe o ID do empréstimo.";
+          return;
+        }
+
+        if (returnMsg) returnMsg.textContent = "Registrando devolução...";
+
+        const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
+
+        if (error) {
+          console.error("mark_loan_returned error:", error);
+          if (returnMsg) returnMsg.textContent = "Erro ao registrar devolução: " + error.message;
+          return;
+        }
+
+        const row = Array.isArray(data) ? data[0] : data;
+        const ok = row?.ok === true;
+        const msg = row?.message || (ok ? "Devolução registrada." : "Não foi possível registrar devolução.");
+
+        if (returnMsg) returnMsg.textContent = msg;
+
+        // Atualiza listas (do usuário logado)
+        await renderLoans();
+        await renderHistory();
+      });
+    }
+
+
+    await renderLoans();
           await renderHistory();
         });
       });
@@ -815,6 +945,136 @@
 
       el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
     }
+
+
+
+    // Bibliotecário-a-e: registrar saída e devolução
+    const checkoutForm = document.getElementById("checkoutForm");
+    const returnForm = document.getElementById("returnForm");
+
+    if (checkoutForm) {
+      checkoutForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const checkoutMsg = document.getElementById("checkoutMsg");
+        if (checkoutMsg) checkoutMsg.textContent = "";
+
+        if (!isLibrarian) {
+          if (checkoutMsg) checkoutMsg.textContent = "Acesso restrito a bibliotecários.";
+          return;
+        }
+
+        const email = (document.getElementById("checkoutUserEmail").value || "").trim();
+        const bibRef = (document.getElementById("checkoutBibRef").value || "").trim();
+        const batchSize = parseInt((document.getElementById("checkoutBatchSize").value || "1"), 10) || 1;
+
+        if (!email || !bibRef) {
+          if (checkoutMsg) checkoutMsg.textContent = "Preencha o e-mail e a referência BibLivre.";
+          return;
+        }
+
+        if (checkoutMsg) checkoutMsg.textContent = "Buscando usuárie e livro...";
+
+        // 1) usuário (profiles)
+        const { data: u, error: uErr } = await supabase
+          .from("profiles")
+          .select("id, email, first_name, last_name")
+          .ilike("email", email)
+          .maybeSingle();
+
+        if (uErr) {
+          console.error("checkout: profiles lookup error", uErr);
+          if (checkoutMsg) checkoutMsg.textContent = "Erro ao buscar usuárie: " + uErr.message;
+          return;
+        }
+        if (!u) {
+          if (checkoutMsg) checkoutMsg.textContent = "Usuárie não encontrado(a/e) com este e-mail.";
+          return;
+        }
+
+        // 2) livro (books)
+        const { data: bk, error: bkErr } = await supabase
+          .from("books")
+          .select("id, titulo, autor, bib_ref")
+          .eq("bib_ref", bibRef)
+          .maybeSingle();
+
+        if (bkErr) {
+          console.error("checkout: books lookup error", bkErr);
+          if (checkoutMsg) checkoutMsg.textContent = "Erro ao buscar livro: " + bkErr.message;
+          return;
+        }
+        if (!bk) {
+          if (checkoutMsg) checkoutMsg.textContent = "Livro não encontrado para esta referência (bib_ref).";
+          return;
+        }
+
+        if (checkoutMsg) checkoutMsg.textContent = "Registrando saída...";
+
+        // 3) RPC bibliotecário
+        const { data, error } = await supabase.rpc("mark_loan_checkout", {
+          p_user_id: u.id,
+          p_book_id: bk.id,
+          p_batch_size: batchSize
+        });
+
+        if (error) {
+          console.error("mark_loan_checkout error:", error);
+          if (checkoutMsg) checkoutMsg.textContent = "Erro ao registrar saída: " + error.message;
+          return;
+        }
+
+        const row = Array.isArray(data) ? data[0] : data;
+        const ok = row?.ok === true;
+        const msg = row?.message || (ok ? "Saída registrada." : "Não foi possível registrar saída.");
+        const extra = row?.due_date ? ` Devolução: ${row.due_date}.` : "";
+        const lid = row?.loan_id ? ` (ID: ${row.loan_id})` : "";
+
+        if (checkoutMsg) checkoutMsg.textContent = msg + lid + extra;
+
+        // Limpa apenas a referência, mantém o email para agilizar
+        document.getElementById("checkoutBibRef").value = "";
+      });
+    }
+
+    if (returnForm) {
+      returnForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const returnMsg = document.getElementById("returnMsg");
+        if (returnMsg) returnMsg.textContent = "";
+
+        if (!isLibrarian) {
+          if (returnMsg) returnMsg.textContent = "Acesso restrito a bibliotecários.";
+          return;
+        }
+
+        const loanId = parseInt((document.getElementById("returnLoanId").value || "").trim(), 10);
+        if (!loanId) {
+          if (returnMsg) returnMsg.textContent = "Informe o ID do empréstimo.";
+          return;
+        }
+
+        if (returnMsg) returnMsg.textContent = "Registrando devolução...";
+
+        const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
+
+        if (error) {
+          console.error("mark_loan_returned error:", error);
+          if (returnMsg) returnMsg.textContent = "Erro ao registrar devolução: " + error.message;
+          return;
+        }
+
+        const row = Array.isArray(data) ? data[0] : data;
+        const ok = row?.ok === true;
+        const msg = row?.message || (ok ? "Devolução registrada." : "Não foi possível registrar devolução.");
+
+        if (returnMsg) returnMsg.textContent = msg;
+
+        // Atualiza listas (do usuário logado)
+        await renderLoans();
+        await renderHistory();
+      });
+    }
+
 
     await renderLoans();
     await renderHistory();
