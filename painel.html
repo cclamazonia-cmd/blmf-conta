@@ -670,6 +670,11 @@
         enforcePasswordChangeUI(data.must_change_password);
       }
 
+
+      // Restriction UI (regimento)
+      if (typeof data.is_restricted === \"boolean\") {
+        enforceRestrictionUI(data.is_restricted, data.restricted_reason);
+      }
       // Librarian UI (optional)
       const isLib = (typeof data.is_librarian === "boolean") ? data.is_librarian : false;
       setLibrarianUI(isLib);
