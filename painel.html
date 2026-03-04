@@ -1,4 +1,3 @@
-<!-- painel.html -->
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -18,14 +17,90 @@
       background: rgba(27,27,27,0.92);
       backdrop-filter: blur(2px);
     }
-    .brand { display:flex; gap:14px; align-items:center; margin-bottom:14px; }
-    .brand img { width:56px; height:56px; object-fit:contain; }
+    .brand { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+    .brand img { width:68px; height:68px; object-fit:contain; margin-top:2px; }
     .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
     .grid3 { display:grid; grid-template-columns:0.75fr 1fr 1fr; gap:12px; align-items:start; }
     .grid3 > div{ min-width:0; }
     .grid3 label{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
     .small { color:#cfcfcf; font-size:.9rem; }
+
+    /* Tabs (onglets colonnes) */
+    .tabs-layout{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      margin-top: 6px;
+    }
+    .tabs-nav{
+      width: 260px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      flex: 0 0 auto;
+    }
+    .tab-btn{
+      width:100%;
+      text-align:left;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.22);
+      color:#fff;
+      transition: transform .06s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
+    }
+    .tab-btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.22); }
+    .tab-btn.active{
+      background: rgba(200,0,0,0.26);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .tab-btn .hint{
+      display:block;
+      margin-top:4px;
+      color:#cfcfcf;
+      font-size:.85rem;
+      line-height:1.2;
+    }
+    .tab-btn:disabled{
+      cursor:not-allowed;
+      opacity:0.45;
+      transform:none !important;
+    }
+
+    .tabs-panels{ flex:1 1 auto; min-width:0; }
+    .tab-panel{ display:none; }
+    .tab-panel.active{ display:block; }
+
+    @media (max-width: 900px){
+      .tabs-layout{ flex-direction:column; }
+      .tabs-nav{
+        width:100%;
+        flex-direction:row;
+        overflow-x:auto;
+        padding-bottom: 2px;
+      }
+      .tab-btn{
+        width:auto;
+        white-space:nowrap;
+        flex: 0 0 auto;
+      }
+      .tab-btn .hint{ display:none; }
+    }
+
+    .panel-head{ margin-bottom: 10px; }
+    .panel-head h2{ margin-top:0; }
+
+    .notice{
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(200, 0, 0, 0.16);
+      padding:10px 12px;
+      border-radius:12px;
+      margin: 0 0 12px;
+      color:#fff;
+    }
+    .notice .small{ color:#f0f0f0; }
   </style>
 </head>
 
@@ -48,148 +123,208 @@
       </div>
     </div>
 
-    <section>
-      <h2>Seus dados (editar)</h2>
-      <p class="small">Você pode atualizar seus dados abaixo. O e-mail de login permanece o mesmo.</p>
+    <div class="tabs-layout">
+      <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
+        <button class="tab-btn active" type="button" data-tab="perfil" role="tab" aria-selected="true" aria-controls="tab-perfil">
+          Dados pessoais
+          <span class="hint">Editar cadastro e endereço</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="reservar" role="tab" aria-selected="false" aria-controls="tab-reservar">
+          Reservar livros
+          <span class="hint">Cole a referência BibLivre</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="curso" role="tab" aria-selected="false" aria-controls="tab-curso">
+          Empréstimos em curso
+          <span class="hint">O que está com você</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="historico" role="tab" aria-selected="false" aria-controls="tab-historico">
+          Histórico
+          <span class="hint">Empréstimos anteriores</span>
+        </button>
+      </nav>
 
-      <form id="profileForm" novalidate>
-        <div class="grid2">
-          <div>
-            <label for="firstName">Nome</label>
-            <input type="text" id="firstName" required />
+      <div class="tabs-panels">
+        <!-- PERFIL -->
+        <section id="tab-perfil" class="tab-panel active" data-tab="perfil" role="tabpanel">
+          <div id="mustChangeNotice" class="notice" style="display:none">
+            <b>Segurança:</b>
+            <div class="small">
+              Por segurança, altere sua senha após o primeiro acesso. Enquanto isso, as outras abas ficam bloqueadas.
+            </div>
           </div>
-          <div>
-            <label for="lastName">Sobrenome</label>
-            <input type="text" id="lastName" required />
+
+          <div class="panel-head">
+            <h2>Seus dados (editar)</h2>
+            <p class="small">Você pode atualizar seus dados abaixo. O e-mail de login permanece o mesmo.</p>
           </div>
-        </div>
 
-        <label for="phone">Telefone</label>
-        <input type="tel" id="phone" placeholder="+55 (xx) xxxxx-xxxx" />
+          <form id="profileForm" novalidate>
+            <div class="grid2">
+              <div>
+                <label for="firstName">Nome</label>
+                <input type="text" id="firstName" required />
+              </div>
+              <div>
+                <label for="lastName">Sobrenome</label>
+                <input type="text" id="lastName" required />
+              </div>
+            </div>
 
-        <label for="gender">Gênero</label>
-        <select id="gender">
-          <option value="">—</option>
-          <option value="feminino">Feminino</option>
-          <option value="masculino">Masculino</option>
-          <option value="neutro">Neutro</option>
-          <option value="não informar">Prefiro não informar</option>
-          <option value="outro">Outro</option>
-        </select>
+            <label for="phone">Telefone</label>
+            <input type="tel" id="phone" placeholder="+55 (xx) xxxxx-xxxx" />
 
-        <hr />
-        <h3 style="margin: 0 0 10px;">Endereço</h3>
-
-        <label for="addr1">Endereço 1</label>
-        <input type="text" id="addr1" required />
-
-        <label for="addr2">Endereço 2</label>
-        <input type="text" id="addr2" />
-
-        <div class="grid3">
-          <div>
-            <label for="unit">Casa/Apto nº</label>
-            <input type="text" id="unit" placeholder="Ex.: Casa 2 / Ap. 301" />
-          </div>
-          <div>
-            <label for="cep">CEP</label>
-            <input type="text" id="cep" placeholder="00000-000" required />
-          </div>
-          <div>
-            <label for="city">Cidade</label>
-            <input type="text" id="city" required />
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div>
-            <label for="state">Estado</label>
-            <select id="state" required>
-              <option value="">— selecione —</option>
-              <option value="NSA">Não se aplica (NSA)</option>
-              <option value="AC">Acre (AC)</option>
-              <option value="AL">Alagoas (AL)</option>
-              <option value="AP">Amapá (AP)</option>
-              <option value="AM">Amazonas (AM)</option>
-              <option value="BA">Bahia (BA)</option>
-              <option value="CE">Ceará (CE)</option>
-              <option value="DF">Distrito Federal (DF)</option>
-              <option value="ES">Espírito Santo (ES)</option>
-              <option value="GO">Goiás (GO)</option>
-              <option value="MA">Maranhão (MA)</option>
-              <option value="MT">Mato Grosso (MT)</option>
-              <option value="MS">Mato Grosso do Sul (MS)</option>
-              <option value="MG">Minas Gerais (MG)</option>
-              <option value="PA">Pará (PA)</option>
-              <option value="PB">Paraíba (PB)</option>
-              <option value="PR">Paraná (PR)</option>
-              <option value="PE">Pernambuco (PE)</option>
-              <option value="PI">Piauí (PI)</option>
-              <option value="RJ">Rio de Janeiro (RJ)</option>
-              <option value="RN">Rio Grande do Norte (RN)</option>
-              <option value="RS">Rio Grande do Sul (RS)</option>
-              <option value="RO">Rondônia (RO)</option>
-              <option value="RR">Roraima (RR)</option>
-              <option value="SC">Santa Catarina (SC)</option>
-              <option value="SP">São Paulo (SP)</option>
-              <option value="SE">Sergipe (SE)</option>
-              <option value="TO">Tocantins (TO)</option>
+            <label for="gender">Gênero</label>
+            <select id="gender">
+              <option value="">—</option>
+              <option value="feminino">Feminino</option>
+              <option value="masculino">Masculino</option>
+              <option value="neutro">Neutro</option>
+              <option value="não informar">Prefiro não informar</option>
+              <option value="outro">Outro</option>
             </select>
+
+            <hr />
+            <h3 style="margin: 0 0 10px;">Endereço</h3>
+
+            <label for="addr1">Endereço 1</label>
+            <input type="text" id="addr1" required />
+
+            <label for="addr2">Endereço 2</label>
+            <input type="text" id="addr2" />
+
+            <div class="grid3">
+              <div>
+                <label for="unit">Casa/Apto nº</label>
+                <input type="text" id="unit" placeholder="Ex.: Casa 2 / Ap. 301" />
+              </div>
+              <div>
+                <label for="cep">CEP</label>
+                <input type="text" id="cep" placeholder="00000-000" required />
+              </div>
+              <div>
+                <label for="city">Cidade</label>
+                <input type="text" id="city" required />
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div>
+                <label for="state">Estado</label>
+                <select id="state" required>
+                  <option value="">— selecione —</option>
+                  <option value="NSA">Não se aplica (NSA)</option>
+                  <option value="AC">Acre (AC)</option>
+                  <option value="AL">Alagoas (AL)</option>
+                  <option value="AP">Amapá (AP)</option>
+                  <option value="AM">Amazonas (AM)</option>
+                  <option value="BA">Bahia (BA)</option>
+                  <option value="CE">Ceará (CE)</option>
+                  <option value="DF">Distrito Federal (DF)</option>
+                  <option value="ES">Espírito Santo (ES)</option>
+                  <option value="GO">Goiás (GO)</option>
+                  <option value="MA">Maranhão (MA)</option>
+                  <option value="MT">Mato Grosso (MT)</option>
+                  <option value="MS">Mato Grosso do Sul (MS)</option>
+                  <option value="MG">Minas Gerais (MG)</option>
+                  <option value="PA">Pará (PA)</option>
+                  <option value="PB">Paraíba (PB)</option>
+                  <option value="PR">Paraná (PR)</option>
+                  <option value="PE">Pernambuco (PE)</option>
+                  <option value="PI">Piauí (PI)</option>
+                  <option value="RJ">Rio de Janeiro (RJ)</option>
+                  <option value="RN">Rio Grande do Norte (RN)</option>
+                  <option value="RS">Rio Grande do Sul (RS)</option>
+                  <option value="RO">Rondônia (RO)</option>
+                  <option value="RR">Roraima (RR)</option>
+                  <option value="SC">Santa Catarina (SC)</option>
+                  <option value="SP">São Paulo (SP)</option>
+                  <option value="SE">Sergipe (SE)</option>
+                  <option value="TO">Tocantins (TO)</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="country">País</label>
+                <select id="country" required>
+                  <option value="Brasil">Brasil</option>
+                  <option value="">— selecione —</option>
+                  <option value="Argentina">Argentina</option>
+                  <option value="Bolívia">Bolívia</option>
+                  <option value="Chile">Chile</option>
+                  <option value="Colômbia">Colômbia</option>
+                  <option value="Equador">Equador</option>
+                  <option value="Guiana">Guiana</option>
+                  <option value="Guiana francesa">Guiana francesa</option>
+                  <option value="Paraguai">Paraguai</option>
+                  <option value="Peru">Peru</option>
+                  <option value="Suriname">Suriname</option>
+                  <option value="Uruguai">Uruguai</option>
+                  <option value="Venezuela">Venezuela</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit">Salvar alterações</button>
+            <p id="profileMsg" class="msg" aria-live="polite"></p>
+          </form>
+
+          <hr />
+
+          <section aria-label="Alterar senha">
+            <h2>Segurança — Alterar senha</h2>
+            <p class="small">Escolha uma senha forte (mínimo 10 caracteres). Depois de alterar, você precisará usar a nova senha no próximo login.</p>
+
+            <form id="passwordForm" novalidate>
+              <label for="newPassword">Nova senha</label>
+              <input type="password" id="newPassword" autocomplete="new-password" required />
+
+              <label for="newPassword2">Confirmar nova senha</label>
+              <input type="password" id="newPassword2" autocomplete="new-password" required />
+
+              <div class="row" style="justify-content:flex-start; gap:10px;">
+                <button type="submit">Salvar senha</button>
+                <button type="button" id="togglePw" class="secondary">Mostrar senha</button>
+              </div>
+
+              <p id="passwordMsg" class="msg" aria-live="polite"></p>
+            </form>
+          </section>
+        </section>
+
+        <!-- RESERVAR -->
+        <section id="tab-reservar" class="tab-panel" data-tab="reservar" role="tabpanel">
+          <div class="panel-head">
+            <h2>Reservar livro</h2>
+            <p class="small">
+              No catálogo, clique em <b>copiar referência</b> e cole aqui a referência BibLivre.
+              Sua reserva será enviada para a biblioteca (para combinar a retirada).
+            </p>
           </div>
 
-          <div>
-            <label for="country">País</label>
-            <select id="country" required>
-              <option value="Brasil">Brasil</option>
-              <option value="">— selecione —</option>
-              <option value="Argentina">Argentina</option>
-              <option value="Bolívia">Bolívia</option>
-              <option value="Chile">Chile</option>
-              <option value="Colômbia">Colômbia</option>
-              <option value="Equador">Equador</option>
-              <option value="Guiana">Guiana</option>
-              <option value="Guiana francesa">Guiana francesa</option>
-              <option value="Paraguai">Paraguai</option>
-              <option value="Peru">Peru</option>
-              <option value="Suriname">Suriname</option>
-              <option value="Uruguai">Uruguai</option>
-              <option value="Venezuela">Venezuela</option>
-            </select>
+          <form id="reserveForm" class="row" style="justify-content:flex-start;">
+            <input type="text" id="bibRef" placeholder="Ex.: BIBLIVRE-000123" style="max-width:380px;" required />
+            <button type="submit">Reservar</button>
+          </form>
+          <p id="reserveMsg" class="msg" aria-live="polite"></p>
+        </section>
+
+        <!-- EM CURSO -->
+        <section id="tab-curso" class="tab-panel" data-tab="curso" role="tabpanel">
+          <div class="panel-head">
+            <h2>Empréstimos em curso</h2>
           </div>
-        </div>
+          <div id="loans"></div>
+        </section>
 
-        <button type="submit">Salvar alterações</button>
-        <p id="profileMsg" class="msg" aria-live="polite"></p>
-      </form>
-    </section>
-
-    <hr />
-
-    <section>
-      <h2>Reservar livro</h2>
-      <p class="small">
-        No catálogo, clique em <b>copiar referência</b> e cole aqui a referência BibLivre.
-        Sua reserva será enviada para a biblioteca (para combinar a retirada).
-      </p>
-
-      <form id="reserveForm" class="row" style="justify-content:flex-start;">
-        <input type="text" id="bibRef" placeholder="Ex.: BIBLIVRE-000123" style="max-width:380px;" required />
-        <button type="submit">Reservar</button>
-      </form>
-      <p id="reserveMsg" class="msg" aria-live="polite"></p>
-    </section>
-
-    <hr />
-
-    <section>
-      <h2>Empréstimos em curso</h2>
-      <div id="loans"></div>
-    </section>
-
-    <section>
-      <h2>Histórico</h2>
-      <div id="history"></div>
-    </section>
+        <!-- HISTÓRICO -->
+        <section id="tab-historico" class="tab-panel" data-tab="historico" role="tabpanel">
+          <div class="panel-head">
+            <h2>Histórico</h2>
+          </div>
+          <div id="history"></div>
+        </section>
+      </div>
+    </div>
   </main>
 
   <script type="module">
@@ -201,6 +336,53 @@
     const session = await requireSessionOrRedirect();
     if (!session) throw new Error("No session");
 
+    // Tabs
+    const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+    const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+    const mustChangeNotice = document.getElementById("mustChangeNotice");
+
+    let mustChangePassword = false;
+
+    function setActiveTab(key, { pushHash = true } = {}) {
+      tabButtons.forEach(btn => {
+        const active = btn.dataset.tab === key;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      tabPanels.forEach(panel => {
+        panel.classList.toggle("active", panel.dataset.tab === key);
+      });
+      if (pushHash) location.hash = "#" + key;
+    }
+
+    function enforcePasswordChangeUI(enforce) {
+      mustChangePassword = !!enforce;
+      mustChangeNotice.style.display = enforce ? "block" : "none";
+
+      // Bloqueia outras abas enquanto must_change_password = true
+      tabButtons.forEach(btn => {
+        if (btn.dataset.tab !== "perfil") btn.disabled = enforce;
+      });
+
+      if (enforce) setActiveTab("perfil", { pushHash: true });
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (mustChangePassword && btn.dataset.tab !== "perfil") return;
+        setActiveTab(btn.dataset.tab);
+      });
+    });
+
+    // Init tab via hash (mas se enforce=true, ficará no perfil)
+    const initial = (location.hash || "").replace("#", "");
+    if (initial && tabPanels.some(p => p.dataset.tab === initial)) {
+      setActiveTab(initial, { pushHash: false });
+    } else {
+      setActiveTab("perfil", { pushHash: false });
+    }
+
+    // Profile helpers
     function packAddress() {
       const lines = [
         document.getElementById("addr1").value.trim(),
@@ -226,7 +408,7 @@
       document.getElementById("addr1").value = free[0] || "";
       document.getElementById("addr2").value = free[1] || "";
 
-      document.getElementById("unit").value = extract("Casa\\/Apto", addressText);
+      document.getElementById("unit").value = extract("Casa\/Apto", addressText);
       document.getElementById("cep").value = extract("CEP", addressText);
       document.getElementById("city").value = extract("Cidade", addressText);
       document.getElementById("state").value = extract("Estado", addressText);
@@ -234,11 +416,29 @@
     }
 
     async function loadProfile() {
-      const { data, error } = await supabase
+      // Tenta carregar também os campos opcionais (must_change_password / password_changed_at).
+      // Se ainda não existirem no schema, cai em fallback sem travar a página.
+      let data = null;
+      let error = null;
+
+      const q1 = await supabase
         .from("profiles")
-        .select("email, first_name, last_name, phone, address, gender")
+        .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at")
         .eq("id", session.user.id)
         .single();
+
+      if (!q1.error) {
+        data = q1.data;
+      } else {
+        // fallback sem os campos opcionais
+        const q2 = await supabase
+          .from("profiles")
+          .select("email, first_name, last_name, phone, address, gender")
+          .eq("id", session.user.id)
+          .single();
+        data = q2.data;
+        error = q2.error;
+      }
 
       if (error) {
         document.getElementById("profileMsg").textContent = "Erro ao carregar perfil: " + error.message;
@@ -250,6 +450,11 @@
       document.getElementById("phone").value = data.phone || "";
       document.getElementById("gender").value = data.gender || "";
       loadAddressFields(data.address || "");
+
+      // Enforce optional
+      if (typeof data.must_change_password === "boolean") {
+        enforcePasswordChangeUI(data.must_change_password);
+      }
     }
 
     await loadProfile();
@@ -275,6 +480,71 @@
       profileMsg.textContent = error ? ("Erro ao salvar: " + error.message) : "Dados atualizados com sucesso.";
     });
 
+    // Password UI
+    const pwInput = document.getElementById("newPassword");
+    const pwInput2 = document.getElementById("newPassword2");
+    const pwMsg = document.getElementById("passwordMsg");
+    const togglePwBtn = document.getElementById("togglePw");
+
+    togglePwBtn.addEventListener("click", () => {
+      const show = pwInput.type === "password";
+      pwInput.type = show ? "text" : "password";
+      pwInput2.type = show ? "text" : "password";
+      togglePwBtn.textContent = show ? "Ocultar senha" : "Mostrar senha";
+    });
+
+    document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      pwMsg.textContent = "";
+
+      const p1 = pwInput.value;
+      const p2 = pwInput2.value;
+
+      if (!p1 || p1.length < 10) {
+        pwMsg.textContent = "A senha deve ter pelo menos 10 caracteres.";
+        return;
+      }
+      if (p1 !== p2) {
+        pwMsg.textContent = "As senhas não coincidem.";
+        return;
+      }
+
+      // Atualiza senha no Supabase Auth
+      const { error } = await supabase.auth.updateUser({ password: p1 });
+      if (error) {
+        console.error("updateUser password error:", error);
+        pwMsg.textContent = "Erro ao alterar senha: " + error.message + " (se necessário, faça login novamente).";
+        return;
+      }
+
+      // Atualiza flag no profile (opcional)
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({
+          must_change_password: false,
+          password_changed_at: new Date().toISOString()
+        })
+        .eq("id", session.user.id);
+
+      if (profErr) {
+        console.error("profiles update password flags error:", profErr);
+        // Mesmo se isso falhar, a senha já foi alterada. Só avisamos.
+        pwMsg.textContent = "Senha alterada. (Aviso: não foi possível atualizar o status no perfil.)";
+        enforcePasswordChangeUI(false);
+      } else {
+        pwMsg.textContent = "Senha alterada com sucesso.";
+        enforcePasswordChangeUI(false);
+      }
+
+      // limpa e volta ao modo password
+      pwInput.value = "";
+      pwInput2.value = "";
+      pwInput.type = "password";
+      pwInput2.type = "password";
+      togglePwBtn.textContent = "Mostrar senha";
+    });
+
+    // Reserve
     document.getElementById("reserveForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const reserveMsg = document.getElementById("reserveMsg");
@@ -286,15 +556,6 @@
         return;
       }
 
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) {
-        reserveMsg.textContent = "Sessão expirada. Faça login novamente.";
-        return;
-      }
-
-      
-      // Reserva direto no banco (RLS) — sem Edge Function
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
       if (userErr || !user) {
         reserveMsg.textContent = "Sessão inválida — faça login de novo.";
@@ -310,55 +571,65 @@
         return;
       }
 
-      reserveMsg.textContent = "Reserva registrada com sucesso.";
-      document.getElementById("bib_ref").value = "";
-
       reserveMsg.textContent = "Reserva registrada e enviada para a biblioteca. Em breve entraremos em contato para combinar a retirada.";
       document.getElementById("bibRef").value = "";
     });
 
+    function showEmpty(el, msg) {
+      el.innerHTML = `<p>${msg}</p>`;
+    }
+
     async function renderLoans() {
+      const el = document.getElementById("loans");
+      el.textContent = "Carregando...";
+
       const { data, error } = await supabase
         .from("loans")
-        .select("id, due_date, checkout_date, returned_date, books(title, author)")
+        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
         .eq("user_id", session.user.id)
         .is("returned_date", null)
         .order("due_date", { ascending: true });
 
       if (error) {
-        document.getElementById("loans").textContent = "Erro: " + error.message;
-        return;
+        console.error("renderLoans error:", error);
+        return showEmpty(el, "Não há empréstimos em curso.");
       }
 
       const today = new Date();
       const rows = (data || []).map(l => {
         const due = new Date(l.due_date + "T00:00:00");
         const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-        return `<li>#${l.id} — ${l.books?.title || "Livro"} (${l.books?.author || ""}) — devolução: ${l.due_date} — faltam ${daysLeft} dia(s)</li>`;
+        const titulo = l.books?.titulo || "Livro";
+        const autor = l.books?.autor || "";
+        return `<li>#${l.id} — ${titulo}${autor ? ` (${autor})` : ""} — devolução: ${l.due_date} — faltam ${daysLeft} dia(s)</li>`;
       });
 
-      document.getElementById("loans").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Nenhum empréstimo em curso.</p>";
+      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há empréstimos em curso.</p>";
     }
 
     async function renderHistory() {
+      const el = document.getElementById("history");
+      el.textContent = "Carregando...";
+
       const { data, error } = await supabase
         .from("loans")
-        .select("id, due_date, checkout_date, returned_date, books(title, author)")
+        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
         .eq("user_id", session.user.id)
         .order("checkout_date", { ascending: false })
         .limit(50);
 
       if (error) {
-        document.getElementById("history").textContent = "Erro: " + error.message;
-        return;
+        console.error("renderHistory error:", error);
+        return showEmpty(el, "Não há histórico de empréstimos.");
       }
 
       const rows = (data || []).map(l => {
+        const titulo = l.books?.titulo || "Livro";
         const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
-        return `<li>#${l.id} — ${l.books?.title || "Livro"} — ${status}</li>`;
+        return `<li>#${l.id} — ${titulo} — ${status}</li>`;
       });
 
-      document.getElementById("history").innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Sem histórico.</p>";
+      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
     }
 
     await renderLoans();
