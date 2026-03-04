@@ -1,4 +1,3 @@
-<!-- cadastro.html -->
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -25,6 +24,17 @@
     .required { color:#ffb4b4; font-size:.95rem; margin-top:10px; }
     .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
     @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
+
+    /* NEW: notice about changing password */
+    .notice{
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(200, 0, 0, 0.14);
+      padding:10px 12px;
+      border-radius:12px;
+      margin: 0 0 12px;
+      color:#fff;
+    }
+    .notice small{ color:#f0f0f0; display:block; margin-top:4px; line-height:1.25; }
   </style>
 </head>
 
@@ -40,6 +50,18 @@
         <h1 style="margin:0;">Cadastro — Biblioteca Libertária Maxwell Ferreira</h1>
         <p class="subtitle">Conta do/a/e leitor/a/e</p>
       </div>
+    </div>
+
+    <!-- NEW (keeps everything else): warning about password change -->
+    <div class="notice" role="note" aria-label="Aviso de segurança">
+      <b>Importante (segurança):</b>
+      <small>
+        A senha que você receberá por e-mail é <b>provisória</b>. Após o primeiro acesso, você deverá
+        <b>alterar sua senha no Painel</b>.
+      </small>
+      <small>
+        Se você perder o acesso, use em <b>Conta</b> o botão <b>“Esqueci minha senha”</b> para receber um link de redefinição.
+      </small>
     </div>
 
     <p class="hint">
@@ -248,9 +270,12 @@
         if (data.email_usuaria_enviado === false) {
           msg.textContent =
             "Cadastro concluído, mas houve um problema ao enviar o e-mail automaticamente. " +
-            "Entre em contato com a biblioteca para receber sua senha.";
+            "Entre em contato com a biblioteca para receber sua senha. " +
+            "Depois do primeiro acesso, altere sua senha no Painel.";
         } else {
-          msg.textContent = "Cadastro enviado com sucesso. Verifique seu e-mail (e Spam/Lixo eletrônico) para receber sua senha.";
+          msg.textContent =
+            "Cadastro enviado com sucesso. Verifique seu e-mail (e Spam/Lixo eletrônico) para receber sua senha. " +
+            "Depois do primeiro acesso, altere sua senha no Painel.";
         }
 
         form.reset();
