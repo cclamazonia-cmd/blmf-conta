@@ -879,7 +879,6 @@
     if (refreshPendentes) refreshPendentes.addEventListener("click", renderPendingReservas);
 
 
-    
     async function renderPendingReservas() {
       const box = document.getElementById("pendingReservas");
       const msg = document.getElementById("pendingMsg");
@@ -910,6 +909,7 @@
       }
 
       const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const batchOptions = (selected) => [1,2,3,4,5].map(n => `<option value="${n}" ${String(n)===String(selected) ? "selected":""}>${n}</option>`).join("");
 
       box.innerHTML = `
         <div class="table-scroll">
@@ -920,6 +920,7 @@
                 <th>Data</th>
                 <th>Livro</th>
                 <th>Leitor(a/e)</th>
+                <th>Lote</th>
               </tr>
             </thead>
             <tbody>
@@ -936,6 +937,11 @@
                     <div>${esc(((r.first_name || "") + " " + (r.last_name || "")).trim() || "—")}</div>
                     <div><small>${esc(r.user_email || "")}</small></div>
                   </td>
+                  <td>
+                    <select class="inline-select" data-batch-size="${esc(r.reserva_id)}" aria-label="Lote">
+                      ${batchOptions(1)}
+                    </select>
+                  </td>
                 </tr>
               `).join("")}
             </tbody>
@@ -943,12 +949,21 @@
         </div>
       `;
 
+      // Clique na linha: preenche o formulário de confirmação (ID + lote)
       box.querySelectorAll("[data-select-reserva]").forEach((tr) => {
-        tr.addEventListener("click", () => {
+        tr.addEventListener("click", (ev) => {
+          // Se clicou no select, não tratamos como seleção da linha
+          const target = ev.target;
+          if (target && (target.tagName === "SELECT" || target.tagName === "OPTION")) return;
+
           const rid = tr.getAttribute("data-select-reserva");
+          const sel = box.querySelector(`[data-batch-size="${rid}"]`);
+          const batch = sel ? (parseInt(sel.value, 10) || 1) : 1;
+
           if (fulfillIdInput) fulfillIdInput.value = String(rid);
-          if (fulfillBatchSelect) fulfillBatchSelect.value = "1";
-          msg.textContent = "Reserva selecionada: " + rid + ". Agora clique em “Confirmar retirada”.";
+          if (fulfillBatchSelect) fulfillBatchSelect.value = String(batch);
+
+          msg.textContent = `Reserva selecionada: ${rid}. Agora clique em “Confirmar retirada”.`;
           const f = document.getElementById("fulfillForm");
           if (f) f.scrollIntoView({ behavior: "smooth", block: "start" });
         });
