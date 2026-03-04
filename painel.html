@@ -178,8 +178,8 @@
             </div>
           </div>
 
-          <div id="restrictedNotice" class="notice" style="display:none; background: rgba(0,0,0,0.22); border-color: rgba(255,255,255,0.18);">
-            <b>Atenção:</b>
+          <div id="restrictedNotice" class="notice" style="display:none; background: rgba(200, 0, 0, 0.26); border-color: rgba(255,255,255,0.28);">
+            <b>Atenção — cadastro restrito:</b>
             <div class="small">
               Seu cadastro está <b>restrito</b> no momento. Você pode consultar seus empréstimos, mas não pode fazer novas reservas, novos empréstimos nem renovar.
             </div>
@@ -526,7 +526,13 @@
       const reasonEl = document.getElementById("restrictedReason");
 
       if (notice) notice.style.display = userIsRestricted ? "block" : "none";
-      if (reasonEl) reasonEl.textContent = userIsRestricted ? (reason || "Entre em contato com a biblioteca para regularizar sua situação.") : "";
+            if (reasonEl) {
+        const rr = String(reason || "").trim();
+        const isTest = rr.toLowerCase() === "teste" || rr.toLowerCase() === "test";
+        const show = userIsRestricted && rr && !isTest;
+        reasonEl.style.display = show ? "block" : "none";
+        reasonEl.textContent = show ? rr : "";
+      }
 
       // Regimento: usuário restrito não pode fazer novas reservas nem renovar
       tabButtons.forEach(btn => {
