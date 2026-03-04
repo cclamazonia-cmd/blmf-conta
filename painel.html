@@ -937,7 +937,7 @@
                   </select>
                 </td>
                 <td>
-                  <button type="button" class="secondary mini-btn" data-fulfill-inline="${esc(r.reserva_id)}">Confirmar retirada</button>
+                  <span class="loan-actions"><button type="button" class="secondary mini-btn" data-fulfill-inline="${esc(r.reserva_id)}">Confirmar retirada</button><button type="button" class="secondary mini-btn" data-cancel-inline="${esc(r.reserva_id)}">Cancelar</button></span>
                 </td>
               </tr>
             `).join("")}
@@ -980,6 +980,37 @@
         });
       });
     }
+
+      // Cancelar reserva (marca status='cancelled')
+      box.querySelectorAll("[data-cancel-inline]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const rid = Number(btn.getAttribute("data-cancel-inline"));
+          if (!rid) return;
+
+          const ok = confirm(`Cancelar a reserva #${rid}?`);
+          if (!ok) return;
+
+          btn.setAttribute("disabled", "disabled");
+          msg.textContent = "Cancelando reserva...";
+
+          const { data, error } = await supabase.rpc("cancel_reserva", { p_reserva_id: rid });
+
+          btn.removeAttribute("disabled");
+
+          if (error) {
+            console.error("cancel_reserva error:", error);
+            msg.textContent = "Erro ao cancelar reserva: " + error.message;
+            return;
+          }
+
+          const row = Array.isArray(data) ? data[0] : data;
+          const message = row?.message || "Reserva cancelada.";
+          msg.textContent = message;
+
+          await renderPendingReservas();
+        });
+      });
+
 
 
     if (checkoutForm) {
