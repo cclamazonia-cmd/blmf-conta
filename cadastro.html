@@ -47,6 +47,15 @@
     .rules ul{ margin:10px 0 0 18px; color:#f0f0f0; }
     .rules a{ color:#fff; text-decoration:underline; }
     .muted{ color:#cfcfcf; font-size:.92rem; }
+  
+    /* Links dentro das caixas de confirmação (evitar azul padrão) */
+    label.checkbox a,
+    label.checkbox a:visited,
+    label.checkbox a:hover,
+    label.checkbox a:active{
+      color:#c00000;
+    }
+
   </style>
 </head>
 
@@ -241,7 +250,7 @@
   <script type="module">
     import { CONFIG } from "./js/config.js";
 
-    const REGIMENTO_URL = 'https://cclamazonia.noblogs.org/regimento-blmf/';
+    const REGIMENTO_URL = 'https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/';
 
     // Wire regimento links
     for (const id of ["regLinkTop", "regLink"]) {
