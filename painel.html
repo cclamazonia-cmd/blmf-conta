@@ -354,6 +354,46 @@
             <p class="small">Registrar saídas (empréstimos) e devoluções. Apenas bibliotecários têm acesso.</p>
           </div>
 
+
+          <hr />
+          <h3 style="margin: 0 0 10px;">Reservas pendentes</h3>
+          <p class="small">Lista das reservas ainda não confirmadas. Clique em “Confirmar retirada” para transformar a reserva em empréstimo.</p>
+
+          <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+            <button type="button" id="refreshPendentes" class="secondary">Atualizar lista</button>
+          </div>
+
+          <div id="pendingReservas"></div>
+          <p id="pendingMsg" class="msg" aria-live="polite"></p>
+
+          <hr />
+          <h3 style="margin: 0 0 10px;">Confirmar retirada (transformar reserva em empréstimo)</h3>
+
+          <form id="fulfillForm" novalidate>
+            <div class="grid2">
+              <div>
+                <label for="fulfillReservaId">ID da reserva (reserva_id)</label>
+                <input type="number" id="fulfillReservaId" inputmode="numeric" required />
+              </div>
+              <div>
+                <label for="fulfillBatchSize">Quantidade no lote</label>
+                <select id="fulfillBatchSize">
+                  <option value="1">1 livro (21 dias)</option>
+                  <option value="2">2 livros (30 dias)</option>
+                  <option value="3">3 livros (30 dias)</option>
+                  <option value="4">4 livros (38 dias)</option>
+                  <option value="5">5 livros (38 dias)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+              <button type="submit">Confirmar retirada</button>
+            </div>
+
+            <p id="fulfillMsg" class="msg" aria-live="polite"></p>
+          </form>
+
           <hr />
           <h3 style="margin: 0 0 10px;">Registrar saída (novo empréstimo)</h3>
 
@@ -388,48 +428,7 @@
             <p id="checkoutMsg" class="msg" aria-live="polite"></p>
           </form>
 
-          
           <hr />
-          
-          <hr />
-          <h3 style="margin: 0 0 10px;">Reservas pendentes</h3>
-          <p class="small">Lista das reservas ainda não confirmadas. Clique em “Confirmar” para transformar em empréstimo.</p>
-
-          <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
-            <button type="button" id="refreshPendentes" class="secondary">Atualizar lista</button>
-          </div>
-
-          <div id="pendingReservas"></div>
-          <p id="pendingMsg" class="msg" aria-live="polite"></p>
-
-<h3 style="margin: 0 0 10px;">Confirmar retirada (transformar reserva em empréstimo)</h3>
-
-          <form id="fulfillForm" novalidate>
-            <div class="grid2">
-              <div>
-                <label for="fulfillReservaId">ID da reserva (reserva_id)</label>
-                <input type="number" id="fulfillReservaId" inputmode="numeric" required />
-              </div>
-              <div>
-                <label for="fulfillBatchSize">Quantidade no lote</label>
-                <select id="fulfillBatchSize">
-                  <option value="1">1 livro (21 dias)</option>
-                  <option value="2">2 livros (30 dias)</option>
-                  <option value="3">3 livros (30 dias)</option>
-                  <option value="4">4 livros (38 dias)</option>
-                  <option value="5">5 livros (38 dias)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row" style="justify-content:flex-start; gap:10px;">
-              <button type="submit">Confirmar retirada</button>
-            </div>
-
-            <p id="fulfillMsg" class="msg" aria-live="polite"></p>
-          </form>
-
-<hr />
           <h3 style="margin: 0 0 10px;">Registrar devolução</h3>
 
           <form id="returnForm" novalidate>
@@ -767,6 +766,7 @@
     }
 
     
+    
     async function renderLoans() {
       const el = document.getElementById("loans");
       const loanMsg = document.getElementById("loanMsg");
@@ -792,7 +792,6 @@
         const daysLeft = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
         const titulo = l.books?.titulo || "Livro";
         const autor = l.books?.autor || "";
-
         const canExtend = !l.extended_once;
 
         const actionHtml = canExtend
@@ -832,8 +831,39 @@
 
           if (loanMsg) loanMsg.textContent = message + newDue;
 
-          // Refresh lists (due_date/extended_once changed)
-      
+          // Refresh lists
+          await renderLoans();
+          await renderHistory();
+        });
+      });
+    }
+
+    async function renderHistory() {
+      const el = document.getElementById("history");
+      el.textContent = "Carregando...";
+
+      const { data, error } = await supabase
+        .from("loans")
+        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
+        .eq("user_id", session.user.id)
+        .order("checkout_date", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error("renderHistory error:", error);
+        return showEmpty(el, "Não há histórico de empréstimos.");
+      }
+
+      const rows = (data || []).map(l => {
+        const titulo = l.books?.titulo || "Livro";
+        const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
+        return `<li>#${l.id} — ${titulo} — ${status}</li>`;
+      });
+
+      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
+    }
+
+
 
     // Bibliotecário-a-e: registrar saída e devolução
     const checkoutForm = document.getElementById("checkoutForm");
@@ -907,7 +937,7 @@
                   </select>
                 </td>
                 <td>
-                  <button type="button" class="secondary mini-btn" data-fulfill-inline="${esc(r.reserva_id)}">Confirmar</button>
+                  <button type="button" class="secondary mini-btn" data-fulfill-inline="${esc(r.reserva_id)}">Confirmar retirada</button>
                 </td>
               </tr>
             `).join("")}
@@ -933,12 +963,13 @@
 
           if (error) {
             console.error("fulfill_reserva error:", error);
-            msg.textContent = "Erro ao confirmar reserva: " + error.message;
+            msg.textContent = "Erro ao confirmar retirada: " + error.message;
             return;
           }
 
           const row = Array.isArray(data) ? data[0] : data;
-          const message = row?.message || "Reserva confirmada.";
+          const ok = row?.ok === true;
+          const message = row?.message || (ok ? "Reserva retirada." : "Não foi possível confirmar retirada.");
           const extraLoan = row?.loan_id ? ` (Empréstimo ID: ${row.loan_id})` : "";
           const extraDue = row?.due_date ? ` Devolução: ${row.due_date}.` : "";
           msg.textContent = message + extraLoan + extraDue;
@@ -1034,48 +1065,6 @@
         document.getElementById("checkoutBibRef").value = "";
       });
     }
-
-    if (returnForm) {
-      returnForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const returnMsg = document.getElementById("returnMsg");
-        if (returnMsg) returnMsg.textContent = "";
-
-        if (!isLibrarian) {
-          if (returnMsg) returnMsg.textContent = "Acesso restrito a bibliotecários.";
-          return;
-        }
-
-        const loanId = parseInt((document.getElementById("returnLoanId").value || "").trim(), 10);
-        if (!loanId) {
-          if (returnMsg) returnMsg.textContent = "Informe o ID do empréstimo.";
-          return;
-        }
-
-        if (returnMsg) returnMsg.textContent = "Registrando devolução...";
-
-        const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
-
-        if (error) {
-          console.error("mark_loan_returned error:", error);
-          if (returnMsg) returnMsg.textContent = "Erro ao registrar devolução: " + error.message;
-          return;
-        }
-
-        const row = Array.isArray(data) ? data[0] : data;
-        const ok = row?.ok === true;
-        const msg = row?.message || (ok ? "Devolução registrada." : "Não foi possível registrar devolução.");
-
-        if (returnMsg) returnMsg.textContent = msg;
-
-        // Atualiza listas (do usuário logado)
-        await renderLoans();
-        await renderHistory();
-      });
-    }
-
-
-    const fulfillForm = document.getElementById("fulfillForm");
     if (fulfillForm) {
       fulfillForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -1104,145 +1093,25 @@
 
         if (error) {
           console.error("fulfill_reserva error:", error);
-          if (fulfillMsg) fulfillMsg.textContent = "Erro ao confirmar reserva: " + error.message;
+          if (fulfillMsg) fulfillMsg.textContent = "Erro ao confirmar retirada: " + error.message;
           return;
         }
 
         const row = Array.isArray(data) ? data[0] : data;
         const ok = row?.ok === true;
-        const msg = row?.message || (ok ? "Reserva confirmada." : "Não foi possível confirmar a reserva.");
+        const message = row?.message || (ok ? "Reserva retirada." : "Não foi possível confirmar retirada.");
         const extraLoan = row?.loan_id ? ` (Empréstimo ID: ${row.loan_id})` : "";
         const extraDue = row?.due_date ? ` Devolução: ${row.due_date}.` : "";
 
-        if (fulfillMsg) fulfillMsg.textContent = msg + extraLoan + extraDue;
+        if (fulfillMsg) fulfillMsg.textContent = message + extraLoan + extraDue;
 
-        // atualiza listas do usuário logado (se for o mesmo) e histórico
+        await renderPendingReservas();
         await renderLoans();
         await renderHistory();
       });
     }
 
 
-    await renderLoans();
-          await renderHistory();
-        });
-      });
-    }
-
-    async function renderHistory() {
-      const el = document.getElementById("history");
-      el.textContent = "Carregando...";
-
-      const { data, error } = await supabase
-        .from("loans")
-        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
-        .eq("user_id", session.user.id)
-        .order("checkout_date", { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error("renderHistory error:", error);
-        return showEmpty(el, "Não há histórico de empréstimos.");
-      }
-
-      const rows = (data || []).map(l => {
-        const titulo = l.books?.titulo || "Livro";
-        const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
-        return `<li>#${l.id} — ${titulo} — ${status}</li>`;
-      });
-
-      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
-    }
-
-
-
-    // Bibliotecário-a-e: registrar saída e devolução
-    const checkoutForm = document.getElementById("checkoutForm");
-    const returnForm = document.getElementById("returnForm");
-
-    if (checkoutForm) {
-      checkoutForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const checkoutMsg = document.getElementById("checkoutMsg");
-        if (checkoutMsg) checkoutMsg.textContent = "";
-
-        if (!isLibrarian) {
-          if (checkoutMsg) checkoutMsg.textContent = "Acesso restrito a bibliotecários.";
-          return;
-        }
-
-        const email = (document.getElementById("checkoutUserEmail").value || "").trim();
-        const bibRef = (document.getElementById("checkoutBibRef").value || "").trim();
-        const batchSize = parseInt((document.getElementById("checkoutBatchSize").value || "1"), 10) || 1;
-
-        if (!email || !bibRef) {
-          if (checkoutMsg) checkoutMsg.textContent = "Preencha o e-mail e a referência BibLivre.";
-          return;
-        }
-
-        if (checkoutMsg) checkoutMsg.textContent = "Buscando usuárie e livro...";
-
-        // 1) usuário (profiles)
-        const { data: u, error: uErr } = await supabase
-          .from("profiles")
-          .select("id, email, first_name, last_name")
-          .ilike("email", email)
-          .maybeSingle();
-
-        if (uErr) {
-          console.error("checkout: profiles lookup error", uErr);
-          if (checkoutMsg) checkoutMsg.textContent = "Erro ao buscar usuárie: " + uErr.message;
-          return;
-        }
-        if (!u) {
-          if (checkoutMsg) checkoutMsg.textContent = "Usuárie não encontrado(a/e) com este e-mail.";
-          return;
-        }
-
-        // 2) livro (books)
-        const { data: bk, error: bkErr } = await supabase
-          .from("books")
-          .select("id, titulo, autor, bib_ref")
-          .eq("bib_ref", bibRef)
-          .maybeSingle();
-
-        if (bkErr) {
-          console.error("checkout: books lookup error", bkErr);
-          if (checkoutMsg) checkoutMsg.textContent = "Erro ao buscar livro: " + bkErr.message;
-          return;
-        }
-        if (!bk) {
-          if (checkoutMsg) checkoutMsg.textContent = "Livro não encontrado para esta referência (bib_ref).";
-          return;
-        }
-
-        if (checkoutMsg) checkoutMsg.textContent = "Registrando saída...";
-
-        // 3) RPC bibliotecário
-        const { data, error } = await supabase.rpc("mark_loan_checkout", {
-          p_user_id: u.id,
-          p_book_id: bk.id,
-          p_batch_size: batchSize
-        });
-
-        if (error) {
-          console.error("mark_loan_checkout error:", error);
-          if (checkoutMsg) checkoutMsg.textContent = "Erro ao registrar saída: " + error.message;
-          return;
-        }
-
-        const row = Array.isArray(data) ? data[0] : data;
-        const ok = row?.ok === true;
-        const msg = row?.message || (ok ? "Saída registrada." : "Não foi possível registrar saída.");
-        const extra = row?.due_date ? ` Devolução: ${row.due_date}.` : "";
-        const lid = row?.loan_id ? ` (ID: ${row.loan_id})` : "";
-
-        if (checkoutMsg) checkoutMsg.textContent = msg + lid + extra;
-
-        // Limpa apenas a referência, mantém o email para agilizar
-        document.getElementById("checkoutBibRef").value = "";
-      });
-    }
 
     if (returnForm) {
       returnForm.addEventListener("submit", async (e) => {
