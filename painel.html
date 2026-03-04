@@ -381,7 +381,36 @@
             <p id="checkoutMsg" class="msg" aria-live="polite"></p>
           </form>
 
+          
           <hr />
+          <h3 style="margin: 0 0 10px;">Confirmar retirada (transformar reserva em empréstimo)</h3>
+
+          <form id="fulfillForm" novalidate>
+            <div class="grid2">
+              <div>
+                <label for="fulfillReservaId">ID da reserva (reserva_id)</label>
+                <input type="number" id="fulfillReservaId" inputmode="numeric" required />
+              </div>
+              <div>
+                <label for="fulfillBatchSize">Quantidade no lote</label>
+                <select id="fulfillBatchSize">
+                  <option value="1">1 livro (21 dias)</option>
+                  <option value="2">2 livros (30 dias)</option>
+                  <option value="3">3 livros (30 dias)</option>
+                  <option value="4">4 livros (38 dias)</option>
+                  <option value="5">5 livros (38 dias)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row" style="justify-content:flex-start; gap:10px;">
+              <button type="submit">Confirmar retirada</button>
+            </div>
+
+            <p id="fulfillMsg" class="msg" aria-live="polite"></p>
+          </form>
+
+<hr />
           <h3 style="margin: 0 0 10px;">Registrar devolução</h3>
 
           <form id="returnForm" novalidate>
@@ -909,6 +938,54 @@
         if (returnMsg) returnMsg.textContent = msg;
 
         // Atualiza listas (do usuário logado)
+        await renderLoans();
+        await renderHistory();
+      });
+    }
+
+
+    const fulfillForm = document.getElementById("fulfillForm");
+    if (fulfillForm) {
+      fulfillForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fulfillMsg = document.getElementById("fulfillMsg");
+        if (fulfillMsg) fulfillMsg.textContent = "";
+
+        if (!isLibrarian) {
+          if (fulfillMsg) fulfillMsg.textContent = "Acesso restrito a bibliotecários.";
+          return;
+        }
+
+        const reservaId = parseInt((document.getElementById("fulfillReservaId").value || "").trim(), 10);
+        const batchSize = parseInt((document.getElementById("fulfillBatchSize").value || "1"), 10) || 1;
+
+        if (!reservaId) {
+          if (fulfillMsg) fulfillMsg.textContent = "Informe o ID da reserva.";
+          return;
+        }
+
+        if (fulfillMsg) fulfillMsg.textContent = "Confirmando retirada...";
+
+        const { data, error } = await supabase.rpc("fulfill_reserva", {
+          p_reserva_id: reservaId,
+          p_batch_size: batchSize
+        });
+
+        if (error) {
+          console.error("fulfill_reserva error:", error);
+          if (fulfillMsg) fulfillMsg.textContent = "Erro ao confirmar reserva: " + error.message;
+          return;
+        }
+
+        const row = Array.isArray(data) ? data[0] : data;
+        const ok = row?.ok === true;
+        const msg = row?.message || (ok ? "Reserva confirmada." : "Não foi possível confirmar a reserva.");
+        const extraLoan = row?.loan_id ? ` (Empréstimo ID: ${row.loan_id})` : "";
+        const extraDue = row?.due_date ? ` Devolução: ${row.due_date}.` : "";
+
+        if (fulfillMsg) fulfillMsg.textContent = msg + extraLoan + extraDue;
+
+        // atualiza listas do usuário logado (se for o mesmo) e histórico
         await renderLoans();
         await renderHistory();
       });
