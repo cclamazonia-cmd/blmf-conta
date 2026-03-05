@@ -3,948 +3,442 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Conta — Biblioteca Libertária Maxwell Ferreira</title>
-  <link rel="stylesheet" href="./css/app.css" />
+  <title>BLMF — Minha conta</title>
   <style>
+    :root{
+      --panel:rgba(18,18,18,.96);
+      --text:#f2f2f2; --muted:rgba(255,255,255,.72);
+      --red:#b30018; --red2:#e11d2f;
+      --line:rgba(255,255,255,.10);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --ok:#4ade80; --warn:#fbbf24; --bad:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;color:var(--text);font-family:Inter, Segoe UI, Arial, sans-serif;}
     body{
-      background-image:url("https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg");
-      background-size:cover;
-      background-position:center;
-      background-attachment:fixed;
-      background-repeat:no-repeat;
+      background-image:
+        linear-gradient(rgba(0,0,0,0.78), rgba(0,0,0,0.78)),
+        url('https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg');
+      background-size:cover; background-position:center; background-attachment:fixed; background-repeat:no-repeat;
     }
+    a, a:visited{color:inherit}
+    .wrap{max-width:1320px;margin:0 auto;padding:24px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{height:64px;width:auto;max-width:140px;object-fit:contain;display:block;flex-shrink:0;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
+    .btn{
+      border:1px solid var(--line); background:rgba(18,18,18,.92);
+      color:var(--text); border-radius:14px; padding:10px 12px;
+      cursor:pointer; box-shadow: var(--shadow);
+      font-weight:800; font-size:.95rem;
+    }
+    .btn.primary{border:none;background:linear-gradient(135deg,var(--red2),var(--red))}
+    .btn:hover{border-color:rgba(255,255,255,.22)}
+    .hero{
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(135deg, rgba(179,0,24,.95), rgba(90,0,12,.96));
+      border-radius:22px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px
+    }
+    .hero h1{margin:0 0 8px;font-size:1.45rem}
+    .hero p{margin:0;color:rgba(255,255,255,.92)}
+    .grid{display:grid;grid-template-columns:340px 1fr;gap:14px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
     .card{
-      background: rgba(27,27,27,0.92);
-      backdrop-filter: blur(2px);
+      border:1px solid rgba(255,255,255,.08); background:var(--panel);
+      border-radius:22px; padding:16px; box-shadow:var(--shadow);
     }
-    .brand { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
-    .brand img { width:82px; height:82px; object-fit:contain; margin-top:0; flex:0 0 auto; }
-    .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
-    .grid3 { display:grid; grid-template-columns:0.75fr 1fr 1fr; gap:12px; align-items:start; }
-    .grid3 > div{ min-width:0; }
-    .grid3 label{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
-    .small { color:#cfcfcf; font-size:.9rem; }
-
-    /* Tabs (onglets colonnes) */
-    .tabs-layout{
-      display:flex;
-      gap:14px;
-      align-items:flex-start;
-      margin-top: 6px;
-    }
-    .tabs-nav{
-      width: 260px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      flex: 0 0 auto;
-    }
-    .tab-btn{
-      width:100%;
-      text-align:left;
+    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .tab{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(12,12,12,.55);
+      color:var(--text);
+      border-radius:999px;
+      padding:9px 12px;
       cursor:pointer;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.22);
-      color:#fff;
-      transition: transform .06s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
+      font-weight:800;
+      font-size:.92rem;
     }
-    .tab-btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.22); }
-    .tab-btn.active{
-      background: rgba(200,0,0,0.26);
-      border-color: rgba(255,255,255,0.28);
+    .tab[aria-selected="true"]{border-color:rgba(225,29,47,.65); background:rgba(179,0,24,.18)}
+    .section{display:none}
+    .section.active{display:block}
+    label{display:block;font-size:.9rem;color:var(--muted);margin:0 0 6px}
+    .input{
+      width:100%;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(12,12,12,.75);
+      color:var(--text);
+      border-radius:14px;
+      padding:12px 12px;
+      outline:none;
     }
-    .tab-btn .hint{
-      display:block;
-      margin-top:4px;
-      color:#cfcfcf;
-      font-size:.85rem;
-      line-height:1.2;
+    .input:focus{border-color:rgba(225,29,47,.85); box-shadow:0 0 0 3px rgba(225,29,47,.18)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:720px){.row{grid-template-columns:1fr}}
+    .status{margin-top:10px;font-size:.92rem}
+    .status.ok{color:var(--ok)} .status.warn{color:var(--warn)} .status.bad{color:var(--bad)}
+    .tableWrap{overflow:auto;max-height:62vh;border-radius:16px;border:1px solid rgba(255,255,255,.08)}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:760px;background:rgba(10,10,10,.35)}
+    thead th{
+      position:sticky;top:0;z-index:2;text-align:left;padding:12px 14px;
+      background:linear-gradient(180deg,#26060a,#160407);color:#fff;border-bottom:1px solid rgba(255,255,255,.08);
+      font-size:.86rem;text-transform:uppercase;letter-spacing:.05em
     }
-    .tab-btn:disabled{
-      cursor:not-allowed;
-      opacity:0.45;
-      transform:none !important;
-    }
-
-    .tabs-panels{ flex:1 1 auto; min-width:0; }
-    .tab-panel{ display:none; }
-    .tab-panel.active{ display:block; }
-
-    @media (max-width: 900px){
-      .tabs-layout{ flex-direction:column; }
-      .tabs-nav{
-        width:100%;
-        flex-direction:row;
-        overflow-x:auto;
-        padding-bottom: 2px;
-      }
-      .tab-btn{
-        width:auto;
-        white-space:nowrap;
-        flex: 0 0 auto;
-      }
-      .tab-btn .hint{ display:none; }
-    }
-
-    .panel-head{ margin-bottom: 10px; }
-    .panel-head h2{ margin-top:0; }
-
-    .notice{
-      border:1px solid rgba(255,255,255,0.18);
-      background: rgba(200, 0, 0, 0.16);
-      padding:10px 12px;
-      border-radius:12px;
-      margin: 0 0 12px;
-      color:#fff;
-    }
-    .notice .small{ color:#f0f0f0; }
-  
-    .mini-btn{
-      padding:6px 10px;
-      font-size:.9rem;
-      border-radius:12px;
-      line-height:1.1;
-    }
-    .loan-actions{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:10px; }
-    .tag-muted{ color:#cfcfcf; font-size:.9rem; }
-
-  
-    .list-table{ width:100%; border-collapse:collapse; margin-top:10px; }
-    .list-table th, .list-table td{ padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.14); vertical-align:top; }
-    .list-table th{ text-align:left; color:#cfcfcf; font-weight:600; }
-    .list-table td small{ color:#cfcfcf; }
-    .inline-select{ max-width:160px; }
-
-  
-    .table-scroll{ width:100%; overflow-x:auto; }
-
+    tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+    tbody tr:hover td{background:rgba(179,0,24,.08)}
+    .muted{color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.10);background:rgba(18,18,18,.65);padding:7px 10px;border-radius:999px;font-size:.9rem;color:var(--muted)}
+    .mini{font-size:.86rem;color:var(--muted)}
   </style>
 </head>
-
 <body>
-  <main class="card">
-    <div class="brand">
-      <img
-        src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png"
-        alt="Logotipo BLMF"
-        onerror="this.style.display='none'"
-      />
-      <div style="flex:1;">
-        <div class="row" style="justify-content:space-between;">
-          <div>
-            <h1 style="margin:0;">Conta — Biblioteca Libertária Maxwell Ferreira</h1>
-            <p class="subtitle">Área do/a/e leitor/a/e</p>
-          </div>
-          <button id="logout" class="secondary">Sair</button>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <img class="logo" src="logo-blmf.png" alt="BLMF" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';" />
+        <div id="logoFallback" style="display:none">
+          <div style="font-weight:900;letter-spacing:.04em">BLMF</div>
+          <div class="mini">Biblioteca Libertária Maxwell Ferreira</div>
         </div>
-
-        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <a class="secondary" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
-          <a class="secondary" href="https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
-          <a id="goPainelBiblio" class="secondary" href="./painel.html" style="display:none; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
-        </div>
-        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="btnBlog" type="button">Voltar ao blogue</button>
+        <button class="btn" id="btnCatalogo" type="button">Voltar ao catálogo</button>
+        <button class="btn primary" id="btnSair" type="button">Sair</button>
       </div>
     </div>
 
-    <div class="tabs-layout">
-      <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
-        <button class="tab-btn active" type="button" data-tab="perfil" role="tab" aria-selected="true" aria-controls="tab-perfil">
-          Dados pessoais
-          <span class="hint">Editar cadastro e endereço</span>
-        </button>
-        <button class="tab-btn" type="button" data-tab="reservar" role="tab" aria-selected="false" aria-controls="tab-reservar">
-          Reservar livros
-          <span class="hint">Cole a referência BibLivre</span>
-        </button>
-        <button class="tab-btn" type="button" data-tab="curso" role="tab" aria-selected="false" aria-controls="tab-curso">
-          Empréstimos em curso
-          <span class="hint">O que está com você</span>
-        </button>
-        <button class="tab-btn" type="button" data-tab="historico" role="tab" aria-selected="false" aria-controls="tab-historico">
-          Histórico
-          <span class="hint">Empréstimos anteriores</span>
-        </button>
-</nav>
-
-      <div class="tabs-panels">
-        <!-- PERFIL -->
-        <section id="tab-perfil" class="tab-panel active" data-tab="perfil" role="tabpanel">
-          <div id="mustChangeNotice" class="notice" style="display:none">
-            <b>Segurança:</b>
-            <div class="small">
-              Por segurança, altere sua senha após o primeiro acesso. Enquanto isso, as outras abas ficam bloqueadas.
-            </div>
-          </div>
-
-          <div id="restrictedNotice" class="notice" style="display:none; background: rgba(200, 0, 0, 0.26); border-color: rgba(255,255,255,0.28);">
-            <b>Atenção — cadastro restrito:</b>
-            <div class="small">
-              Seu cadastro está <b>restrito</b> no momento. Você pode consultar seus empréstimos, mas não pode fazer novas reservas, novos empréstimos nem renovar.
-            </div>
-            <div class="small" id="restrictedReason" style="margin-top:6px;"></div>
-          </div>
-
-          <div class="panel-head">
-            <h2>Seus dados (editar)</h2>
-            <p class="small">Você pode atualizar seus dados abaixo. O e-mail de login permanece o mesmo.</p>
-          </div>
-
-          <form id="profileForm" novalidate>
-            <div class="grid2">
-              <div>
-                <label for="firstName">Nome</label>
-                <input type="text" id="firstName" required />
-              </div>
-              <div>
-                <label for="lastName">Sobrenome</label>
-                <input type="text" id="lastName" required />
-              </div>
-            </div>
-
-            <label for="phone">Telefone</label>
-            <input type="tel" id="phone" placeholder="+55 (xx) xxxxx-xxxx" />
-
-            <label for="gender">Gênero</label>
-            <select id="gender">
-              <option value="">—</option>
-              <option value="feminino">Feminino</option>
-              <option value="masculino">Masculino</option>
-              <option value="neutro">Neutro</option>
-              <option value="não informar">Prefiro não informar</option>
-              <option value="outro">Outro</option>
-            </select>
-
-            <hr />
-            <h3 style="margin: 0 0 10px;">Endereço</h3>
-
-            <label for="addr1">Endereço 1</label>
-            <input type="text" id="addr1" required />
-
-            <label for="addr2">Endereço 2</label>
-            <input type="text" id="addr2" />
-
-            <div class="grid3">
-              <div>
-                <label for="unit">Casa/Apto nº</label>
-                <input type="text" id="unit" placeholder="Ex.: Casa 2 / Ap. 301" />
-              </div>
-              <div>
-                <label for="cep">CEP</label>
-                <input type="text" id="cep" placeholder="00000-000" required />
-              </div>
-              <div>
-                <label for="city">Cidade</label>
-                <input type="text" id="city" required />
-              </div>
-            </div>
-
-            <div class="grid2">
-              <div>
-                <label for="state">Estado</label>
-                <select id="state" required>
-                  <option value="">— selecione —</option>
-                  <option value="NSA">Não se aplica (NSA)</option>
-                  <option value="AC">Acre (AC)</option>
-                  <option value="AL">Alagoas (AL)</option>
-                  <option value="AP">Amapá (AP)</option>
-                  <option value="AM">Amazonas (AM)</option>
-                  <option value="BA">Bahia (BA)</option>
-                  <option value="CE">Ceará (CE)</option>
-                  <option value="DF">Distrito Federal (DF)</option>
-                  <option value="ES">Espírito Santo (ES)</option>
-                  <option value="GO">Goiás (GO)</option>
-                  <option value="MA">Maranhão (MA)</option>
-                  <option value="MT">Mato Grosso (MT)</option>
-                  <option value="MS">Mato Grosso do Sul (MS)</option>
-                  <option value="MG">Minas Gerais (MG)</option>
-                  <option value="PA">Pará (PA)</option>
-                  <option value="PB">Paraíba (PB)</option>
-                  <option value="PR">Paraná (PR)</option>
-                  <option value="PE">Pernambuco (PE)</option>
-                  <option value="PI">Piauí (PI)</option>
-                  <option value="RJ">Rio de Janeiro (RJ)</option>
-                  <option value="RN">Rio Grande do Norte (RN)</option>
-                  <option value="RS">Rio Grande do Sul (RS)</option>
-                  <option value="RO">Rondônia (RO)</option>
-                  <option value="RR">Roraima (RR)</option>
-                  <option value="SC">Santa Catarina (SC)</option>
-                  <option value="SP">São Paulo (SP)</option>
-                  <option value="SE">Sergipe (SE)</option>
-                  <option value="TO">Tocantins (TO)</option>
-                </select>
-              </div>
-
-              <div>
-                <label for="country">País</label>
-                <select id="country" required>
-                  <option value="Brasil">Brasil</option>
-                  <option value="">— selecione —</option>
-                  <option value="Argentina">Argentina</option>
-                  <option value="Bolívia">Bolívia</option>
-                  <option value="Chile">Chile</option>
-                  <option value="Colômbia">Colômbia</option>
-                  <option value="Equador">Equador</option>
-                  <option value="Guiana">Guiana</option>
-                  <option value="Guiana francesa">Guiana francesa</option>
-                  <option value="Paraguai">Paraguai</option>
-                  <option value="Peru">Peru</option>
-                  <option value="Suriname">Suriname</option>
-                  <option value="Uruguai">Uruguai</option>
-                  <option value="Venezuela">Venezuela</option>
-                </select>
-              </div>
-            </div>
-
-            <button type="submit">Salvar alterações</button>
-            <p id="profileMsg" class="msg" aria-live="polite"></p>
-          </form>
-
-          <hr />
-
-          <section aria-label="Alterar senha">
-            <h2>Segurança — Alterar senha</h2>
-            <p class="small">Escolha uma senha forte (mínimo 10 caracteres). Depois de alterar, você precisará usar a nova senha no próximo login.</p>
-
-            <form id="passwordForm" novalidate>
-              <label for="newPassword">Nova senha</label>
-              <input type="password" id="newPassword" autocomplete="new-password" required />
-
-              <label for="newPassword2">Confirmar nova senha</label>
-              <input type="password" id="newPassword2" autocomplete="new-password" required />
-
-              <div class="row" style="justify-content:flex-start; gap:10px;">
-                <button type="submit">Salvar senha</button>
-                <button type="button" id="togglePw" class="secondary">Mostrar senha</button>
-              </div>
-
-              <p id="passwordMsg" class="msg" aria-live="polite"></p>
-            </form>
-          </section>
-        </section>
-
-        <!-- RESERVAR -->
-        <section id="tab-reservar" class="tab-panel" data-tab="reservar" role="tabpanel">
-          <div class="panel-head">
-            <h2>Reservar livro</h2>
-            <p class="small">
-              No catálogo, clique em <b>copiar referência</b> e cole aqui a referência BibLivre.
-              Sua reserva será enviada para a biblioteca (para combinar a retirada).
-            </p>
-          </div>
-
-          <form id="reserveForm" class="row" style="justify-content:flex-start;">
-            <input type="text" id="bibRef" placeholder="Ex.: BIBLIVRE-000123" style="max-width:380px;" required />
-            <button type="submit">Reservar</button>
-          </form>
-          <p id="reserveMsg" class="msg" aria-live="polite"></p>
-        </section>
-
-        <!-- EM CURSO -->
-        <section id="tab-curso" class="tab-panel" data-tab="curso" role="tabpanel">
-          <div class="panel-head">
-            <h2>Empréstimos em curso</h2>
-          </div>
-          <div id="loans"></div>
-          <p id="loanMsg" class="msg" aria-live="polite"></p>
-        </section>
-
-        <!-- HISTÓRICO -->
-        <section id="tab-historico" class="tab-panel" data-tab="historico" role="tabpanel">
-          <div class="panel-head">
-            <h2>Histórico</h2>
-          </div>
-          <div id="history"></div>
-        </section>
-
-        
-</div>
+    <div class="hero">
+      <h1>Minha conta</h1>
+      <p id="hello" class="muted">Carregando…</p>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <span class="pill" id="pillEmail">—</span>
+        <span class="pill" id="pillRole">—</span>
+      </div>
     </div>
-  </main>
+
+    <div class="grid">
+      <div class="card">
+        <div class="tabs" role="tablist" aria-label="Seções da conta">
+          <button class="tab" data-tab="dados" role="tab" aria-selected="true" type="button">Meus dados</button>
+          <button class="tab" data-tab="emprestimos" role="tab" aria-selected="false" type="button">Meus empréstimos</button>
+          <button class="tab" data-tab="reservas" role="tab" aria-selected="false" type="button">Minhas reservas</button>
+        </div>
+        <div class="mini">Se algum botão falhar, sai e entra de novo: o “Sair” aqui faz signOut de verdade.</div>
+      </div>
+
+      <div class="card">
+        <section class="section active" id="sec-dados" role="tabpanel">
+          <h2 style="margin:0 0 10px">Meus dados</h2>
+          <div class="row">
+            <div>
+              <label for="full_name">Nome</label>
+              <input class="input" id="full_name" type="text" />
+            </div>
+            <div>
+              <label for="phone">Telefone / WhatsApp</label>
+              <input class="input" id="phone" type="text" />
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <div>
+              <label for="country">País</label>
+              <input class="input" id="country" type="text" />
+            </div>
+            <div>
+              <label for="state">Estado / Província</label>
+              <input class="input" id="state" type="text" />
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn primary" id="btnSalvar" type="button">Salvar</button>
+          </div>
+          <div class="status" id="statusDados"></div>
+        </section>
+
+        <section class="section" id="sec-emprestimos" role="tabpanel">
+          <h2 style="margin:0 0 10px">Meus empréstimos</h2>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Referência</th>
+                  <th>Título</th>
+                  <th>Retirada</th>
+                  <th>Devolver até</th>
+                  <th>Situação</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyEmp">
+                <tr><td colspan="5" class="muted">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="status" id="statusEmp"></div>
+        </section>
+
+        <section class="section" id="sec-reservas" role="tabpanel">
+          <h2 style="margin:0 0 10px">Minhas reservas</h2>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Referência</th>
+                  <th>Título</th>
+                  <th>Data</th>
+                  <th>Situação</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyRes">
+                <tr><td colspan="5" class="muted">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="status" id="statusRes"></div>
+        </section>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
-    import { supabase, signOut } from "./js/auth.js";
-    import { CONFIG } from "./js/config.js";
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    document.getElementById("logout").addEventListener("click", signOut);
+    const ROUTES = {
+      BLOG_HOME: "https://cclamazonia.noblogs.org/",
+      CATALOGO: "https://cclamazonia.github.io/blmf-catalogo/index.html",
+      CADASTRO: "https://cclamazonia.github.io/blmf-conta/cadastro.html",
+      CONTA: "https://cclamazonia.github.io/blmf-conta/conta.html",
+      PAINEL: "https://cclamazonia.github.io/blmf-conta/painel.html",
+    };
 
-    const { data: sessData } = await supabase.auth.getSession();
-    const session = sessData?.session || null;
-    if (!session) {
-      window.location.href = "./cadastro.html?next=conta.html";
-      throw new Error("No session");
-    }
+    const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzcHRmbW9renlrd3psc2hzbmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzcxNzcsImV4cCI6MjA4ODExMzE3N30.JkMLHPCV2AH5ELZV_1RfcoW250QEofLGvnDKSDpkcn0";
 
-    // Tabs
-    const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
-    const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
-    const mustChangeNotice = document.getElementById("mustChangeNotice");
-
-    let mustChangePassword = false;
-    let userIsRestricted = false;
-
-    let isLibrarian = false;
-
-
-    function setActiveTab(key, { pushHash = true } = {}) {
-      tabButtons.forEach(btn => {
-        const active = btn.dataset.tab === key;
-        btn.classList.toggle("active", active);
-        btn.setAttribute("aria-selected", active ? "true" : "false");
-      });
-      tabPanels.forEach(panel => {
-        panel.classList.toggle("active", panel.dataset.tab === key);
-      });
-      if (pushHash) location.hash = "#" + key;
-    }
-
-    function enforcePasswordChangeUI(enforce) {
-      mustChangePassword = !!enforce;
-      mustChangeNotice.style.display = enforce ? "block" : "none";
-
-      // Bloqueia outras abas enquanto must_change_password = true
-      tabButtons.forEach(btn => {
-        if (btn.dataset.tab !== "perfil") btn.disabled = enforce;
-      });
-
-      if (enforce) setActiveTab("perfil", { pushHash: true });
-    }
-
-    function enforceRestrictionUI(restricted, reason) {
-      userIsRestricted = !!restricted;
-
-      const notice = document.getElementById("restrictedNotice");
-      const reasonEl = document.getElementById("restrictedReason");
-
-      if (notice) notice.style.display = userIsRestricted ? "block" : "none";
-            if (reasonEl) {
-        const rr = String(reason || "").trim();
-        const isTest = rr.toLowerCase() === "teste" || rr.toLowerCase() === "test";
-        const show = userIsRestricted && rr && !isTest;
-        reasonEl.style.display = show ? "block" : "none";
-        reasonEl.textContent = show ? rr : "";
-      }
-
-      // Regimento: usuário restrito não pode fazer novas reservas nem renovar
-      tabButtons.forEach(btn => {
-        if (btn.dataset.tab === "reservar") btn.disabled = userIsRestricted;
-      });
-
-      // Se estava na aba "reservar" e ficou restrito, volta pro perfil
-      const current = (location.hash || "").replace("#", "");
-      if (userIsRestricted && current === "reservar") setActiveTab("perfil", { pushHash: true });
-    }
-
-    tabButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (mustChangePassword && btn.dataset.tab !== "perfil") return;
-        if (btn.dataset.tab === "biblio" && !isLibrarian) return;
-        setActiveTab(btn.dataset.tab);
-      });
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
-    // Init tab via hash (mas se enforce=true, ficará no perfil)
-    const initial = (location.hash || "").replace("#", "");
-    if (initial === "biblio" && !isLibrarian) {
-      setActiveTab("perfil", { pushHash: false });
-    } else if (initial && tabPanels.some(p => p.dataset.tab === initial)) {
-      setActiveTab(initial, { pushHash: false });
-    } else {
-      setActiveTab("perfil", { pushHash: false });
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (el, msg, cls) => { el.className = "status" + (cls ? " " + cls : ""); el.textContent = msg || ""; };
+
+    $("btnBlog").addEventListener("click", () => location.assign(ROUTES.BLOG_HOME));
+    $("btnCatalogo").addEventListener("click", () => location.assign(ROUTES.CATALOGO));
+
+    async function requireSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { location.assign(ROUTES.CADASTRO); return null; }
+      return session;
     }
 
-    // Profile helpers
-    function packAddress() {
-      const lines = [
-        document.getElementById("addr1").value.trim(),
-        document.getElementById("addr2").value.trim(),
-        document.getElementById("unit").value.trim() ? `Casa/Apto: ${document.getElementById("unit").value.trim()}` : "",
-        `CEP: ${document.getElementById("cep").value.trim()}`,
-        `Cidade: ${document.getElementById("city").value.trim()}`,
-        `Estado: ${document.getElementById("state").value}`,
-        `País: ${document.getElementById("country").value}`
-      ].filter(Boolean);
-      return lines.join("\n");
-    }
-
-    function extract(prefix, text) {
-      const re = new RegExp(`^${prefix}\\s*:\\s*(.*)$`, "mi");
-      const m = (text || "").match(re);
-      return m ? m[1].trim() : "";
-    }
-
-    function loadAddressFields(addressText) {
-      const lines = (addressText || "").split("\n").map(l => l.trim()).filter(Boolean);
-      const free = lines.filter(l => !/^(Casa\/Apto:|CEP:|Cidade:|Estado:|País:)/i.test(l));
-      document.getElementById("addr1").value = free[0] || "";
-      document.getElementById("addr2").value = free[1] || "";
-
-      document.getElementById("unit").value = extract("Casa\/Apto", addressText);
-      document.getElementById("cep").value = extract("CEP", addressText);
-      document.getElementById("city").value = extract("Cidade", addressText);
-      document.getElementById("state").value = extract("Estado", addressText);
-      document.getElementById("country").value = extract("País", addressText) || "Brasil";
-    }
-
-    
-    async function loadProfile() {
-      // Tenta carregar também os campos opcionais.
-      // Se ainda não existirem no schema, cai em fallback sem travar a página.
-      let data = null;
-      let error = null;
-
-      const q1 = await supabase
-        .from("profiles")
-        .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian, is_restricted, restricted_since, restricted_reason")
-        .eq("id", session.user.id)
-        .maybeSingle();
-
-      if (!q1.error) {
-        data = q1.data;
-      } else {
-        // fallback sem os campos opcionais
-        const q2 = await supabase
-          .from("profiles")
-          .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        data = q2.data;
-        error = q2.error;
-      }
-
-      // Se não existe linha em profiles, tenta criar uma linha mínima para não quebrar o Painel
-      if (!error && !data) {
-        const emailFromSession = session?.user?.email || "";
-        // tentativa 1: com consent_email (se existir)
-        let insErr = null;
-        const ins1 = await supabase
-          .from("profiles")
-          .insert({ id: session.user.id, email: emailFromSession, consent_email: true });
-        insErr = ins1.error;
-
-        if (insErr && String(insErr.message || "").toLowerCase().includes("consent_email")) {
-          const ins2 = await supabase
-            .from("profiles")
-            .insert({ id: session.user.id, email: emailFromSession });
-          insErr = ins2.error;
-        }
-
-        if (insErr) {
-          document.getElementById("profileMsg").textContent =
-            "Seu perfil ainda não foi criado no sistema. Peça à biblioteca para criar seu perfil (ccl-amazonia@riseup.net).";
-          return;
-        }
-
-        // Recarrega após criação
-        const q3 = await supabase
-          .from("profiles")
-          .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian, is_restricted, restricted_since, restricted_reason")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
-        if (q3.error || !q3.data) {
-          document.getElementById("profileMsg").textContent =
-            "Perfil criado, mas não foi possível carregá-lo agora. Recarregue a página.";
-          return;
-        }
-
-        data = q3.data;
-      }
-
-      if (error) {
-        document.getElementById("profileMsg").textContent = "Erro ao carregar perfil: " + error.message;
-        return;
-      }
-
-      document.getElementById("firstName").value = data.first_name || "";
-      document.getElementById("lastName").value = data.last_name || "";
-      document.getElementById("phone").value = data.phone || "";
-      document.getElementById("gender").value = data.gender || "";
-      loadAddressFields(data.address || "");
-
-      // Enforce optional
-      if (typeof data.must_change_password === "boolean") {
-        enforcePasswordChangeUI(data.must_change_password);
-      }
-
-      // Restriction UI (regimento)
-      if (typeof data.is_restricted === "boolean") {
-        enforceRestrictionUI(data.is_restricted, data.restricted_reason);
-      }
-
-            // Bibliotecário (opcional): apenas mostra link para o Painel
-      const isLib = (typeof data.is_librarian === "boolean") ? data.is_librarian : false;
-      isLibrarian = isLib;
-      const go = document.getElementById("goPainelBiblio");
-      if (go) go.style.display = isLib ? "" : "none";
-}
-
-    await loadProfile();
-
-
-    document.getElementById("profileForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const profileMsg = document.getElementById("profileMsg");
-      profileMsg.textContent = "";
-
-      const payload = {
-        first_name: document.getElementById("firstName").value.trim(),
-        last_name: document.getElementById("lastName").value.trim(),
-        phone: document.getElementById("phone").value.trim(),
-        gender: document.getElementById("gender").value,
-        address: packAddress()
+    function setupTabs(){
+      const tabs = Array.from(document.querySelectorAll(".tab"));
+      const sections = {
+        dados: $("sec-dados"),
+        emprestimos: $("sec-emprestimos"),
+        reservas: $("sec-reservas"),
       };
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(payload)
-        .eq("id", session.user.id);
-
-      profileMsg.textContent = error ? ("Erro ao salvar: " + error.message) : "Dados atualizados com sucesso.";
-    });
-
-    // Password UI
-    const pwInput = document.getElementById("newPassword");
-    const pwInput2 = document.getElementById("newPassword2");
-    const pwMsg = document.getElementById("passwordMsg");
-    const togglePwBtn = document.getElementById("togglePw");
-
-    togglePwBtn.addEventListener("click", () => {
-      const show = pwInput.type === "password";
-      pwInput.type = show ? "text" : "password";
-      pwInput2.type = show ? "text" : "password";
-      togglePwBtn.textContent = show ? "Ocultar senha" : "Mostrar senha";
-    });
-
-    document.getElementById("passwordForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      pwMsg.textContent = "";
-
-      const p1 = pwInput.value;
-      const p2 = pwInput2.value;
-
-      if (!p1 || p1.length < 10) {
-        pwMsg.textContent = "A senha deve ter pelo menos 10 caracteres.";
-        return;
-      }
-      if (p1 !== p2) {
-        pwMsg.textContent = "As senhas não coincidem.";
-        return;
+      function activate(name){
+        for (const t of tabs) t.setAttribute("aria-selected", t.dataset.tab === name ? "true" : "false");
+        for (const [k,sec] of Object.entries(sections)) sec.classList.toggle("active", k === name);
+        // hash simples (não obrigatório)
+        try { history.replaceState(null, "", "#"+name); } catch {}
       }
 
-      // Atualiza senha no Supabase Auth
-      const { error } = await supabase.auth.updateUser({ password: p1 });
-      if (error) {
-        console.error("updateUser password error:", error);
-        pwMsg.textContent = "Erro ao alterar senha: " + error.message + " (se necessário, faça login novamente).";
-        return;
-      }
+      tabs.forEach(t => t.addEventListener("click", () => activate(t.dataset.tab)));
 
-      // Atualiza flag no profile (opcional)
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({
-          must_change_password: false,
-          password_changed_at: new Date().toISOString()
-        })
-        .eq("id", session.user.id);
-
-      if (profErr) {
-        console.error("profiles update password flags error:", profErr);
-        // Mesmo se isso falhar, a senha já foi alterada. Só avisamos.
-        pwMsg.textContent = "Senha alterada. (Aviso: não foi possível atualizar o status no perfil.)";
-        enforcePasswordChangeUI(false);
-      } else {
-        pwMsg.textContent = "Senha alterada com sucesso.";
-        enforcePasswordChangeUI(false);
-      }
-
-      // limpa e volta ao modo password
-      pwInput.value = "";
-      pwInput2.value = "";
-      pwInput.type = "password";
-      pwInput2.type = "password";
-      togglePwBtn.textContent = "Mostrar senha";
-    });
-
-    // Reserve
-    document.getElementById("reserveForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const reserveMsg = document.getElementById("reserveMsg");
-      reserveMsg.textContent = "";
-
-      if (userIsRestricted) {
-        reserveMsg.textContent = "Seu cadastro está restrito: novas reservas estão bloqueadas. Entre em contato com a biblioteca.";
-        return;
-      }
-
-      const bib_ref = document.getElementById("bibRef").value.trim();
-      if (!bib_ref) {
-        reserveMsg.textContent = "Cole a referência BibLivre para reservar.";
-        return;
-      }
-
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) {
-        reserveMsg.textContent = "Sessão inválida — faça login de novo.";
-        return;
-      }
-
-      const { error: insErr } = await supabase
-        .from("reservas")
-        .insert([{ bib_ref, user_id: user.id }]);
-
-      if (insErr) {
-        const em = String(insErr.message || "");
-        if (/duplicate|unique|já existe|violates/i.test(em)) {
-          reserveMsg.textContent = "Você já tem uma reserva ativa para este item.";
-        } else {
-          reserveMsg.textContent = "Erro ao reservar: " + insErr.message;
-        }
-        return;
-      }
-
-      reserveMsg.textContent = "Reserva registrada e enviada para a biblioteca. Em breve entraremos em contato para combinar a retirada.";
-      document.getElementById("bibRef").value = "";
-    });
-
-    function showEmpty(el, msg) {
-      el.innerHTML = `<p>${msg}</p>`;
+      const initial = (location.hash || "").replace("#","").trim();
+      if (initial && sections[initial]) activate(initial);
+      else activate("dados");
     }
 
-    
-    
-        async function renderLoans() {
-      const el = document.getElementById("loans");
-      const loanMsg = document.getElementById("loanMsg");
-      if (loanMsg) loanMsg.textContent = "";
+    async function loadProfile(session){
+      const uid = session.user.id;
+      const email = session.user.email || "—";
+      $("pillEmail").textContent = email;
 
-      el.textContent = "Carregando...";
-
-      // Try the richer view first (preferred). If it doesn't exist yet, fall back to old query.
-      let data = null;
-      let error = null;
-
-      const qView = await supabase
-        .from("v_loans_detalhes")
-        .select("loan_id, user_id, due_date, checkout_date, returned_date, extended_once, days_overdue, days_until_due, loan_status, can_renew, formal_notice_sent_at, restriction_effective_on, last_reminder_stage, last_reminder_sent_at, book")
-        .eq("user_id", session.user.id)
-        .eq("is_active", true)
-        .order("due_date", { ascending: true });
-
-      if (!qView.error) {
-        data = qView.data || [];
-      } else {
-        // fallback: minimal fields from loans
-        const qOld = await supabase
-          .from("loans")
-          .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
-          .eq("user_id", session.user.id)
-          .is("returned_date", null)
-          .order("due_date", { ascending: true });
-
-        data = (qOld.data || []).map(l => ({
-          loan_id: l.id,
-          due_date: l.due_date,
-          checkout_date: l.checkout_date,
-          returned_date: l.returned_date,
-          extended_once: l.extended_once,
-          days_overdue: (() => {
-            const due = new Date(l.due_date + "T00:00:00");
-            const today = new Date();
-            const diff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
-            return diff > 0 ? diff : 0;
-          })(),
-          days_until_due: (() => {
-            const due = new Date(l.due_date + "T00:00:00");
-            const today = new Date();
-            const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-            return diff > 0 ? diff : 0;
-          })(),
-          loan_status: null,
-          can_renew: (!l.extended_once) && (new Date(l.due_date + "T00:00:00") >= new Date()) && !userIsRestricted,
-          formal_notice_sent_at: null,
-          restriction_effective_on: null,
-          last_reminder_stage: null,
-          book: { titulo: l.books?.titulo, autor: l.books?.autor }
-        }));
+      // profiles
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
+      if (error) {
+        $("hello").textContent = "Olá! (não consegui ler seu perfil ainda)";
+        $("pillRole").textContent = "leitor(a/e)";
+        return { id: uid, email };
       }
 
-      if (!data || !data.length) {
-        el.innerHTML = "<p>Não há empréstimos em curso.</p>";
+      const full_name = data?.full_name || data?.name || "";
+      $("hello").textContent = full_name ? ("Olá, " + full_name + ".") : "Olá!";
+      $("pillRole").textContent = (data?.role || "leitor(a/e)");
+
+      $("full_name").value = full_name;
+      $("phone").value = data?.phone || "";
+      $("country").value = data?.country || "";
+      $("state").value = data?.state || "";
+
+      return { ...data, id: uid, email };
+    }
+
+    async function saveProfile(profile){
+      setStatus($("statusDados"), "", "");
+      const payload = {
+        id: profile.id,
+        full_name: $("full_name").value.trim(),
+        phone: $("phone").value.trim(),
+        country: $("country").value.trim(),
+        state: $("state").value.trim(),
+        updated_at: new Date().toISOString()
+      };
+
+      $("btnSalvar").disabled = true;
+      try{
+        const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+        if (error) return setStatus($("statusDados"), "Não foi possível salvar: " + error.message, "bad");
+        setStatus($("statusDados"), "Dados salvos.", "ok");
+      } finally {
+        $("btnSalvar").disabled = false;
+      }
+    }
+
+    async function pickFirstExistingTable(candidates){
+      for (const t of candidates){
+        const { error } = await supabase.from(t).select("*").limit(1);
+        if (!error) return t;
+      }
+      return null;
+    }
+
+    async function loadEmprestimos(profile){
+      const tbody = $("tbodyEmp");
+      tbody.innerHTML = `<tr><td colspan="5" class="muted">Carregando…</td></tr>`;
+      setStatus($("statusEmp"), "", "");
+
+      // tenta tabelas mais prováveis
+      const loansTable = await pickFirstExistingTable(["loans","emprestimos"]);
+      if (!loansTable){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Tabela de empréstimos não encontrada.</td></tr>`;
         return;
       }
 
-      function fmtDateOnly(d) {
-        // expects ISO date or timestamp; returns YYYY-MM-DD
-        const dt = new Date(d);
-        if (!isNaN(dt)) return dt.toISOString().slice(0, 10);
-        return String(d || "");
+      const { data, error } = await supabase
+        .from(loansTable)
+        .select("id,bib_ref,title,borrowed_at,created_at,due_at,returned_at")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending:false })
+        .limit(200);
+
+      if (error){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Erro ao carregar empréstimos.</td></tr>`;
+        setStatus($("statusEmp"), error.message, "bad");
+        return;
       }
 
-      const rows = data.map(l => {
-        const book = l.book || {};
-        const titulo = book.titulo || "Livro";
-        const autor = book.autor || "";
-
-        const dueTxt = l.due_date ? fmtDateOnly(l.due_date) : "—";
-        const overdue = Number(l.days_overdue || 0);
-
-        let statusLine = "";
-        if (overdue > 0) {
-          statusLine = ` <span class="tag-muted">— ATRASO: ${overdue} dia(s)</span>`;
-        } else {
-          statusLine = ` <span class="tag-muted">— faltam ${Number(l.days_until_due || 0)} dia(s)</span>`;
-        }
-
-        let remindLine = "";
-        if (overdue > 0) {
-          if (l.formal_notice_sent_at) {
-            const aviso = fmtDateOnly(l.formal_notice_sent_at);
-            const restr = l.restriction_effective_on ? fmtDateOnly(l.restriction_effective_on) : "";
-            remindLine = `<div><small>Aviso formal enviado em ${aviso}${restr ? ` — restrição a partir de ${restr}` : ""}.</small></div>`;
-          } else if (l.last_reminder_stage) {
-            remindLine = `<div><small>Lembrete enviado (etapa ${l.last_reminder_stage}).</small></div>`;
-          } else {
-            remindLine = `<div><small>Atraso detectado — você receberá lembretes por e-mail.</small></div>`;
-          }
-        }
-
-        const canRenew = !!l.can_renew && !userIsRestricted;
-        const actionHtml = canRenew
-          ? `<span class="loan-actions">
-               <button type="button" class="secondary mini-btn" data-renew-loan="${l.loan_id}">Renovar (uma única vez)</button>
-             </span>`
-          : `<span class="loan-actions"><span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada: cada empréstimo pode ser renovado apenas uma vez" : (overdue > 0 ? "Renovação indisponível: empréstimo em atraso" : "Renovação indisponível"))}</span></span>`;
-
-        return `
-          <li>
-            <b>#${l.loan_id}</b> — ${titulo}${autor ? ` (${autor})` : ""} — devolução: <b>${dueTxt}</b>${statusLine}
-            ${actionHtml}
-            ${remindLine}
-          </li>
-        `;
-      });
-
-      el.innerHTML = `<ul>${rows.join("")}</ul>`;
-
-      async function doRenew(loanId) {
-        if (loanMsg) loanMsg.textContent = "Processando renovação...";
-        try {
-          // Preferred RPC name (regimento-aligned)
-          let res = await supabase.rpc("renew_loan", { p_loan_id: loanId });
-
-          // Backward compat: fall back to old RPC if the new one doesn't exist yet
-          if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ""))) {
-            res = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
-          }
-
-          if (res.error) {
-            console.error("renew/extend rpc error:", res.error);
-            if (loanMsg) loanMsg.textContent = "Erro ao renovar: " + res.error.message;
-            return;
-          }
-
-          const row = Array.isArray(res.data) ? res.data[0] : res.data;
-          const newDue = row?.due_date || row?.new_due_date;
-          const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
-          if (loanMsg) loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
-
-          await renderLoans();
-          await renderHistory();
-        } catch (e) {
-          console.error("doRenew fatal:", e);
-          if (loanMsg) loanMsg.textContent = "Falha ao renovar. Tente novamente.";
-        }
+      if (!data?.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Nenhum empréstimo encontrado.</td></tr>`;
+        return;
       }
 
-      el.querySelectorAll("[data-renew-loan]").forEach(btn => {
+      tbody.innerHTML = data.map(r => {
+        const ref = r.bib_ref || "—";
+        const titulo = r.title || "—";
+        const retirada = (r.borrowed_at || r.created_at || "").toString().slice(0,10) || "—";
+        const due = (r.due_at || "—").toString().slice(0,10);
+        const sit = r.returned_at ? "devolvido" : "em aberto";
+        return `<tr>
+          <td>${ref}</td>
+          <td>${titulo}</td>
+          <td>${retirada}</td>
+          <td>${due}</td>
+          <td>${sit}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadReservas(profile){
+      const tbody = $("tbodyRes");
+      tbody.innerHTML = `<tr><td colspan="5" class="muted">Carregando…</td></tr>`;
+      setStatus($("statusRes"), "", "");
+
+      const reservasTable = await pickFirstExistingTable(["reservas"]);
+      if (!reservasTable){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Tabela de reservas não encontrada.</td></tr>`;
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from(reservasTable)
+        .select("id,bib_ref,title,created_at,status")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending:false })
+        .limit(200);
+
+      if (error){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Erro ao carregar reservas.</td></tr>`;
+        setStatus($("statusRes"), error.message, "bad");
+        return;
+      }
+
+      if (!data?.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Nenhuma reserva encontrada.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(r => {
+        const ref = r.bib_ref || "—";
+        const titulo = r.title || "—";
+        const dt = (r.created_at || "").toString().slice(0,10) || "—";
+        const st = r.status || "ativa";
+        return `<tr>
+          <td>${ref}</td>
+          <td>${titulo}</td>
+          <td>${dt}</td>
+          <td>${st}</td>
+          <td><button class="btn" data-cancel="${r.id}" type="button">Cancelar</button></td>
+        </tr>`;
+      }).join("");
+
+      tbody.querySelectorAll("button[data-cancel]").forEach(btn => {
         btn.addEventListener("click", async () => {
-          const loanId = Number(btn.getAttribute("data-renew-loan"));
-          if (!loanId) return;
-          btn.setAttribute("disabled", "disabled");
-          await doRenew(loanId);
-          btn.removeAttribute("disabled");
+          const id = btn.getAttribute("data-cancel");
+          btn.disabled = true;
+          setStatus($("statusRes"), "", "");
+          try{
+            const { error } = await supabase.from(reservasTable).delete().eq("id", id).eq("user_id", profile.id);
+            if (error) return setStatus($("statusRes"), "Não foi possível cancelar: " + error.message, "bad");
+            setStatus($("statusRes"), "Reserva cancelada.", "ok");
+            await loadReservas(profile);
+          } finally {
+            btn.disabled = false;
+          }
         });
       });
     }
 
-    async function renderHistory() {
-      const el = document.getElementById("history");
-      el.textContent = "Carregando...";
+    $("btnSair").addEventListener("click", async () => {
+      $("btnSair").disabled = true;
+      try{
+        await supabase.auth.signOut();
+        try { localStorage.removeItem("blmf"); } catch {}
+        location.assign(ROUTES.CADASTRO);
+      } finally {
+        $("btnSair").disabled = false;
+      }
+    });
 
-      const { data, error } = await supabase
-        .from("loans")
-        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
-        .eq("user_id", session.user.id)
-        .order("checkout_date", { ascending: false })
-        .limit(50);
+    setupTabs();
 
-      if (error) {
-        console.error("renderHistory error:", error);
-        return showEmpty(el, "Não há histórico de empréstimos.");
+    const session = await requireSession();
+    if (session){
+      const profile = await loadProfile(session);
+
+      // si bibliothécaire/admin, on peut proposer painel (sans casser l’UX)
+      const role = (profile?.role || "").toLowerCase();
+      if (role === "bibliotecario" || role === "admin"){
+        $("pillRole").textContent = profile.role || "bibliotecário";
       }
 
-      const rows = (data || []).map(l => {
-        const titulo = l.books?.titulo || "Livro";
-        const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
-        return `<li>#${l.id} — ${titulo} — ${status}</li>`;
-      });
-
-      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
+      $("btnSalvar").addEventListener("click", () => saveProfile(profile));
+      await loadEmprestimos(profile);
+      await loadReservas(profile);
     }
-await renderLoans();
-        await renderHistory();
-      });
-    }
-
-
-
-    if (returnForm) {
-      returnForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const returnMsg = document.getElementById("returnMsg");
-        if (returnMsg) returnMsg.textContent = "";
-
-        if (!isLibrarian) {
-          if (returnMsg) returnMsg.textContent = "Acesso restrito a bibliotecários.";
-          return;
-        }
-
-        const loanId = parseInt((document.getElementById("returnLoanId").value || "").trim(), 10);
-        if (!loanId) {
-          if (returnMsg) returnMsg.textContent = "Informe o ID do empréstimo.";
-          return;
-        }
-
-        if (returnMsg) returnMsg.textContent = "Registrando devolução...";
-
-        const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
-
-        if (error) {
-          console.error("mark_loan_returned error:", error);
-          if (returnMsg) returnMsg.textContent = "Erro ao registrar devolução: " + error.message;
-          return;
-        }
-
-        const row = Array.isArray(data) ? data[0] : data;
-        const ok = row?.ok === true;
-        const msg = row?.message || (ok ? "Devolução registrada." : "Não foi possível registrar devolução.");
-
-        if (returnMsg) returnMsg.textContent = msg;
-
-        // Atualiza listas (do usuário logado)
-        await renderLoans();
-        await renderHistory();
-      });
-    }
-
-
-    await renderLoans();
-    await renderHistory();
   </script>
 </body>
 </html>
