@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Conta do/a/e leitor/a/e — Biblioteca Libertária Maxwell Ferreira</title>
+  <title>Conta — Biblioteca Libertária Maxwell Ferreira</title>
   <link rel="stylesheet" href="./css/app.css" />
   <style>
     body{
@@ -17,43 +17,113 @@
       background: rgba(27,27,27,0.92);
       backdrop-filter: blur(2px);
     }
-    .brand {
+    .brand { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+    .brand img { width:82px; height:82px; object-fit:contain; margin-top:0; flex:0 0 auto; }
+    .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
+    .grid3 { display:grid; grid-template-columns:0.75fr 1fr 1fr; gap:12px; align-items:start; }
+    .grid3 > div{ min-width:0; }
+    .grid3 label{ display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
+    .small { color:#cfcfcf; font-size:.9rem; }
+
+    /* Tabs (onglets colonnes) */
+    .tabs-layout{
       display:flex;
       gap:14px;
-      align-items:center;
-      margin-bottom:14px;
+      align-items:flex-start;
+      margin-top: 6px;
     }
-    .brand img{
-      width:56px;height:56px;object-fit:contain;
+    .tabs-nav{
+      width: 260px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      flex: 0 0 auto;
     }
-    .subtitle{ margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
-    .topActions{ display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 14px; }
+    .tab-btn{
+      width:100%;
+      text-align:left;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.22);
+      color:#fff;
+      transition: transform .06s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
+    }
+    .tab-btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.22); }
+    .tab-btn.active{
+      background: rgba(200,0,0,0.26);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .tab-btn .hint{
+      display:block;
+      margin-top:4px;
+      color:#cfcfcf;
+      font-size:.85rem;
+      line-height:1.2;
+    }
+    .tab-btn:disabled{
+      cursor:not-allowed;
+      opacity:0.45;
+      transform:none !important;
+    }
+
+    .tabs-panels{ flex:1 1 auto; min-width:0; }
+    .tab-panel{ display:none; }
+    .tab-panel.active{ display:block; }
+
+    @media (max-width: 900px){
+      .tabs-layout{ flex-direction:column; }
+      .tabs-nav{
+        width:100%;
+        flex-direction:row;
+        overflow-x:auto;
+        padding-bottom: 2px;
+      }
+      .tab-btn{
+        width:auto;
+        white-space:nowrap;
+        flex: 0 0 auto;
+      }
+      .tab-btn .hint{ display:none; }
+    }
+
+    .panel-head{ margin-bottom: 10px; }
+    .panel-head h2{ margin-top:0; }
 
     .notice{
       border:1px solid rgba(255,255,255,0.18);
-      background: rgba(0,0,0,0.22);
+      background: rgba(200, 0, 0, 0.16);
       padding:10px 12px;
       border-radius:12px;
-      margin: 12px 0 10px;
+      margin: 0 0 12px;
       color:#fff;
     }
-    .small{ color:#cfcfcf; font-size:.9rem; }
-    .rowbtn { display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
-    .hide { display:none !important; }
+    .notice .small{ color:#f0f0f0; }
+  
+    .mini-btn{
+      padding:6px 10px;
+      font-size:.9rem;
+      border-radius:12px;
+      line-height:1.1;
+    }
+    .loan-actions{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:10px; }
+    .tag-muted{ color:#cfcfcf; font-size:.9rem; }
 
-    .rules{
-      border:1px solid rgba(255,255,255,0.18);
-      background: rgba(0,0,0,0.22);
-      padding:10px 12px;
-      border-radius:12px;
-      margin: 12px 0 10px;
-      color:#fff;
-    }
-    .rules summary{ cursor:pointer; }
-    .rules ul{ margin:10px 0 0 18px; color:#f0f0f0; }
-    .rules a{ color:#fff; text-decoration:underline; }
+  
+    .list-table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    .list-table th, .list-table td{ padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.14); vertical-align:top; }
+    .list-table th{ text-align:left; color:#cfcfcf; font-weight:600; }
+    .list-table td small{ color:#cfcfcf; }
+    .inline-select{ max-width:160px; }
+
+  
+    .table-scroll{ width:100%; overflow-x:auto; }
+
   </style>
 </head>
+
 <body>
   <main class="card">
     <div class="brand">
@@ -62,237 +132,819 @@
         alt="Logotipo BLMF"
         onerror="this.style.display='none'"
       />
-      <div>
-        <h1 style="margin:0;">Conta do/a/e leitor/a/e</h1>
-        <p class="subtitle">Biblioteca Libertária Maxwell Ferreira</p>
+      <div style="flex:1;">
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <h1 style="margin:0;">Conta — Biblioteca Libertária Maxwell Ferreira</h1>
+            <p class="subtitle">Área do/a/e leitor/a/e</p>
+          </div>
+          <button id="logout" class="secondary">Sair</button>
+        </div>
+
+        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <a class="secondary" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
+          <a class="secondary" href="https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
+          <a id="goPainelBiblio" class="secondary" href="./painel.html" style="display:none; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
+        </div>
+        </div>
       </div>
     </div>
 
-    <div class="topActions">
-      <button id="backBlog" class="secondary">Voltar ao blogue</button>
-      <button id="goCadastro" class="secondary">Cadastrar-se</button>
-      <button id="goRegimento" class="secondary">Regimento</button>
+    <div class="tabs-layout">
+      <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
+        <button class="tab-btn active" type="button" data-tab="perfil" role="tab" aria-selected="true" aria-controls="tab-perfil">
+          Dados pessoais
+          <span class="hint">Editar cadastro e endereço</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="reservar" role="tab" aria-selected="false" aria-controls="tab-reservar">
+          Reservar livros
+          <span class="hint">Cole a referência BibLivre</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="curso" role="tab" aria-selected="false" aria-controls="tab-curso">
+          Empréstimos em curso
+          <span class="hint">O que está com você</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="historico" role="tab" aria-selected="false" aria-controls="tab-historico">
+          Histórico
+          <span class="hint">Empréstimos anteriores</span>
+        </button>
+</nav>
+
+      <div class="tabs-panels">
+        <!-- PERFIL -->
+        <section id="tab-perfil" class="tab-panel active" data-tab="perfil" role="tabpanel">
+          <div id="mustChangeNotice" class="notice" style="display:none">
+            <b>Segurança:</b>
+            <div class="small">
+              Por segurança, altere sua senha após o primeiro acesso. Enquanto isso, as outras abas ficam bloqueadas.
+            </div>
+          </div>
+
+          <div id="restrictedNotice" class="notice" style="display:none; background: rgba(200, 0, 0, 0.26); border-color: rgba(255,255,255,0.28);">
+            <b>Atenção — cadastro restrito:</b>
+            <div class="small">
+              Seu cadastro está <b>restrito</b> no momento. Você pode consultar seus empréstimos, mas não pode fazer novas reservas, novos empréstimos nem renovar.
+            </div>
+            <div class="small" id="restrictedReason" style="margin-top:6px;"></div>
+          </div>
+
+          <div class="panel-head">
+            <h2>Seus dados (editar)</h2>
+            <p class="small">Você pode atualizar seus dados abaixo. O e-mail de login permanece o mesmo.</p>
+          </div>
+
+          <form id="profileForm" novalidate>
+            <div class="grid2">
+              <div>
+                <label for="firstName">Nome</label>
+                <input type="text" id="firstName" required />
+              </div>
+              <div>
+                <label for="lastName">Sobrenome</label>
+                <input type="text" id="lastName" required />
+              </div>
+            </div>
+
+            <label for="phone">Telefone</label>
+            <input type="tel" id="phone" placeholder="+55 (xx) xxxxx-xxxx" />
+
+            <label for="gender">Gênero</label>
+            <select id="gender">
+              <option value="">—</option>
+              <option value="feminino">Feminino</option>
+              <option value="masculino">Masculino</option>
+              <option value="neutro">Neutro</option>
+              <option value="não informar">Prefiro não informar</option>
+              <option value="outro">Outro</option>
+            </select>
+
+            <hr />
+            <h3 style="margin: 0 0 10px;">Endereço</h3>
+
+            <label for="addr1">Endereço 1</label>
+            <input type="text" id="addr1" required />
+
+            <label for="addr2">Endereço 2</label>
+            <input type="text" id="addr2" />
+
+            <div class="grid3">
+              <div>
+                <label for="unit">Casa/Apto nº</label>
+                <input type="text" id="unit" placeholder="Ex.: Casa 2 / Ap. 301" />
+              </div>
+              <div>
+                <label for="cep">CEP</label>
+                <input type="text" id="cep" placeholder="00000-000" required />
+              </div>
+              <div>
+                <label for="city">Cidade</label>
+                <input type="text" id="city" required />
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div>
+                <label for="state">Estado</label>
+                <select id="state" required>
+                  <option value="">— selecione —</option>
+                  <option value="NSA">Não se aplica (NSA)</option>
+                  <option value="AC">Acre (AC)</option>
+                  <option value="AL">Alagoas (AL)</option>
+                  <option value="AP">Amapá (AP)</option>
+                  <option value="AM">Amazonas (AM)</option>
+                  <option value="BA">Bahia (BA)</option>
+                  <option value="CE">Ceará (CE)</option>
+                  <option value="DF">Distrito Federal (DF)</option>
+                  <option value="ES">Espírito Santo (ES)</option>
+                  <option value="GO">Goiás (GO)</option>
+                  <option value="MA">Maranhão (MA)</option>
+                  <option value="MT">Mato Grosso (MT)</option>
+                  <option value="MS">Mato Grosso do Sul (MS)</option>
+                  <option value="MG">Minas Gerais (MG)</option>
+                  <option value="PA">Pará (PA)</option>
+                  <option value="PB">Paraíba (PB)</option>
+                  <option value="PR">Paraná (PR)</option>
+                  <option value="PE">Pernambuco (PE)</option>
+                  <option value="PI">Piauí (PI)</option>
+                  <option value="RJ">Rio de Janeiro (RJ)</option>
+                  <option value="RN">Rio Grande do Norte (RN)</option>
+                  <option value="RS">Rio Grande do Sul (RS)</option>
+                  <option value="RO">Rondônia (RO)</option>
+                  <option value="RR">Roraima (RR)</option>
+                  <option value="SC">Santa Catarina (SC)</option>
+                  <option value="SP">São Paulo (SP)</option>
+                  <option value="SE">Sergipe (SE)</option>
+                  <option value="TO">Tocantins (TO)</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="country">País</label>
+                <select id="country" required>
+                  <option value="Brasil">Brasil</option>
+                  <option value="">— selecione —</option>
+                  <option value="Argentina">Argentina</option>
+                  <option value="Bolívia">Bolívia</option>
+                  <option value="Chile">Chile</option>
+                  <option value="Colômbia">Colômbia</option>
+                  <option value="Equador">Equador</option>
+                  <option value="Guiana">Guiana</option>
+                  <option value="Guiana francesa">Guiana francesa</option>
+                  <option value="Paraguai">Paraguai</option>
+                  <option value="Peru">Peru</option>
+                  <option value="Suriname">Suriname</option>
+                  <option value="Uruguai">Uruguai</option>
+                  <option value="Venezuela">Venezuela</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit">Salvar alterações</button>
+            <p id="profileMsg" class="msg" aria-live="polite"></p>
+          </form>
+
+          <hr />
+
+          <section aria-label="Alterar senha">
+            <h2>Segurança — Alterar senha</h2>
+            <p class="small">Escolha uma senha forte (mínimo 10 caracteres). Depois de alterar, você precisará usar a nova senha no próximo login.</p>
+
+            <form id="passwordForm" novalidate>
+              <label for="newPassword">Nova senha</label>
+              <input type="password" id="newPassword" autocomplete="new-password" required />
+
+              <label for="newPassword2">Confirmar nova senha</label>
+              <input type="password" id="newPassword2" autocomplete="new-password" required />
+
+              <div class="row" style="justify-content:flex-start; gap:10px;">
+                <button type="submit">Salvar senha</button>
+                <button type="button" id="togglePw" class="secondary">Mostrar senha</button>
+              </div>
+
+              <p id="passwordMsg" class="msg" aria-live="polite"></p>
+            </form>
+          </section>
+        </section>
+
+        <!-- RESERVAR -->
+        <section id="tab-reservar" class="tab-panel" data-tab="reservar" role="tabpanel">
+          <div class="panel-head">
+            <h2>Reservar livro</h2>
+            <p class="small">
+              No catálogo, clique em <b>copiar referência</b> e cole aqui a referência BibLivre.
+              Sua reserva será enviada para a biblioteca (para combinar a retirada).
+            </p>
+          </div>
+
+          <form id="reserveForm" class="row" style="justify-content:flex-start;">
+            <input type="text" id="bibRef" placeholder="Ex.: BIBLIVRE-000123" style="max-width:380px;" required />
+            <button type="submit">Reservar</button>
+          </form>
+          <p id="reserveMsg" class="msg" aria-live="polite"></p>
+        </section>
+
+        <!-- EM CURSO -->
+        <section id="tab-curso" class="tab-panel" data-tab="curso" role="tabpanel">
+          <div class="panel-head">
+            <h2>Empréstimos em curso</h2>
+          </div>
+          <div id="loans"></div>
+          <p id="loanMsg" class="msg" aria-live="polite"></p>
+        </section>
+
+        <!-- HISTÓRICO -->
+        <section id="tab-historico" class="tab-panel" data-tab="historico" role="tabpanel">
+          <div class="panel-head">
+            <h2>Histórico</h2>
+          </div>
+          <div id="history"></div>
+        </section>
+
+        
+</div>
     </div>
-
-    <details class="rules">
-      <summary><b>Regimento (resumo)</b> <span class="small">— empréstimos, prazos e atrasos</span></summary>
-      <ul>
-        <li>A biblioteca empresta <b>apenas livros</b>. Periódicos e brochuras são para <b>consulta local</b>.</li>
-        <li>Até <b>5 livros</b> por pessoa.</li>
-        <li>Prazos: 1 livro (<b>21 dias</b>), 2–3 livros (<b>30 dias</b>), 4–5 livros (<b>38 dias</b>).</li>
-        <li>Em caso de atraso, a biblioteca envia avisos. Após 30 dias sem regularização, pode haver <b>suspensão</b> de novos empréstimos.</li>
-        <li>Regimento completo: <a id="regLink" href="#" rel="noopener">abrir</a></li>
-      </ul>
-    </details>
-
-    <!-- LOGIN -->
-    <section id="loginBox">
-      <form id="loginForm">
-        <label for="email">E-mail</label>
-        <input type="email" id="email" required />
-
-        <label for="password">Senha</label>
-        <input type="password" id="password" required />
-
-        <button type="submit">Entrar</button>
-      </form>
-
-      <p id="msg" class="msg" aria-live="polite"></p>
-
-      <div class="notice" aria-label="Recuperação de senha">
-        <b>Esqueceu a senha?</b>
-        <div class="small">Envie um link para redefinir sua senha (fora do Painel).</div>
-        <div class="small">Se você não encontrar o e-mail, verifique “Spam/Lixo eletrônico”.</div>
-      </div>
-
-      <div class="rowbtn">
-        <button id="forgotBtn" class="secondary" type="button">Esqueci minha senha</button>
-      </div>
-
-      <form id="forgotForm" class="hide" novalidate style="margin-top:10px;">
-        <label for="forgotEmail">E-mail da conta</label>
-        <input id="forgotEmail" type="email" autocomplete="email" required />
-
-        <div class="rowbtn">
-          <button type="submit">Enviar link</button>
-          <button type="button" id="cancelForgot" class="secondary">Cancelar</button>
-        </div>
-
-        <p id="forgotMsg" class="msg" aria-live="polite"></p>
-      </form>
-    </section>
-
-    <!-- RECOVERY MODE (reset password) -->
-    <section id="recoveryBox" class="hide" aria-label="Redefinir senha">
-      <div class="notice">
-        <b>Redefinir senha</b>
-        <div class="small">Escolha uma nova senha para sua conta.</div>
-      </div>
-
-      <form id="resetForm" novalidate>
-        <label for="newPassword">Nova senha</label>
-        <input id="newPassword" type="password" autocomplete="new-password" required />
-
-        <label for="newPassword2">Confirmar nova senha</label>
-        <input id="newPassword2" type="password" autocomplete="new-password" required />
-
-        <div class="rowbtn">
-          <button type="submit">Salvar nova senha</button>
-          <button type="button" id="toggleResetPw" class="secondary">Mostrar senha</button>
-        </div>
-
-        <p id="resetMsg" class="msg" aria-live="polite"></p>
-      </form>
-    </section>
   </main>
 
   <script type="module">
-    import { supabase } from "./js/auth.js";
+    import { supabase, signOut } from "./js/auth.js";
+    import { CONFIG } from "./js/config.js";
 
-    const BLOG_URL = "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/";
-    const REGIMENTO_URL = 'https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/';
+    document.getElementById("logout").addEventListener("click", signOut);
 
-    document.getElementById("regLink").href = REGIMENTO_URL;
-
-    document.getElementById("backBlog").addEventListener("click", (e) => {
-      e.preventDefault();
-      window.location.href = BLOG_URL;
-    });
-
-    document.getElementById("goCadastro").addEventListener("click", () => {
-      window.location.href = "./cadastro.html";
-    });
-
-    document.getElementById("goRegimento").addEventListener("click", () => {
-      window.location.href = REGIMENTO_URL;
-    });
-
-    const loginBox = document.getElementById("loginBox");
-    const recoveryBox = document.getElementById("recoveryBox");
-
-    const forgotBtn = document.getElementById("forgotBtn");
-    const forgotForm = document.getElementById("forgotForm");
-    const forgotMsg = document.getElementById("forgotMsg");
-    const cancelForgot = document.getElementById("cancelForgot");
-
-    forgotBtn.addEventListener("click", () => {
-      forgotForm.classList.remove("hide");
-      forgotBtn.classList.add("hide");
-      document.getElementById("forgotEmail").value = document.getElementById("email").value.trim();
-      forgotMsg.textContent = "";
-    });
-
-    cancelForgot.addEventListener("click", () => {
-      forgotForm.classList.add("hide");
-      forgotBtn.classList.remove("hide");
-      forgotMsg.textContent = "";
-    });
-
-    function parseHashParams() {
-      const raw = (window.location.hash || "").replace(/^#/, "");
-      return new URLSearchParams(raw);
+    const { data: sessData } = await supabase.auth.getSession();
+    const session = sessData?.session || null;
+    if (!session) {
+      window.location.href = "./cadastro.html?next=conta.html";
+      throw new Error("No session");
     }
 
-    const params = parseHashParams();
-    const isRecovery = params.get("type") === "recovery" && !!params.get("access_token");
+    // Tabs
+    const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+    const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+    const mustChangeNotice = document.getElementById("mustChangeNotice");
 
-    if (isRecovery) {
-      const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token") || "";
+    let mustChangePassword = false;
+    let userIsRestricted = false;
 
-      try {
-        await supabase.auth.setSession({ access_token, refresh_token });
-      } catch (e) {
-        console.warn("setSession failed:", e);
-      }
+    let isLibrarian = false;
 
-      loginBox.classList.add("hide");
-      recoveryBox.classList.remove("hide");
+
+    function setActiveTab(key, { pushHash = true } = {}) {
+      tabButtons.forEach(btn => {
+        const active = btn.dataset.tab === key;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      tabPanels.forEach(panel => {
+        panel.classList.toggle("active", panel.dataset.tab === key);
+      });
+      if (pushHash) location.hash = "#" + key;
     }
 
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const msg = document.getElementById("msg");
-      msg.textContent = "";
+    function enforcePasswordChangeUI(enforce) {
+      mustChangePassword = !!enforce;
+      mustChangeNotice.style.display = enforce ? "block" : "none";
 
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+      // Bloqueia outras abas enquanto must_change_password = true
+      tabButtons.forEach(btn => {
+        if (btn.dataset.tab !== "perfil") btn.disabled = enforce;
+      });
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        msg.textContent = "Falha no login: " + error.message;
-        return;
-      }
-      window.location.href = "./painel.html";
-    });
+      if (enforce) setActiveTab("perfil", { pushHash: true });
+    }
 
-    document.getElementById("forgotForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      forgotMsg.textContent = "";
+    function enforceRestrictionUI(restricted, reason) {
+      userIsRestricted = !!restricted;
 
-      const email = document.getElementById("forgotEmail").value.trim();
-      if (!email) { forgotMsg.textContent = "Informe um e-mail válido."; return; }
+      const notice = document.getElementById("restrictedNotice");
+      const reasonEl = document.getElementById("restrictedReason");
 
-      const redirectTo = "https://cclamazonia-cmd.github.io/blmf-conta/conta.html";
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      if (error) {
-        forgotMsg.textContent = "Erro ao enviar link: " + error.message;
-        return;
+      if (notice) notice.style.display = userIsRestricted ? "block" : "none";
+            if (reasonEl) {
+        const rr = String(reason || "").trim();
+        const isTest = rr.toLowerCase() === "teste" || rr.toLowerCase() === "test";
+        const show = userIsRestricted && rr && !isTest;
+        reasonEl.style.display = show ? "block" : "none";
+        reasonEl.textContent = show ? rr : "";
       }
 
-      forgotMsg.textContent = "Link enviado. Se você não encontrar o e-mail, verifique “Spam/Lixo eletrônico”.";
+      // Regimento: usuário restrito não pode fazer novas reservas nem renovar
+      tabButtons.forEach(btn => {
+        if (btn.dataset.tab === "reservar") btn.disabled = userIsRestricted;
+      });
+
+      // Se estava na aba "reservar" e ficou restrito, volta pro perfil
+      const current = (location.hash || "").replace("#", "");
+      if (userIsRestricted && current === "reservar") setActiveTab("perfil", { pushHash: true });
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (mustChangePassword && btn.dataset.tab !== "perfil") return;
+        if (btn.dataset.tab === "biblio" && !isLibrarian) return;
+        setActiveTab(btn.dataset.tab);
+      });
     });
 
-    const resetMsg = document.getElementById("resetMsg");
-    const rp1 = document.getElementById("newPassword");
-    const rp2 = document.getElementById("newPassword2");
-    const toggleResetPw = document.getElementById("toggleResetPw");
+    // Init tab via hash (mas se enforce=true, ficará no perfil)
+    const initial = (location.hash || "").replace("#", "");
+    if (initial === "biblio" && !isLibrarian) {
+      setActiveTab("perfil", { pushHash: false });
+    } else if (initial && tabPanels.some(p => p.dataset.tab === initial)) {
+      setActiveTab(initial, { pushHash: false });
+    } else {
+      setActiveTab("perfil", { pushHash: false });
+    }
 
-    toggleResetPw.addEventListener("click", () => {
-      const show = rp1.type === "password";
-      rp1.type = show ? "text" : "password";
-      rp2.type = show ? "text" : "password";
-      toggleResetPw.textContent = show ? "Ocultar senha" : "Mostrar senha";
-    });
+    // Profile helpers
+    function packAddress() {
+      const lines = [
+        document.getElementById("addr1").value.trim(),
+        document.getElementById("addr2").value.trim(),
+        document.getElementById("unit").value.trim() ? `Casa/Apto: ${document.getElementById("unit").value.trim()}` : "",
+        `CEP: ${document.getElementById("cep").value.trim()}`,
+        `Cidade: ${document.getElementById("city").value.trim()}`,
+        `Estado: ${document.getElementById("state").value}`,
+        `País: ${document.getElementById("country").value}`
+      ].filter(Boolean);
+      return lines.join("\n");
+    }
 
-    document.getElementById("resetForm").addEventListener("submit", async (e) => {
+    function extract(prefix, text) {
+      const re = new RegExp(`^${prefix}\\s*:\\s*(.*)$`, "mi");
+      const m = (text || "").match(re);
+      return m ? m[1].trim() : "";
+    }
+
+    function loadAddressFields(addressText) {
+      const lines = (addressText || "").split("\n").map(l => l.trim()).filter(Boolean);
+      const free = lines.filter(l => !/^(Casa\/Apto:|CEP:|Cidade:|Estado:|País:)/i.test(l));
+      document.getElementById("addr1").value = free[0] || "";
+      document.getElementById("addr2").value = free[1] || "";
+
+      document.getElementById("unit").value = extract("Casa\/Apto", addressText);
+      document.getElementById("cep").value = extract("CEP", addressText);
+      document.getElementById("city").value = extract("Cidade", addressText);
+      document.getElementById("state").value = extract("Estado", addressText);
+      document.getElementById("country").value = extract("País", addressText) || "Brasil";
+    }
+
+    
+    async function loadProfile() {
+      // Tenta carregar também os campos opcionais.
+      // Se ainda não existirem no schema, cai em fallback sem travar a página.
+      let data = null;
+      let error = null;
+
+      const q1 = await supabase
+        .from("profiles")
+        .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian, is_restricted, restricted_since, restricted_reason")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (!q1.error) {
+        data = q1.data;
+      } else {
+        // fallback sem os campos opcionais
+        const q2 = await supabase
+          .from("profiles")
+          .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        data = q2.data;
+        error = q2.error;
+      }
+
+      // Se não existe linha em profiles, tenta criar uma linha mínima para não quebrar o Painel
+      if (!error && !data) {
+        const emailFromSession = session?.user?.email || "";
+        // tentativa 1: com consent_email (se existir)
+        let insErr = null;
+        const ins1 = await supabase
+          .from("profiles")
+          .insert({ id: session.user.id, email: emailFromSession, consent_email: true });
+        insErr = ins1.error;
+
+        if (insErr && String(insErr.message || "").toLowerCase().includes("consent_email")) {
+          const ins2 = await supabase
+            .from("profiles")
+            .insert({ id: session.user.id, email: emailFromSession });
+          insErr = ins2.error;
+        }
+
+        if (insErr) {
+          document.getElementById("profileMsg").textContent =
+            "Seu perfil ainda não foi criado no sistema. Peça à biblioteca para criar seu perfil (ccl-amazonia@riseup.net).";
+          return;
+        }
+
+        // Recarrega após criação
+        const q3 = await supabase
+          .from("profiles")
+          .select("email, first_name, last_name, phone, address, gender, must_change_password, password_changed_at, is_librarian, is_restricted, restricted_since, restricted_reason")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (q3.error || !q3.data) {
+          document.getElementById("profileMsg").textContent =
+            "Perfil criado, mas não foi possível carregá-lo agora. Recarregue a página.";
+          return;
+        }
+
+        data = q3.data;
+      }
+
+      if (error) {
+        document.getElementById("profileMsg").textContent = "Erro ao carregar perfil: " + error.message;
+        return;
+      }
+
+      document.getElementById("firstName").value = data.first_name || "";
+      document.getElementById("lastName").value = data.last_name || "";
+      document.getElementById("phone").value = data.phone || "";
+      document.getElementById("gender").value = data.gender || "";
+      loadAddressFields(data.address || "");
+
+      // Enforce optional
+      if (typeof data.must_change_password === "boolean") {
+        enforcePasswordChangeUI(data.must_change_password);
+      }
+
+      // Restriction UI (regimento)
+      if (typeof data.is_restricted === "boolean") {
+        enforceRestrictionUI(data.is_restricted, data.restricted_reason);
+      }
+
+            // Bibliotecário (opcional): apenas mostra link para o Painel
+      const isLib = (typeof data.is_librarian === "boolean") ? data.is_librarian : false;
+      isLibrarian = isLib;
+      const go = document.getElementById("goPainelBiblio");
+      if (go) go.style.display = isLib ? "" : "none";
+}
+
+    await loadProfile();
+
+
+    document.getElementById("profileForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      resetMsg.textContent = "";
+      const profileMsg = document.getElementById("profileMsg");
+      profileMsg.textContent = "";
 
-      const p1 = rp1.value;
-      const p2 = rp2.value;
+      const payload = {
+        first_name: document.getElementById("firstName").value.trim(),
+        last_name: document.getElementById("lastName").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        gender: document.getElementById("gender").value,
+        address: packAddress()
+      };
 
-      if (!p1 || p1.length < 10) { resetMsg.textContent = "A senha deve ter pelo menos 10 caracteres."; return; }
-      if (p1 !== p2) { resetMsg.textContent = "As senhas não coincidem."; return; }
+      const { error } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", session.user.id);
 
+      profileMsg.textContent = error ? ("Erro ao salvar: " + error.message) : "Dados atualizados com sucesso.";
+    });
+
+    // Password UI
+    const pwInput = document.getElementById("newPassword");
+    const pwInput2 = document.getElementById("newPassword2");
+    const pwMsg = document.getElementById("passwordMsg");
+    const togglePwBtn = document.getElementById("togglePw");
+
+    togglePwBtn.addEventListener("click", () => {
+      const show = pwInput.type === "password";
+      pwInput.type = show ? "text" : "password";
+      pwInput2.type = show ? "text" : "password";
+      togglePwBtn.textContent = show ? "Ocultar senha" : "Mostrar senha";
+    });
+
+    document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      pwMsg.textContent = "";
+
+      const p1 = pwInput.value;
+      const p2 = pwInput2.value;
+
+      if (!p1 || p1.length < 10) {
+        pwMsg.textContent = "A senha deve ter pelo menos 10 caracteres.";
+        return;
+      }
+      if (p1 !== p2) {
+        pwMsg.textContent = "As senhas não coincidem.";
+        return;
+      }
+
+      // Atualiza senha no Supabase Auth
       const { error } = await supabase.auth.updateUser({ password: p1 });
       if (error) {
-        resetMsg.textContent = "Erro ao salvar senha: " + error.message;
+        console.error("updateUser password error:", error);
+        pwMsg.textContent = "Erro ao alterar senha: " + error.message + " (se necessário, faça login novamente).";
         return;
       }
 
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData?.user?.id;
-        if (userId) {
-          const { error: profErr } = await supabase
-            .from("profiles")
-            .update({ must_change_password: false, password_changed_at: new Date().toISOString() })
-            .eq("id", userId);
+      // Atualiza flag no profile (opcional)
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({
+          must_change_password: false,
+          password_changed_at: new Date().toISOString()
+        })
+        .eq("id", session.user.id);
 
-          if (profErr) console.warn("profiles update warn:", profErr.message);
-        }
-      } catch (e) {
-        console.warn("profiles update skipped:", e);
+      if (profErr) {
+        console.error("profiles update password flags error:", profErr);
+        // Mesmo se isso falhar, a senha já foi alterada. Só avisamos.
+        pwMsg.textContent = "Senha alterada. (Aviso: não foi possível atualizar o status no perfil.)";
+        enforcePasswordChangeUI(false);
+      } else {
+        pwMsg.textContent = "Senha alterada com sucesso.";
+        enforcePasswordChangeUI(false);
       }
 
-      resetMsg.textContent = "Senha redefinida com sucesso. Agora você pode entrar.";
-
-      history.replaceState(null, "", window.location.pathname);
-
-      setTimeout(() => { window.location.href = "./conta.html"; }, 900);
+      // limpa e volta ao modo password
+      pwInput.value = "";
+      pwInput2.value = "";
+      pwInput.type = "password";
+      pwInput2.type = "password";
+      togglePwBtn.textContent = "Mostrar senha";
     });
+
+    // Reserve
+    document.getElementById("reserveForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const reserveMsg = document.getElementById("reserveMsg");
+      reserveMsg.textContent = "";
+
+      if (userIsRestricted) {
+        reserveMsg.textContent = "Seu cadastro está restrito: novas reservas estão bloqueadas. Entre em contato com a biblioteca.";
+        return;
+      }
+
+      const bib_ref = document.getElementById("bibRef").value.trim();
+      if (!bib_ref) {
+        reserveMsg.textContent = "Cole a referência BibLivre para reservar.";
+        return;
+      }
+
+      const { data: { user }, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !user) {
+        reserveMsg.textContent = "Sessão inválida — faça login de novo.";
+        return;
+      }
+
+      const { error: insErr } = await supabase
+        .from("reservas")
+        .insert([{ bib_ref, user_id: user.id }]);
+
+      if (insErr) {
+        const em = String(insErr.message || "");
+        if (/duplicate|unique|já existe|violates/i.test(em)) {
+          reserveMsg.textContent = "Você já tem uma reserva ativa para este item.";
+        } else {
+          reserveMsg.textContent = "Erro ao reservar: " + insErr.message;
+        }
+        return;
+      }
+
+      reserveMsg.textContent = "Reserva registrada e enviada para a biblioteca. Em breve entraremos em contato para combinar a retirada.";
+      document.getElementById("bibRef").value = "";
+    });
+
+    function showEmpty(el, msg) {
+      el.innerHTML = `<p>${msg}</p>`;
+    }
+
+    
+    
+        async function renderLoans() {
+      const el = document.getElementById("loans");
+      const loanMsg = document.getElementById("loanMsg");
+      if (loanMsg) loanMsg.textContent = "";
+
+      el.textContent = "Carregando...";
+
+      // Try the richer view first (preferred). If it doesn't exist yet, fall back to old query.
+      let data = null;
+      let error = null;
+
+      const qView = await supabase
+        .from("v_loans_detalhes")
+        .select("loan_id, user_id, due_date, checkout_date, returned_date, extended_once, days_overdue, days_until_due, loan_status, can_renew, formal_notice_sent_at, restriction_effective_on, last_reminder_stage, last_reminder_sent_at, book")
+        .eq("user_id", session.user.id)
+        .eq("is_active", true)
+        .order("due_date", { ascending: true });
+
+      if (!qView.error) {
+        data = qView.data || [];
+      } else {
+        // fallback: minimal fields from loans
+        const qOld = await supabase
+          .from("loans")
+          .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
+          .eq("user_id", session.user.id)
+          .is("returned_date", null)
+          .order("due_date", { ascending: true });
+
+        data = (qOld.data || []).map(l => ({
+          loan_id: l.id,
+          due_date: l.due_date,
+          checkout_date: l.checkout_date,
+          returned_date: l.returned_date,
+          extended_once: l.extended_once,
+          days_overdue: (() => {
+            const due = new Date(l.due_date + "T00:00:00");
+            const today = new Date();
+            const diff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
+            return diff > 0 ? diff : 0;
+          })(),
+          days_until_due: (() => {
+            const due = new Date(l.due_date + "T00:00:00");
+            const today = new Date();
+            const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+            return diff > 0 ? diff : 0;
+          })(),
+          loan_status: null,
+          can_renew: (!l.extended_once) && (new Date(l.due_date + "T00:00:00") >= new Date()) && !userIsRestricted,
+          formal_notice_sent_at: null,
+          restriction_effective_on: null,
+          last_reminder_stage: null,
+          book: { titulo: l.books?.titulo, autor: l.books?.autor }
+        }));
+      }
+
+      if (!data || !data.length) {
+        el.innerHTML = "<p>Não há empréstimos em curso.</p>";
+        return;
+      }
+
+      function fmtDateOnly(d) {
+        // expects ISO date or timestamp; returns YYYY-MM-DD
+        const dt = new Date(d);
+        if (!isNaN(dt)) return dt.toISOString().slice(0, 10);
+        return String(d || "");
+      }
+
+      const rows = data.map(l => {
+        const book = l.book || {};
+        const titulo = book.titulo || "Livro";
+        const autor = book.autor || "";
+
+        const dueTxt = l.due_date ? fmtDateOnly(l.due_date) : "—";
+        const overdue = Number(l.days_overdue || 0);
+
+        let statusLine = "";
+        if (overdue > 0) {
+          statusLine = ` <span class="tag-muted">— ATRASO: ${overdue} dia(s)</span>`;
+        } else {
+          statusLine = ` <span class="tag-muted">— faltam ${Number(l.days_until_due || 0)} dia(s)</span>`;
+        }
+
+        let remindLine = "";
+        if (overdue > 0) {
+          if (l.formal_notice_sent_at) {
+            const aviso = fmtDateOnly(l.formal_notice_sent_at);
+            const restr = l.restriction_effective_on ? fmtDateOnly(l.restriction_effective_on) : "";
+            remindLine = `<div><small>Aviso formal enviado em ${aviso}${restr ? ` — restrição a partir de ${restr}` : ""}.</small></div>`;
+          } else if (l.last_reminder_stage) {
+            remindLine = `<div><small>Lembrete enviado (etapa ${l.last_reminder_stage}).</small></div>`;
+          } else {
+            remindLine = `<div><small>Atraso detectado — você receberá lembretes por e-mail.</small></div>`;
+          }
+        }
+
+        const canRenew = !!l.can_renew && !userIsRestricted;
+        const actionHtml = canRenew
+          ? `<span class="loan-actions">
+               <button type="button" class="secondary mini-btn" data-renew-loan="${l.loan_id}">Renovar (uma única vez)</button>
+             </span>`
+          : `<span class="loan-actions"><span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada: cada empréstimo pode ser renovado apenas uma vez" : (overdue > 0 ? "Renovação indisponível: empréstimo em atraso" : "Renovação indisponível"))}</span></span>`;
+
+        return `
+          <li>
+            <b>#${l.loan_id}</b> — ${titulo}${autor ? ` (${autor})` : ""} — devolução: <b>${dueTxt}</b>${statusLine}
+            ${actionHtml}
+            ${remindLine}
+          </li>
+        `;
+      });
+
+      el.innerHTML = `<ul>${rows.join("")}</ul>`;
+
+      async function doRenew(loanId) {
+        if (loanMsg) loanMsg.textContent = "Processando renovação...";
+        try {
+          // Preferred RPC name (regimento-aligned)
+          let res = await supabase.rpc("renew_loan", { p_loan_id: loanId });
+
+          // Backward compat: fall back to old RPC if the new one doesn't exist yet
+          if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ""))) {
+            res = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
+          }
+
+          if (res.error) {
+            console.error("renew/extend rpc error:", res.error);
+            if (loanMsg) loanMsg.textContent = "Erro ao renovar: " + res.error.message;
+            return;
+          }
+
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+          const newDue = row?.due_date || row?.new_due_date;
+          const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
+          if (loanMsg) loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
+
+          await renderLoans();
+          await renderHistory();
+        } catch (e) {
+          console.error("doRenew fatal:", e);
+          if (loanMsg) loanMsg.textContent = "Falha ao renovar. Tente novamente.";
+        }
+      }
+
+      el.querySelectorAll("[data-renew-loan]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const loanId = Number(btn.getAttribute("data-renew-loan"));
+          if (!loanId) return;
+          btn.setAttribute("disabled", "disabled");
+          await doRenew(loanId);
+          btn.removeAttribute("disabled");
+        });
+      });
+    }
+
+    async function renderHistory() {
+      const el = document.getElementById("history");
+      el.textContent = "Carregando...";
+
+      const { data, error } = await supabase
+        .from("loans")
+        .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
+        .eq("user_id", session.user.id)
+        .order("checkout_date", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error("renderHistory error:", error);
+        return showEmpty(el, "Não há histórico de empréstimos.");
+      }
+
+      const rows = (data || []).map(l => {
+        const titulo = l.books?.titulo || "Livro";
+        const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
+        return `<li>#${l.id} — ${titulo} — ${status}</li>`;
+      });
+
+      el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
+    }
+await renderLoans();
+        await renderHistory();
+      });
+    }
+
+
+
+    if (returnForm) {
+      returnForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const returnMsg = document.getElementById("returnMsg");
+        if (returnMsg) returnMsg.textContent = "";
+
+        if (!isLibrarian) {
+          if (returnMsg) returnMsg.textContent = "Acesso restrito a bibliotecários.";
+          return;
+        }
+
+        const loanId = parseInt((document.getElementById("returnLoanId").value || "").trim(), 10);
+        if (!loanId) {
+          if (returnMsg) returnMsg.textContent = "Informe o ID do empréstimo.";
+          return;
+        }
+
+        if (returnMsg) returnMsg.textContent = "Registrando devolução...";
+
+        const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
+
+        if (error) {
+          console.error("mark_loan_returned error:", error);
+          if (returnMsg) returnMsg.textContent = "Erro ao registrar devolução: " + error.message;
+          return;
+        }
+
+        const row = Array.isArray(data) ? data[0] : data;
+        const ok = row?.ok === true;
+        const msg = row?.message || (ok ? "Devolução registrada." : "Não foi possível registrar devolução.");
+
+        if (returnMsg) returnMsg.textContent = msg;
+
+        // Atualiza listas (do usuário logado)
+        await renderLoans();
+        await renderHistory();
+      });
+    }
+
+
+    await renderLoans();
+    await renderHistory();
   </script>
 </body>
 </html>
