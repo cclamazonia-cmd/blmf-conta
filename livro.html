@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BLMF | Ficha do livro</title>
+<style>
+:root{
+  --bg:#0b0b0b;
+  --panel:#121212;
+  --panel-2:#181818;
+  --line:#2a2a2a;
+  --text:#f5f5f5;
+  --muted:#c9c9c9;
+  --red:#b30018;
+  --red-2:#e11d2f;
+  --shadow:0 18px 40px rgba(0,0,0,.45);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at top right, rgba(179,0,24,.25), transparent 55%),
+    radial-gradient(circle at bottom left, rgba(225,29,47,.18), transparent 60%),
+    linear-gradient(rgba(0,0,0,.78), rgba(0,0,0,.78)),
+    url('https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg');
+  background-size:cover;
+  background-position:center center;
+  background-attachment:fixed;
+  background-repeat:no-repeat;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:20px}
+.hero{
+  background:linear-gradient(180deg, rgba(18,18,18,.92), rgba(18,18,18,.82));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:18px;
+}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hgroup h1{margin:0;font-size:22px;letter-spacing:.2px}
+.hgroup .sub{margin-top:6px;color:var(--muted);font-size:14px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{
+  appearance:none;border:1px solid rgba(255,255,255,.16);
+  background:rgba(0,0,0,.28);color:var(--text);
+  padding:10px 12px;border-radius:12px;
+  cursor:pointer;font-weight:600;font-size:14px;
+}
+.btn:hover{border-color:rgba(255,255,255,.28)}
+.btn.primary{background:linear-gradient(180deg, rgba(225,29,47,.95), rgba(179,0,24,.95));border-color:rgba(255,255,255,.12)}
+.btn.danger{background:rgba(179,0,24,.25);border-color:rgba(179,0,24,.55)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:46px;height:46px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(0,0,0,.28);
+  font-weight:700;
+}
+.card{
+  margin-top:14px;
+  background:linear-gradient(180deg, rgba(18,18,18,.92), rgba(18,18,18,.82));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+}
+.grid{display:grid;grid-template-columns:1.4fr .6fr;gap:14px}
+@media (max-width: 900px){.grid{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:start}
+.kv .k{color:var(--muted);font-size:13px}
+.kv .v{font-size:14px;line-height:1.35}
+.sep{height:1px;background:var(--line);margin:14px 0}
+.notice{margin-top:10px;color:var(--muted);font-size:13px}
+.notice.ok{color:#b6f2c0}
+.notice.err{color:#ffb4b4}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;background:rgba(0,0,0,.24)}
+tr:hover td{background:rgba(255,255,255,.03)}
+.small{font-size:12px;color:var(--muted)}
+a.link{color:var(--text);text-decoration:none;border-bottom:1px solid transparent}
+a.link:hover{border-bottom-color:rgba(255,255,255,.35)}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.22);font-size:12px}
+.pill.ok{border-color:rgba(182,242,192,.35)}
+.pill.warn{border-color:rgba(255,210,125,.35)}
+.pill.err{border-color:rgba(255,180,180,.35)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="header-row">
+      <div class="hgroup">
+        <h1>Ficha do livro</h1>
+        <div class="sub" id="subtitle">Carregando…</div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btnBack" type="button">Voltar ao catálogo</button>
+        <a class="btn" href="conta.html" style="text-decoration:none;display:inline-flex;align-items:center;">Minha conta</a>
+        <span class="badge" title="BLMF">BLMF</span>
+      </div>
+    </div>
+    <div class="notice" id="msg" aria-live="polite"></div>
+  </div>
+
+  <div class="card grid" aria-busy="true" id="mainCard">
+    <div>
+      <div class="kv"><div class="k">Título</div><div class="v" id="vTitulo">—</div></div>
+      <div class="kv"><div class="k">Autor(a)</div><div class="v" id="vAutor">—</div></div>
+      <div class="kv"><div class="k">Ano</div><div class="v" id="vAno">—</div></div>
+      <div class="kv"><div class="k">Editora</div><div class="v" id="vEditora">—</div></div>
+
+      <div class="sep"></div>
+
+      <div class="kv">
+        <div class="k">Referência</div>
+        <div class="v">
+          <span id="vRef">—</span>
+          <button class="btn" id="btnCopy" type="button" style="padding:6px 10px;border-radius:10px;margin-left:8px;">Copiar</button>
+        </div>
+      </div>
+
+      <div class="kv"><div class="k">CDD</div><div class="v" id="vCDD">—</div></div>
+      <div class="kv"><div class="k">Empréstimo</div><div class="v" id="vLoanable">—</div></div>
+    </div>
+
+    <div>
+      <div class="kv"><div class="k">Disponibilidade</div><div class="v" id="vDisp">—</div></div>
+      <div class="sep"></div>
+
+      <div id="authBox">
+        <div class="small">Para reservar, faça login.</div>
+        <div class="actions" style="margin-top:10px">
+          <a class="btn primary" href="conta.html" style="text-decoration:none;display:inline-flex;align-items:center;">Entrar</a>
+        </div>
+      </div>
+
+      <div id="reserveBox" style="display:none">
+        <div class="small" id="userLine">Conectado.</div>
+        <div class="actions" style="margin-top:10px">
+          <button class="btn primary" id="btnReservar" type="button">Reservar</button>
+          <button class="btn danger" id="btnCancelar" type="button" style="display:none">Cancelar reserva</button>
+        </div>
+        <div class="notice" id="reserveMsg"></div>
+      </div>
+
+      <div class="notice small" style="margin-top:12px">
+        Reservas e empréstimos são confirmados pela equipe da biblioteca.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 10px 0;font-size:16px">Exemplares</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tombo</th>
+            <th>Criado em</th>
+          </tr>
+        </thead>
+        <tbody id="exBody">
+          <tr><td colspan="2" class="small">Carregando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="notice small" id="exNote"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_38cFV9vsGhmqMp-Z5gmV4w_HY6ReWSF";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = (id) => document.getElementById(id);
+
+function setMsg(text, kind) {
+  const el = $("msg");
+  el.textContent = text || "";
+  el.className = "notice" + (kind ? (" " + kind) : "");
+}
+
+function setReserveMsg(text, kind) {
+  const el = $("reserveMsg");
+  el.textContent = text || "";
+  el.className = "notice" + (kind ? (" " + kind) : "");
+}
+
+function qp(name) {
+  return new URLSearchParams(location.search).get(name);
+}
+
+function safe(v) {
+  return (v === null || v === undefined || v === "") ? "—" : String(v);
+}
+
+function fmtDate(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString("pt-BR");
+}
+
+async function fetchJson(path, { token, method, body } = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+    "Content-Type": "application/json",
+  };
+  const res = await fetch(url, {
+    method: method || "GET",
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch(_) {}
+  return { ok: res.ok, status: res.status, data, text };
+}
+
+function pill(text, cls) {
+  return `<span class="pill ${cls||""}">${text}</span>`;
+}
+
+function computeDisp(book) {
+  const n = Number(book.available_count ?? 0);
+  const loanable = !!book.loanable;
+  if (!loanable) return pill("Somente consulta local", "warn");
+  if (n > 0) return pill(`${n} disponível(is) agora`, "ok");
+  return pill("Indisponível agora (você pode reservar)", "warn");
+}
+
+function computeLoanable(book) {
+  return book.loanable ? "Pode ser emprestado" : "Somente consulta local";
+}
+
+async function fetchBookByRef(ref) {
+  const r = await fetchJson(`books?select=id,bib_ref,titulo,autor,ano,editora,cdd,available_count,loanable&bib_ref=eq.${encodeURIComponent(ref)}&limit=1`);
+  if (!r.ok) throw new Error(`Erro ao carregar livro (${r.status})`);
+  const b = (r.data && r.data[0]) ? r.data[0] : null;
+  if (!b) throw new Error("Livro não encontrado.");
+  return b;
+}
+
+async function fetchExemplares(ref) {
+  const r = await fetchJson(`exemplares?select=tombo,created_at&bib_ref=eq.${encodeURIComponent(ref)}&order=tombo.asc`);
+  if (!r.ok) return { rows: [], note: "Não foi possível carregar os exemplares." };
+  return { rows: Array.isArray(r.data) ? r.data : [], note: "" };
+}
+
+async function fetchActiveReserva({ userId, ref, token }) {
+  // reserva ativa: cancelled_at is null and fulfilled_at is null
+  const path = `reservas?select=id,status,created_at,cancelled_at,fulfilled_at&user_id=eq.${encodeURIComponent(userId)}&bib_ref=eq.${encodeURIComponent(ref)}&cancelled_at=is.null&fulfilled_at=is.null&order=created_at.desc&limit=1`;
+  const r = await fetchJson(path, { token });
+  if (!r.ok) return null;
+  const row = (r.data && r.data[0]) ? r.data[0] : null;
+  return row || null;
+}
+
+async function createReserva({ userId, ref, token }) {
+  const r = await fetchJson(`reservas?select=id,status,created_at`, {
+    token,
+    method: "POST",
+    body: { bib_ref: ref, user_id: userId }
+  });
+  if (!r.ok) {
+    throw new Error("Não foi possível criar a reserva. Se o problema persistir, fale com a biblioteca.");
+  }
+  return (r.data && r.data[0]) ? r.data[0] : null;
+}
+
+async function cancelReserva({ reservaId, userId, token }) {
+  const now = new Date().toISOString();
+  const r = await fetchJson(`reservas?id=eq.${encodeURIComponent(reservaId)}`, {
+    token,
+    method: "PATCH",
+    body: {
+      status: "cancelada",
+      cancelled_at: now,
+      cancelled_by: userId
+    }
+  });
+  if (!r.ok) throw new Error("Não foi possível cancelar agora.");
+  return true;
+}
+
+function setupCopy(text) {
+  $("btnCopy").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(text || "");
+      setMsg("Referência copiada.", "ok");
+      setTimeout(() => setMsg("", ""), 1200);
+    } catch {
+      setMsg("Não foi possível copiar automaticamente. Selecione e copie manualmente.", "err");
+    }
+  });
+}
+
+$("btnBack").addEventListener("click", () => {
+  location.href = "index.html";
+});
+
+async function init() {
+  const ref = qp("ref");
+  if (!ref) {
+    $("subtitle").textContent = "Referência não informada.";
+    $("mainCard").setAttribute("aria-busy","false");
+    setMsg("Abra a ficha a partir do catálogo (clique no título do livro).", "err");
+    $("exBody").innerHTML = `<tr><td colspan="2" class="small">—</td></tr>`;
+    return;
+  }
+
+  try {
+    const book = await fetchBookByRef(ref);
+
+    $("subtitle").textContent = `${book.autor || "—"} · ${book.ano || "—"} · ${book.editora || "—"}`;
+    $("vTitulo").textContent = safe(book.titulo);
+    $("vAutor").textContent = safe(book.autor);
+    $("vAno").textContent = safe(book.ano);
+    $("vEditora").textContent = safe(book.editora);
+    $("vRef").textContent = safe(book.bib_ref || ref);
+    $("vCDD").textContent = safe(book.cdd);
+    $("vLoanable").textContent = computeLoanable(book);
+    $("vDisp").innerHTML = computeDisp(book);
+
+    setupCopy(book.bib_ref || ref);
+
+    // Exemplares
+    const ex = await fetchExemplares(ref);
+    if (!ex.rows.length) {
+      $("exBody").innerHTML = `<tr><td colspan="2" class="small">Nenhum exemplar listado (ainda).</td></tr>`;
+      $("exNote").textContent = ex.note || "";
+    } else {
+      $("exBody").innerHTML = ex.rows.map(x => `
+        <tr>
+          <td>${safe(x.tombo)}</td>
+          <td>${fmtDate(x.created_at)}</td>
+        </tr>
+      `).join("");
+      $("exNote").textContent = "";
+    }
+
+    // Auth/reserva
+    const { data: sess } = await supabase.auth.getSession();
+    const session = sess?.session || null;
+
+    if (session) {
+      $("authBox").style.display = "none";
+      $("reserveBox").style.display = "block";
+      $("userLine").textContent = `Conectado como ${session.user.email}`;
+
+      const token = session.access_token;
+      const userId = session.user.id;
+
+      // regra: se não for emprestável, desativa reserva
+      if (!book.loanable) {
+        $("btnReservar").disabled = true;
+        setReserveMsg("Este item é somente para consulta local.", "warn");
+      }
+
+      async function refreshReservaUI() {
+        setReserveMsg("", "");
+        const active = await fetchActiveReserva({ userId, ref, token });
+        if (active) {
+          $("btnReservar").style.display = "none";
+          $("btnCancelar").style.display = "inline-flex";
+          $("btnCancelar").dataset.reservaId = active.id;
+          setReserveMsg("Você já tem uma reserva ativa para este livro.", "");
+        } else {
+          $("btnReservar").style.display = "inline-flex";
+          $("btnCancelar").style.display = "none";
+        }
+      }
+
+      $("btnReservar").addEventListener("click", async () => {
+        if (!book.loanable) return;
+        $("btnReservar").disabled = true;
+        setReserveMsg("Criando reserva…", "");
+        try {
+          await createReserva({ userId, ref, token });
+          setReserveMsg("Reserva criada. A biblioteca vai confirmar a retirada.", "ok");
+          await refreshReservaUI();
+        } catch (e) {
+          setReserveMsg(e?.message || "Erro ao reservar.", "err");
+        } finally {
+          $("btnReservar").disabled = false;
+        }
+      });
+
+      $("btnCancelar").addEventListener("click", async () => {
+        const rid = $("btnCancelar").dataset.reservaId;
+        if (!rid) return;
+        if (!confirm("Cancelar esta reserva?")) return;
+
+        $("btnCancelar").disabled = true;
+        setReserveMsg("Cancelando…", "");
+        try {
+          await cancelReserva({ reservaId: rid, userId, token });
+          setReserveMsg("Reserva cancelada.", "ok");
+          await refreshReservaUI();
+        } catch (e) {
+          setReserveMsg(e?.message || "Erro ao cancelar.", "err");
+        } finally {
+          $("btnCancelar").disabled = false;
+        }
+      });
+
+      await refreshReservaUI();
+    }
+
+    $("mainCard").setAttribute("aria-busy","false");
+  } catch (e) {
+    $("subtitle").textContent = "Erro.";
+    $("mainCard").setAttribute("aria-busy","false");
+    setMsg(e?.message || "Não foi possível carregar a ficha.", "err");
+    $("exBody").innerHTML = `<tr><td colspan="2" class="small">—</td></tr>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
