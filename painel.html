@@ -3,290 +3,600 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Painel (bibliotecário-a-e) — Biblioteca Libertária Maxwell Ferreira</title>
-  <link rel="stylesheet" href="./css/app.css" />
+  <title>BLMF — Painel (bibliotecários)</title>
   <style>
-    body{background-image:url("https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg");background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat;}
-    .card{background: rgba(27,27,27,0.92);backdrop-filter: blur(2px);}
-    .brand{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;}
-    .brand img{width:82px;height:82px;object-fit:contain;flex:0 0 auto;}
-    .subtitle{margin:6px 0 0;color:#cfcfcf;font-size:.95rem;line-height:1.3;}
-    .small{color:#cfcfcf;font-size:.9rem;}
-    .notice{border:1px solid rgba(255,255,255,0.18);background: rgba(200, 0, 0, 0.16);padding:10px 12px;border-radius:12px;margin:0 0 12px;color:#fff;}
-    .notice .small{color:#f0f0f0;}
-    .panel-head{margin-bottom:10px;}
-    .panel-head h2{margin-top:0;}
-    .table-scroll{width:100%;overflow-x:auto;}
-    .list-table{width:100%;border-collapse:collapse;margin-top:10px;}
-    .list-table th,.list-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.14);vertical-align:top;}
-    .list-table th{text-align:left;color:#cfcfcf;font-weight:600;}
-    .list-table td small{color:#cfcfcf;}
-    .inline-select{max-width:160px;}
-    .mini-btn{padding:6px 10px;font-size:.9rem;border-radius:12px;line-height:1.1;}
-    .loan-actions{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    :root{
+      --panel:rgba(18,18,18,.96);
+      --text:#f2f2f2; --muted:rgba(255,255,255,.72);
+      --red:#b30018; --red2:#e11d2f;
+      --line:rgba(255,255,255,.10);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --ok:#4ade80; --warn:#fbbf24; --bad:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;color:var(--text);font-family:Inter, Segoe UI, Arial, sans-serif;}
+    body{
+      background-image:
+        linear-gradient(rgba(0,0,0,0.78), rgba(0,0,0,0.78)),
+        url('https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg');
+      background-size:cover; background-position:center; background-attachment:fixed; background-repeat:no-repeat;
+    }
+    a, a:visited{color:inherit}
+    .wrap{max-width:1320px;margin:0 auto;padding:24px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{height:64px;width:auto;max-width:140px;object-fit:contain;display:block;flex-shrink:0;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
+    .btn{
+      border:1px solid var(--line); background:rgba(18,18,18,.92);
+      color:var(--text); border-radius:14px; padding:10px 12px;
+      cursor:pointer; box-shadow: var(--shadow);
+      font-weight:900; font-size:.95rem;
+    }
+    .btn.primary{border:none;background:linear-gradient(135deg,var(--red2),var(--red))}
+    .btn:hover{border-color:rgba(255,255,255,.22)}
+    .hero{
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(135deg, rgba(179,0,24,.95), rgba(90,0,12,.96));
+      border-radius:22px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px
+    }
+    .hero h1{margin:0 0 6px;font-size:1.45rem}
+    .hero p{margin:0;color:rgba(255,255,255,.92)}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    .card{border:1px solid rgba(255,255,255,.08); background:var(--panel); border-radius:22px; padding:16px; box-shadow:var(--shadow)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:920px){.row{grid-template-columns:1fr}}
+    label{display:block;font-size:.9rem;color:var(--muted);margin:0 0 6px}
+    .input{
+      width:100%;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(12,12,12,.75);
+      color:var(--text);
+      border-radius:14px;
+      padding:12px 12px;
+      outline:none;
+    }
+    .input:focus{border-color:rgba(225,29,47,.85); box-shadow:0 0 0 3px rgba(225,29,47,.18)}
+    .hint{color:var(--muted);font-size:.9rem;margin-top:8px}
+    .status{margin-top:10px;font-size:.92rem}
+    .status.ok{color:var(--ok)} .status.warn{color:var(--warn)} .status.bad{color:var(--bad)}
+    .sep{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
+    .tableWrap{overflow:auto;max-height:62vh;border-radius:16px;border:1px solid rgba(255,255,255,.08)}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:980px;background:rgba(10,10,10,.35)}
+    thead th{
+      position:sticky;top:0;z-index:2;text-align:left;padding:12px 14px;
+      background:linear-gradient(180deg,#26060a,#160407);color:#fff;border-bottom:1px solid rgba(255,255,255,.08);
+      font-size:.86rem;text-transform:uppercase;letter-spacing:.05em
+    }
+    tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+    tbody tr:hover td{background:rgba(179,0,24,.08)}
+    .muted{color:var(--muted)}
+    .mini{font-size:.86rem;color:var(--muted)}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.10);background:rgba(18,18,18,.65);padding:7px 10px;border-radius:999px;font-size:.9rem;color:var(--muted)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .checkLine{display:flex;align-items:flex-start;gap:10px;margin:6px 0}
+    .checkLine input{transform:scale(1.15);margin-top:2px}
   </style>
 </head>
 <body>
-  <main class="card">
-    <div class="brand">
-      <img src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png" alt="Logotipo BLMF" onerror="this.style.display='none'" />
-      <div style="flex:1;">
-        <div class="row" style="justify-content:space-between;">
-          <div>
-            <h1 style="margin:0;">Painel — Biblioteca Libertária Maxwell Ferreira</h1>
-            <p class="subtitle">Gestão (bibliotecário-a-e)</p>
-          </div>
-          <button id="logout" class="secondary">Sair</button>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <img class="logo" src="logo-blmf.png" alt="BLMF" onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';" />
+        <div id="logoFallback" style="display:none">
+          <div style="font-weight:900;letter-spacing:.04em">BLMF</div>
+          <div class="mini">Biblioteca Libertária Maxwell Ferreira</div>
         </div>
-        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <a class="secondary" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
-          <a class="secondary" href="./conta.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Conta (leitor/a/e)</a>
-          <a class="secondary" href="https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
-        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="btnBlog" type="button">Voltar ao blogue</button>
+        <button class="btn" id="btnCatalogo" type="button">Voltar ao catálogo</button>
+        <button class="btn primary" id="btnSair" type="button">Sair</button>
       </div>
     </div>
 
-    <div id="accessNotice" class="notice" style="display:none;">
-      <b>Acesso restrito</b>
-      <div class="small">Este painel é reservado a bibliotecários.</div>
+    <div class="hero">
+      <h1>Painel (bibliotecários)</h1>
+      <p class="muted" id="who">Carregando…</p>
+      <div class="chips" style="margin-top:10px">
+        <span class="chip" id="chipRole">—</span>
+        <span class="chip" id="chipEmail">—</span>
+      </div>
     </div>
 
-    <section aria-label="Reservas pendentes">
-      <div class="panel-head">
-        <h2>Reservas pendentes</h2>
-        <p class="small">Clique em uma linha para preencher o ID e o lote. Use “Cancelar” para anular uma reserva.</p>
+    <div class="grid">
+      <div class="card">
+        <h2 style="margin:0 0 10px">Registrar saída (empréstimo)</h2>
+        <div class="row">
+          <div>
+            <label for="borrowerEmail">E-mail do leitor(a/e)</label>
+            <input class="input" id="borrowerEmail" type="email" placeholder="leitor@exemplo.org" />
+            <div class="hint">O e-mail precisa existir em <span class="muted">profiles.email</span>.</div>
+          </div>
+          <div>
+            <label for="bibRefs">Referências (até 5, separadas por vírgula)</label>
+            <input class="input" id="bibRefs" type="text" placeholder="0000124, 0000138, 0000056" />
+            <div class="hint" id="loanHint">—</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="btnRegistrarSaida" type="button">Registrar saída</button>
+        </div>
+        <div class="status" id="statusSaida"></div>
       </div>
-      <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
-        <button type="button" id="refreshPendentes" class="secondary">Atualizar lista</button>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px">Registrar devolução</h2>
+        <div class="row">
+          <div>
+            <label for="loanId">Por ID do empréstimo</label>
+            <input class="input" id="loanId" type="number" placeholder="Ex.: 123" />
+            <div class="actions">
+              <button class="btn" id="btnDevolverId" type="button">Registrar devolução (ID)</button>
+            </div>
+          </div>
+          <div>
+            <label for="returnRefs">Por referências (separadas por vírgula)</label>
+            <input class="input" id="returnRefs" type="text" placeholder="0000124, 0000138" />
+            <div class="actions">
+              <button class="btn" id="btnDevolverRefs" type="button">Registrar devolução (refs)</button>
+            </div>
+            <div class="hint">Se houver mais de um empréstimo em aberto para a mesma referência, a devolução pode ficar ambígua.</div>
+          </div>
+        </div>
+        <div class="status" id="statusDev"></div>
       </div>
-      <div id="pendingReservas"></div>
-      <p id="pendingMsg" class="msg" aria-live="polite"></p>
-    </section>
 
-    <hr />
-
-    <section aria-label="Confirmar retirada">
-      <div class="panel-head">
-        <h2>Confirmar retirada</h2>
-        <p class="small">Transforma uma reserva em empréstimo.</p>
-      </div>
-      <form id="fulfillForm" novalidate>
-        <div class="grid2">
-          <div>
-            <label for="fulfillReservaId">ID da reserva (reserva_id)</label>
-            <input type="number" id="fulfillReservaId" inputmode="numeric" required />
-          </div>
-          <div>
-            <label for="fulfillBatchSize">Quantidade no lote</label>
-            <select id="fulfillBatchSize">
-              <option value="1">1 livro</option><option value="2">2 livros</option><option value="3">3 livros</option><option value="4">4 livros</option><option value="5">5 livros</option>
-            </select>
-          </div>
-        </div>
-        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
-          <button type="submit">Confirmar retirada</button>
-        </div>
-        <p id="fulfillMsg" class="msg" aria-live="polite"></p>
-      </form>
-    </section>
-
-    <hr />
-
-    <section aria-label="Registrar saída">
-      <div class="panel-head"><h2>Registrar saída (novo empréstimo)</h2></div>
-      <form id="checkoutForm" novalidate>
-        <div class="grid2">
-          <div>
-            <label for="checkoutUserEmail">E-mail do/a/e leitor/a/e</label>
-            <input type="email" id="checkoutUserEmail" autocomplete="email" required />
-          </div>
-          <div>
-            <label for="checkoutBibRef">Referência BibLivre (bib_ref)</label>
-            <input type="text" id="checkoutBibRef" placeholder="Ex.: 0000084" required />
-          </div>
-        </div>
-        <div class="grid2">
-          <div>
-            <label for="checkoutBatchSize">Quantidade no lote</label>
-            <select id="checkoutBatchSize"><option value="1">1 livro</option><option value="2">2 livros</option><option value="3">3 livros</option><option value="4">4 livros</option><option value="5">5 livros</option></select>
-          </div>
-          <div style="display:flex; align-items:flex-end;"><button type="submit">Registrar saída</button></div>
-        </div>
-        <p id="checkoutMsg" class="msg" aria-live="polite"></p>
-      </form>
-    </section>
-
-    <hr />
-
-    <section aria-label="Registrar devolução">
-      <div class="panel-head"><h2>Registrar devolução</h2></div>
-      <form id="returnForm" novalidate>
-        <div class="grid2">
-          <div>
-            <label for="returnLoanId">ID do empréstimo (loan_id)</label>
-            <input type="number" id="returnLoanId" inputmode="numeric" required />
-          </div>
-          <div style="display:flex; align-items:flex-end;"><button type="submit">Registrar devolução</button></div>
-        </div>
-        <p id="returnMsg" class="msg" aria-live="polite"></p>
-      </form>
-    </section>
-  </main>
-
-  <script type="module">
-    import { supabase, signOut } from "./js/auth.js";
-    document.getElementById("logout").addEventListener("click", signOut);
-
-    const { data: sessData } = await supabase.auth.getSession();
-    const session = sessData?.session || null;
-    if (!session) { window.location.href = "./cadastro.html?next=painel.html"; throw new Error("No session"); }
-
-    let isLibrarian = false;
-    try{
-      const { data, error } = await supabase.from("profiles").select("is_librarian").eq("id", session.user.id).maybeSingle();
-      if (!error && data?.is_librarian) isLibrarian = true;
-    }catch{}
-    if (!isLibrarian){
-      document.getElementById("accessNotice").style.display = "block";
-      setTimeout(() => { window.location.href = "./conta.html"; }, 800);
-      throw new Error("Not librarian");
-    }
-
-    const refreshPendentes = document.getElementById("refreshPendentes");
-    if (refreshPendentes) refreshPendentes.addEventListener("click", renderPendingReservas);
-
-    async function renderPendingReservas(){
-      const box = document.getElementById("pendingReservas");
-      const msg = document.getElementById("pendingMsg");
-      const fulfillIdInput = document.getElementById("fulfillReservaId");
-      const fulfillBatchSelect = document.getElementById("fulfillBatchSize");
-      msg.textContent = "";
-      box.innerHTML = "<p>Carregando...</p>";
-
-      const { data, error } = await supabase.rpc("list_pending_reservas");
-      if (error){ box.innerHTML=""; msg.textContent="Erro ao carregar: " + error.message; return; }
-
-      const rows = (Array.isArray(data) ? data : []).map(r => {
-        let retirar_ate = "";
-        try{ const dt = new Date(r.reserva_em); if (!isNaN(dt)){ dt.setDate(dt.getDate()+14); retirar_ate = dt.toISOString().slice(0,10);} }catch{}
-        return { ...r, retirar_ate };
-      });
-
-      if (!rows.length){ box.innerHTML="<p>Não há reservas pendentes.</p>"; return; }
-
-      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-      const batchOptions = (selected) => [1,2,3,4,5].map(n => `<option value="${n}" ${String(n)===String(selected) ? "selected":""}>${n}</option>`).join("");
-
-      box.innerHTML = `
-        <div class="table-scroll">
-          <table class="list-table">
-            <thead><tr><th>ID</th><th>Data</th><th>Livro</th><th>Leitor(a/e)</th><th>Lote</th></tr></thead>
-            <tbody>
-              ${rows.map(r => `
-                <tr data-select-reserva="${esc(r.reserva_id)}" style="cursor:pointer;">
-                  <td><b>${esc(r.reserva_id)}</b></td>
-                  <td><small>${esc(r.reserva_em)}</small><div><small>retirar até: ${esc(r.retirar_ate || "")}</small></div></td>
-                  <td><div><b>${esc(r.titulo || "—")}</b></div><div><small>${esc(r.autor || "")}</small></div><div><small>bib_ref: ${esc(r.bib_ref || "")}</small></div></td>
-                  <td><div>${esc(((r.first_name||"")+" "+(r.last_name||"")).trim() || "—")}</div><div><small>${esc(r.user_email || "")}</small></div></td>
-                  <td>
-                    <span class="loan-actions">
-                      <select class="inline-select" data-batch-size="${esc(r.reserva_id)}">${batchOptions(1)}</select>
-                      <button type="button" class="secondary mini-btn" data-cancel-inline="${esc(r.reserva_id)}">Cancelar</button>
-                    </span>
-                  </td>
-                </tr>
-              `).join("")}
+      <div class="card">
+        <h2 style="margin:0 0 10px">Reservas pendentes</h2>
+        <div class="mini">Seleciona exatamente os livros que foram retirados (ou cancelados). Assim, se a pessoa reservou 3 e pegou só 2, a última reserva fica ativa.</div>
+        <div class="sep"></div>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Selecionar</th>
+                <th>Leitor(a/e)</th>
+                <th>Livro</th>
+                <th>Referência</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyRes">
+              <tr><td colspan="5" class="muted">Carregando…</td></tr>
             </tbody>
           </table>
         </div>
-      `;
+        <div class="actions">
+          <button class="btn primary" id="btnConfirmarSelecionados" type="button">Confirmar retirada (selecionados)</button>
+          <button class="btn" id="btnCancelarSelecionados" type="button">Cancelar (selecionados)</button>
+          <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
+        </div>
+        <div class="status" id="statusRes"></div>
+      </div>
 
-      box.querySelectorAll("[data-select-reserva]").forEach((tr) => {
-        tr.addEventListener("click", (ev) => {
-          const t = ev.target;
-          if (t && (t.tagName==="SELECT" || t.tagName==="OPTION" || t.closest("[data-cancel-inline]"))) return;
-          const rid = tr.getAttribute("data-select-reserva");
-          const sel = box.querySelector(`[data-batch-size="${rid}"]`);
-          const batch = sel ? (parseInt(sel.value,10) || 1) : 1;
-          fulfillIdInput.value = String(rid);
-          fulfillBatchSelect.value = String(batch);
-          msg.textContent = `Reserva selecionada: ${rid}. Agora clique em “Confirmar retirada”.`;
-          document.getElementById("fulfillForm").scrollIntoView({ behavior:"smooth", block:"start" });
-        });
-      });
+      <div class="card">
+        <h2 style="margin:0 0 10px">Gerir cadastro (profiles)</h2>
+        <div class="row">
+          <div>
+            <label for="searchEmail">Buscar por e-mail</label>
+            <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org" />
+            <div class="actions">
+              <button class="btn" id="btnBuscar" type="button">Buscar</button>
+            </div>
+          </div>
+          <div>
+            <label for="editName">Nome</label>
+            <input class="input" id="editName" type="text" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div>
+            <label for="editPhone">Telefone</label>
+            <input class="input" id="editPhone" type="text" />
+          </div>
+          <div>
+            <label for="editCountry">País</label>
+            <input class="input" id="editCountry" type="text" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div>
+            <label for="editState">Estado / Província</label>
+            <input class="input" id="editState" type="text" />
+          </div>
+          <div>
+            <label for="editRole">Role (leitor / bibliotecario / admin)</label>
+            <input class="input" id="editRole" type="text" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="btnSalvarPerfil" type="button">Salvar alterações</button>
+        </div>
+        <div class="status" id="statusPerfil"></div>
+      </div>
 
-      box.querySelectorAll("[data-cancel-inline]").forEach((btn) => {
-        btn.addEventListener("click", async (ev) => {
-          ev.stopPropagation();
-          const rid = Number(btn.getAttribute("data-cancel-inline"));
-          if (!rid) return;
-          if (!confirm(`Cancelar a reserva #${rid}?`)) return;
-          btn.disabled = true;
-          msg.textContent = "Cancelando reserva...";
-          const { data, error } = await supabase.rpc("cancel_reserva", { p_reserva_id: rid });
-          btn.disabled = false;
-          if (error){ msg.textContent = "Erro ao cancelar: " + error.message; return; }
-          const row = Array.isArray(data) ? data[0] : data;
-          msg.textContent = row?.message || "Reserva cancelada.";
-          if (String(fulfillIdInput.value || "") === String(rid)) fulfillIdInput.value = "";
-          await renderPendingReservas();
-        });
-      });
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const ROUTES = {
+      BLOG_HOME: "https://cclamazonia.noblogs.org/",
+      CATALOGO: "https://cclamazonia.github.io/blmf-catalogo/index.html",
+      CADASTRO: "https://cclamazonia.github.io/blmf-conta/cadastro.html",
+      CONTA: "https://cclamazonia.github.io/blmf-conta/conta.html",
+      PAINEL: "https://cclamazonia.github.io/blmf-conta/painel.html",
+    };
+
+    const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzcHRmbW9renlrd3psc2hzbmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzcxNzcsImV4cCI6MjA4ODExMzE3N30.JkMLHPCV2AH5ELZV_1RfcoW250QEofLGvnDKSDpkcn0";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (el, msg, cls) => { el.className = "status" + (cls ? " " + cls : ""); el.textContent = msg || ""; };
+
+    $("btnBlog").addEventListener("click", () => location.assign(ROUTES.BLOG_HOME));
+    $("btnCatalogo").addEventListener("click", () => location.assign(ROUTES.CATALOGO));
+
+    async function requireSession(){
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { location.assign(ROUTES.CADASTRO); return null; }
+      return session;
     }
 
-    document.getElementById("fulfillForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const out = document.getElementById("fulfillMsg");
-      out.textContent = "";
-      const reservaId = parseInt((document.getElementById("fulfillReservaId").value||"").trim(),10);
-      const batchSize = parseInt((document.getElementById("fulfillBatchSize").value||"1"),10) || 1;
-      if (!reservaId){ out.textContent = "Informe o ID da reserva."; return; }
-      out.textContent = "Confirmando retirada...";
-      const { data, error } = await supabase.rpc("fulfill_reserva", { p_reserva_id: reservaId, p_batch_size: batchSize });
-      if (error){ out.textContent = "Erro: " + error.message; return; }
-      const row = Array.isArray(data) ? data[0] : data;
-      out.textContent = (row?.message || "Confirmação concluída.") + (row?.loan_id ? ` (Empréstimo ID: ${row.loan_id})` : "") + (row?.due_date ? ` Devolução: ${row.due_date}.` : "");
-      await renderPendingReservas();
+    async function loadMyProfile(session){
+      $("chipEmail").textContent = session.user.email || "—";
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle();
+      if (error) {
+        $("chipRole").textContent = "bibliotecário?";
+        $("who").textContent = "Erro ao ler profiles (confere permissões/RLS).";
+        return { role: "bibliotecario" };
+      }
+      const role = (data?.role || "leitor").toLowerCase();
+      $("chipRole").textContent = data?.role || "leitor";
+      $("who").textContent = data?.full_name ? ("Olá, " + data.full_name + ".") : "Olá.";
+
+      if (!(role === "bibliotecario" || role === "admin")){
+        // não é bibliotecário -> volta pra conta
+        location.assign(ROUTES.CONTA);
+        return null;
+      }
+      return data;
+    }
+
+    function parseRefs(raw){
+      const items = (raw || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      // remove duplicados mantendo ordem
+      const seen = new Set();
+      const unique = [];
+      for (const it of items){
+        if (!seen.has(it)){ seen.add(it); unique.push(it); }
+      }
+      return unique;
+    }
+
+    function loanDaysByCount(n){
+      // conforme teu regimento: 1 => 21, 2-3 => 30, 4-5 => 38
+      if (n <= 1) return 21;
+      if (n <= 3) return 30;
+      return 38;
+    }
+
+    function refreshLoanHint(){
+      const refs = parseRefs($("bibRefs").value);
+      if (!refs.length) { $("loanHint").textContent = "Digite 1 a 5 referências separadas por vírgula."; return; }
+      if (refs.length > 5) { $("loanHint").textContent = "Máximo: 5 referências."; return; }
+
+      const days = loanDaysByCount(refs.length);
+      const due = new Date();
+      due.setDate(due.getDate() + days);
+      const yyyy = due.getFullYear();
+      const mm = String(due.getMonth()+1).padStart(2,"0");
+      const dd = String(due.getDate()).padStart(2,"0");
+      $("loanHint").textContent = `Quantidade: ${refs.length}. Prazo: ${days} dias. Devolver até: ${yyyy}-${mm}-${dd}.`;
+    }
+
+    $("bibRefs").addEventListener("input", refreshLoanHint);
+    refreshLoanHint();
+
+    async function pickFirstExistingTable(candidates){
+      for (const t of candidates){
+        const { error } = await supabase.from(t).select("*").limit(1);
+        if (!error) return t;
+      }
+      return null;
+    }
+
+    async function findUserByEmail(email){
+      const { data, error } = await supabase.from("profiles").select("id,full_name,email").eq("email", email).maybeSingle();
+      if (error) throw error;
+      if (!data?.id) throw new Error("Não encontrei esse e-mail em profiles.");
+      return data;
+    }
+
+    $("btnRegistrarSaida").addEventListener("click", async () => {
+      setStatus($("statusSaida"), "", "");
+      const email = $("borrowerEmail").value.trim().toLowerCase();
+      const refs = parseRefs($("bibRefs").value);
+
+      if (!email) return setStatus($("statusSaida"), "Informe o e-mail do leitor(a/e).", "warn");
+      if (!refs.length) return setStatus($("statusSaida"), "Informe pelo menos 1 referência.", "warn");
+      if (refs.length > 5) return setStatus($("statusSaida"), "Máximo: 5 referências.", "warn");
+
+      // valida refs no formato 0000124 (7 dígitos) — se tu quiser outro padrão, eu ajusto.
+      const bad = refs.find(r => !/^\d{7}$/.test(r));
+      if (bad) return setStatus($("statusSaida"), `Referência inválida: ${bad}. Use 7 dígitos (ex.: 0000124).`, "warn");
+
+      const loansTable = await pickFirstExistingTable(["loans","emprestimos"]);
+      if (!loansTable) return setStatus($("statusSaida"), "Tabela de empréstimos não encontrada (loans/emprestimos).", "bad");
+
+      $("btnRegistrarSaida").disabled = true;
+      try{
+        const borrower = await findUserByEmail(email);
+
+        const days = loanDaysByCount(refs.length);
+        const due = new Date();
+        due.setDate(due.getDate() + days);
+        const dueISO = due.toISOString().slice(0,10);
+
+        // 1 linha por referência (permissão de devolução parcial por ref)
+        const payload = refs.map(bib_ref => ({
+          user_id: borrower.id,
+          bib_ref,
+          due_at: dueISO,
+          returned_at: null,
+          // opcional: title pode ser preenchido por trigger/view; aqui fica em branco
+        }));
+
+        const { error } = await supabase.from(loansTable).insert(payload);
+        if (error) return setStatus($("statusSaida"), "Não foi possível registrar saída: " + error.message, "bad");
+
+        setStatus($("statusSaida"), `Saída registrada para ${refs.length} livro(s).`, "ok");
+        $("bibRefs").value = "";
+        refreshLoanHint();
+      } catch(e){
+        setStatus($("statusSaida"), (e?.message || String(e)), "bad");
+      } finally {
+        $("btnRegistrarSaida").disabled = false;
+      }
     });
 
-    document.getElementById("checkoutForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const out = document.getElementById("checkoutMsg");
-      out.textContent = "";
-      const email = (document.getElementById("checkoutUserEmail").value||"").trim();
-      const bibRef = (document.getElementById("checkoutBibRef").value||"").trim();
-      const batchSize = parseInt((document.getElementById("checkoutBatchSize").value||"1"),10) || 1;
-      if (!email || !bibRef){ out.textContent = "Preencha o e-mail e a referência BibLivre."; return; }
-      out.textContent = "Buscando usuárie e livro...";
-      const { data: u, error: uErr } = await supabase.from("profiles").select("id,email").ilike("email", email).maybeSingle();
-      if (uErr){ out.textContent = "Erro ao buscar usuárie: " + uErr.message; return; }
-      if (!u){ out.textContent = "Usuárie não encontrado(a/e) com este e-mail."; return; }
-      const { data: bk, error: bkErr } = await supabase.from("books").select("id,bib_ref").eq("bib_ref", bibRef).maybeSingle();
-      if (bkErr){ out.textContent = "Erro ao buscar livro: " + bkErr.message; return; }
-      if (!bk){ out.textContent = "Livro não encontrado para esta referência (bib_ref)."; return; }
-      out.textContent = "Registrando saída...";
-      const { data, error } = await supabase.rpc("mark_loan_checkout", { p_user_id: u.id, p_book_id: bk.id, p_batch_size: batchSize });
-      if (error){ out.textContent = "Erro ao registrar saída: " + error.message; return; }
-      const row = Array.isArray(data) ? data[0] : data;
-      out.textContent = (row?.message || "Saída registrada.") + (row?.loan_id ? ` (ID: ${row.loan_id})` : "") + (row?.due_date ? ` Devolução: ${row.due_date}.` : "");
-      document.getElementById("checkoutBibRef").value = "";
+    // DEVOLUÇÃO por ID
+    $("btnDevolverId").addEventListener("click", async () => {
+      setStatus($("statusDev"), "", "");
+      const id = Number($("loanId").value);
+      if (!id) return setStatus($("statusDev"), "Informe um ID válido.", "warn");
+
+      const loansTable = await pickFirstExistingTable(["loans","emprestimos"]);
+      if (!loansTable) return setStatus($("statusDev"), "Tabela de empréstimos não encontrada (loans/emprestimos).", "bad");
+
+      $("btnDevolverId").disabled = true;
+      try{
+        const { error } = await supabase.from(loansTable).update({ returned_at: new Date().toISOString() }).eq("id", id).is("returned_at", null);
+        if (error) return setStatus($("statusDev"), "Erro: " + error.message, "bad");
+        setStatus($("statusDev"), "Devolução registrada (ID).", "ok");
+      } finally {
+        $("btnDevolverId").disabled = false;
+      }
     });
 
-    document.getElementById("returnForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const out = document.getElementById("returnMsg");
-      out.textContent = "";
-      const loanId = parseInt((document.getElementById("returnLoanId").value||"").trim(),10);
-      if (!loanId){ out.textContent = "Informe o ID do empréstimo."; return; }
-      out.textContent = "Registrando devolução...";
-      const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
-      if (error){ out.textContent = "Erro ao registrar devolução: " + error.message; return; }
-      const row = Array.isArray(data) ? data[0] : data;
-      out.textContent = row?.message || "Devolução registrada.";
-      document.getElementById("returnLoanId").value = "";
+    // DEVOLUÇÃO por refs
+    $("btnDevolverRefs").addEventListener("click", async () => {
+      setStatus($("statusDev"), "", "");
+      const refs = parseRefs($("returnRefs").value);
+      if (!refs.length) return setStatus($("statusDev"), "Informe pelo menos 1 referência.", "warn");
+
+      const loansTable = await pickFirstExistingTable(["loans","emprestimos"]);
+      if (!loansTable) return setStatus($("statusDev"), "Tabela de empréstimos não encontrada (loans/emprestimos).", "bad");
+
+      $("btnDevolverRefs").disabled = true;
+      try{
+        let ok = 0, fail = 0;
+        for (const bib_ref of refs){
+          // tenta fechar o empréstimo em aberto mais recente para esta ref
+          const { data: openLoans, error: e1 } = await supabase
+            .from(loansTable)
+            .select("id")
+            .eq("bib_ref", bib_ref)
+            .is("returned_at", null)
+            .order("created_at", { ascending:false })
+            .limit(1);
+
+          if (e1 || !openLoans?.length){ fail++; continue; }
+
+          const { error: e2 } = await supabase.from(loansTable)
+            .update({ returned_at: new Date().toISOString() })
+            .eq("id", openLoans[0].id)
+            .is("returned_at", null);
+
+          if (e2) fail++; else ok++;
+        }
+        if (ok) setStatus($("statusDev"), `Devolução registrada para ${ok} referência(s).` + (fail?` (${fail} não encontradas/em aberto)`:""), ok && !fail ? "ok":"warn");
+        else setStatus($("statusDev"), "Não encontrei empréstimos em aberto para essas referências.", "warn");
+      } finally {
+        $("btnDevolverRefs").disabled = false;
+      }
     });
 
-    await renderPendingReservas();
+    // RESERVAS
+    function getSelectedReservaIds(){
+      return Array.from(document.querySelectorAll("input[data-reserva]:checked")).map(i => Number(i.getAttribute("data-reserva")));
+    }
+
+    async function loadReservasPendentes(){
+      setStatus($("statusRes"), "", "");
+      const tbody = $("tbodyRes");
+      tbody.innerHTML = `<tr><td colspan="5" class="muted">Carregando…</td></tr>`;
+
+      // preferir a view que tu tens
+      const viewName = "v_reservas_detalhes";
+      const { data, error } = await supabase
+        .from(viewName)
+        .select("id,created_at,bib_ref,title,full_name,email")
+        .order("created_at", { ascending:true })
+        .limit(500);
+
+      if (error){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Erro ao carregar reservas.</td></tr>`;
+        setStatus($("statusRes"), error.message, "bad");
+        return;
+      }
+      if (!data?.length){
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Sem reservas pendentes.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(r => {
+        const who = `${r.full_name || "—"}\n${r.email || "—"}`.replaceAll("\n","<br>");
+        const dt = (r.created_at || "").toString().slice(0,10) || "—";
+        return `<tr>
+          <td><input type="checkbox" data-reserva="${r.id}" /></td>
+          <td>${who}</td>
+          <td>${r.title || "—"}</td>
+          <td>${r.bib_ref || "—"}</td>
+          <td>${dt}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    $("btnRecarregarRes").addEventListener("click", loadReservasPendentes);
+
+    $("btnConfirmarSelecionados").addEventListener("click", async () => {
+      setStatus($("statusRes"), "", "");
+      const ids = getSelectedReservaIds();
+      if (!ids.length) return setStatus($("statusRes"), "Selecione pelo menos 1 reserva.", "warn");
+
+      const reservasTable = await pickFirstExistingTable(["reservas"]);
+      const loansTable = await pickFirstExistingTable(["loans","emprestimos"]);
+      if (!reservasTable) return setStatus($("statusRes"), "Tabela reservas não encontrada.", "bad");
+      if (!loansTable) return setStatus($("statusRes"), "Tabela empréstimos não encontrada.", "bad");
+
+      $("btnConfirmarSelecionados").disabled = true;
+      try{
+        // pega dados das reservas selecionadas
+        const { data: reservas, error } = await supabase.from(reservasTable).select("*").in("id", ids);
+        if (error) return setStatus($("statusRes"), "Erro: " + error.message, "bad");
+        if (!reservas?.length) return setStatus($("statusRes"), "Nada para confirmar.", "warn");
+
+        const refs = reservas.map(r => r.bib_ref).filter(Boolean);
+        const days = loanDaysByCount(Math.min(refs.length, 5));
+        const due = new Date(); due.setDate(due.getDate() + days);
+        const dueISO = due.toISOString().slice(0,10);
+
+        // cria 1 empréstimo por ref (devolução parcial simples)
+        const payload = reservas.map(r => ({
+          user_id: r.user_id,
+          bib_ref: r.bib_ref,
+          due_at: dueISO,
+          returned_at: null
+        }));
+
+        const { error: e2 } = await supabase.from(loansTable).insert(payload);
+        if (e2) return setStatus($("statusRes"), "Não consegui criar empréstimos: " + e2.message, "bad");
+
+        const { error: e3 } = await supabase.from(reservasTable).delete().in("id", ids);
+        if (e3) return setStatus($("statusRes"), "Empréstimos criados, mas não consegui remover reservas: " + e3.message, "warn");
+
+        setStatus($("statusRes"), `Retirada confirmada para ${ids.length} reserva(s).`, "ok");
+        await loadReservasPendentes();
+      } finally {
+        $("btnConfirmarSelecionados").disabled = false;
+      }
+    });
+
+    $("btnCancelarSelecionados").addEventListener("click", async () => {
+      setStatus($("statusRes"), "", "");
+      const ids = getSelectedReservaIds();
+      if (!ids.length) return setStatus($("statusRes"), "Selecione pelo menos 1 reserva.", "warn");
+
+      const reservasTable = await pickFirstExistingTable(["reservas"]);
+      if (!reservasTable) return setStatus($("statusRes"), "Tabela reservas não encontrada.", "bad");
+
+      $("btnCancelarSelecionados").disabled = true;
+      try{
+        const { error } = await supabase.from(reservasTable).delete().in("id", ids);
+        if (error) return setStatus($("statusRes"), "Não foi possível cancelar: " + error.message, "bad");
+        setStatus($("statusRes"), `Reserva(s) cancelada(s): ${ids.length}.`, "ok");
+        await loadReservasPendentes();
+      } finally {
+        $("btnCancelarSelecionados").disabled = false;
+      }
+    });
+
+    // PERFIS (admin)
+    let editingUserId = null;
+
+    $("btnBuscar").addEventListener("click", async () => {
+      setStatus($("statusPerfil"), "", "");
+      const email = $("searchEmail").value.trim().toLowerCase();
+      if (!email) return setStatus($("statusPerfil"), "Informe um e-mail.", "warn");
+
+      $("btnBuscar").disabled = true;
+      try{
+        const { data, error } = await supabase.from("profiles").select("*").eq("email", email).maybeSingle();
+        if (error) return setStatus($("statusPerfil"), "Erro: " + error.message, "bad");
+        if (!data?.id) return setStatus($("statusPerfil"), "Não encontrei esse e-mail em profiles.", "warn");
+
+        editingUserId = data.id;
+        $("editName").value = data.full_name || data.name || "";
+        $("editPhone").value = data.phone || "";
+        $("editCountry").value = data.country || "";
+        $("editState").value = data.state || "";
+        $("editRole").value = data.role || "leitor";
+        setStatus($("statusPerfil"), "Perfil carregado.", "ok");
+      } finally {
+        $("btnBuscar").disabled = false;
+      }
+    });
+
+    $("btnSalvarPerfil").addEventListener("click", async () => {
+      setStatus($("statusPerfil"), "", "");
+      if (!editingUserId) return setStatus($("statusPerfil"), "Busque um perfil primeiro.", "warn");
+
+      $("btnSalvarPerfil").disabled = true;
+      try{
+        const payload = {
+          id: editingUserId,
+          full_name: $("editName").value.trim(),
+          phone: $("editPhone").value.trim(),
+          country: $("editCountry").value.trim(),
+          state: $("editState").value.trim(),
+          role: $("editRole").value.trim(),
+          updated_at: new Date().toISOString()
+        };
+        const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+        if (error) return setStatus($("statusPerfil"), "Não foi possível salvar: " + error.message, "bad");
+        setStatus($("statusPerfil"), "Alterações salvas.", "ok");
+      } finally {
+        $("btnSalvarPerfil").disabled = false;
+      }
+    });
+
+    $("btnSair").addEventListener("click", async () => {
+      $("btnSair").disabled = true;
+      try{
+        await supabase.auth.signOut();
+        try { localStorage.removeItem("blmf"); } catch {}
+        location.assign(ROUTES.CADASTRO);
+      } finally {
+        $("btnSair").disabled = false;
+      }
+    });
+
+    const session = await requireSession();
+    if (session){
+      const me = await loadMyProfile(session);
+      if (me) await loadReservasPendentes();
+    }
   </script>
 </body>
 </html>
