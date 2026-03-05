@@ -17,23 +17,29 @@
       background: rgba(27,27,27,0.92);
       backdrop-filter: blur(2px);
     }
-    .brand { display:flex; gap:14px; align-items:center; margin-bottom:14px; }
-    .brand img { width:56px; height:56px; object-fit:contain; }
-    .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
-    .hint { color:#cfcfcf; font-size:.95rem; margin-top:10px; }
-    .required { color:#ffb4b4; font-size:.95rem; margin-top:10px; }
-    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-    @media (max-width: 900px){ .grid3{ grid-template-columns:1fr; } }
+    .brand {
+      display:flex;
+      gap:14px;
+      align-items:center;
+      margin-bottom:14px;
+    }
+    .brand img{
+      width:56px;height:56px;object-fit:contain;
+    }
+    .subtitle{ margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
+    .topActions{ display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 14px; }
 
     .notice{
       border:1px solid rgba(255,255,255,0.18);
-      background: rgba(200, 0, 0, 0.14);
+      background: rgba(0,0,0,0.22);
       padding:10px 12px;
       border-radius:12px;
-      margin: 0 0 12px;
+      margin: 12px 0 10px;
       color:#fff;
     }
-    .notice small{ color:#f0f0f0; display:block; margin-top:4px; line-height:1.25; }
+    .small{ color:#cfcfcf; font-size:.9rem; }
+    .rowbtn { display:flex; gap:10px; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+    .hide { display:none !important; }
 
     .rules{
       border:1px solid rgba(255,255,255,0.18);
@@ -46,19 +52,8 @@
     .rules summary{ cursor:pointer; }
     .rules ul{ margin:10px 0 0 18px; color:#f0f0f0; }
     .rules a{ color:#fff; text-decoration:underline; }
-    .muted{ color:#cfcfcf; font-size:.92rem; }
-  
-    /* Links dentro das caixas de confirmação (evitar azul padrão) */
-    label.checkbox a,
-    label.checkbox a:visited,
-    label.checkbox a:hover,
-    label.checkbox a:active{
-      color:#c00000;
-    }
-
   </style>
 </head>
-
 <body>
   <main class="card">
     <div class="brand">
@@ -68,286 +63,296 @@
         onerror="this.style.display='none'"
       />
       <div>
-        <h1 style="margin:0;">Cadastro — Biblioteca Libertária Maxwell Ferreira</h1>
-        <p class="subtitle">Conta do/a/e leitor/a/e</p>
+        <h1 style="margin:0;">Cadastro</h1>
+        <p class="subtitle">Entrar · Esqueci minha senha · Redefinir senha</p>
       </div>
     </div>
 
-    <div class="notice" role="note" aria-label="Aviso de segurança">
-      <b>Importante (segurança):</b>
-      <small>
-        A senha que você receberá por e-mail é <b>provisória</b>. Após o primeiro acesso, você deverá
-        <b>alterar sua senha no Painel</b>.
-      </small>
-      <small>
-        Se você perder o acesso, use em <b>Conta</b> o botão <b>“Esqueci minha senha”</b> para receber um link de redefinição.
-      </small>
-      <small>
-        Se você não encontrar o e-mail de criação de conta, verifique “Spam/Lixo eletrônico”.
-      </small>
+    <div class="topActions">
+      <button id="backBlog" class="secondary">Voltar ao blogue</button>
+      <a id="backCatalog" class="secondary" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Voltar ao catálogo</a>
+      <button id="goCriarConta" class="secondary">Criar conta</button>
+      <button id="goRegimento" class="secondary">Regimento</button>
     </div>
 
     <details class="rules">
-      <summary><b>Regimento (resumo)</b> <span class="muted">— leia antes de criar sua conta</span></summary>
+      <summary><b>Regimento (resumo)</b> <span class="small">— empréstimos, prazos e atrasos</span></summary>
       <ul>
         <li>A biblioteca empresta <b>apenas livros</b>. Periódicos e brochuras são para <b>consulta local</b>.</li>
-        <li>Você pode emprestar <b>até 5 livros</b> ao mesmo tempo.</li>
-        <li>Prazos de empréstimo (conforme quantidade de livros emprestados):
-          <ul>
-            <li>1 livro: <b>21 dias</b></li>
-            <li>2–3 livros: <b>30 dias</b></li>
-            <li>4–5 livros: <b>38 dias</b></li>
-          </ul>
-        </li>
-        <li>Prorrogações: em geral, é possível solicitar <b>1 prorrogação</b>, quando não houver reserva pendente do mesmo exemplar.</li>
-        <li>Em caso de atraso, a biblioteca envia avisos. Se a situação não for regularizada em até <b>30 dias</b> após o aviso de atraso, o acesso a novos empréstimos pode ficar <b>suspenso</b> até regularização.</li>
-        <li>Regimento completo: <a id="regLinkTop" href="#" rel="noopener">abrir</a></li>
+        <li>Até <b>5 livros</b> por pessoa.</li>
+        <li>Prazos: 1 livro (<b>21 dias</b>), 2–3 livros (<b>30 dias</b>), 4–5 livros (<b>38 dias</b>).</li>
+        <li>Em caso de atraso, a biblioteca envia avisos. Após 30 dias sem regularização, pode haver <b>suspensão</b> de novos empréstimos.</li>
+        <li>Regimento completo: <a id="regLink" href="#" rel="noopener">abrir</a></li>
       </ul>
     </details>
 
-    <p class="hint">
-      Preencha os campos abaixo para criar sua conta. Campos obrigatórios devem ser preenchidos.
-    </p>
+    <!-- LOGIN -->
+    <section id="loginBox">
+      <form id="loginForm">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" required />
 
-    <form id="cadastroForm" novalidate>
-      <div class="grid2">
-        <div>
-          <label for="firstName">Nome</label>
-          <input type="text" id="firstName" autocomplete="given-name" required />
-        </div>
-        <div>
-          <label for="lastName">Sobrenome</label>
-          <input type="text" id="lastName" autocomplete="family-name" required />
-        </div>
-      </div>
+        <label for="password">Senha</label>
+        <input type="password" id="password" required />
 
-      <label for="email">E-mail</label>
-      <input type="email" id="email" autocomplete="email" required />
-
-      <label for="phone">Telefone</label>
-      <input type="tel" id="phone" autocomplete="tel" placeholder="+55 (xx) xxxxx-xxxx" />
-
-      <label for="gender">Gênero</label>
-      <select id="gender">
-        <option value="">—</option>
-        <option value="feminino">Feminino</option>
-        <option value="masculino">Masculino</option>
-        <option value="neutro">Neutro</option>
-        <option value="não informar">Prefiro não informar</option>
-        <option value="outro">Outro</option>
-      </select>
-
-      <hr />
-
-      <h2 style="margin: 0 0 10px;">Endereço</h2>
-
-      <label for="addr1">Endereço 1</label>
-      <input type="text" id="addr1" autocomplete="address-line1" required />
-
-      <label for="addr2">Endereço 2</label>
-      <input type="text" id="addr2" autocomplete="address-line2" />
-
-      <div class="grid3">
-        <div>
-          <label for="unit">Casa ou Apartamento nº</label>
-          <input type="text" id="unit" placeholder="Ex.: Casa 2 / Ap. 301" />
-        </div>
-        <div>
-          <label for="cep">CEP</label>
-          <input type="text" id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" required />
-        </div>
-        <div>
-          <label for="city">Cidade</label>
-          <input type="text" id="city" autocomplete="address-level2" required />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div>
-          <label for="state">Estado</label>
-          <select id="state" required>
-            <option value="">— selecione —</option>
-            <option value="NSA">Não se aplica (NSA)</option>
-            <option value="AC">Acre (AC)</option>
-            <option value="AL">Alagoas (AL)</option>
-            <option value="AP">Amapá (AP)</option>
-            <option value="AM">Amazonas (AM)</option>
-            <option value="BA">Bahia (BA)</option>
-            <option value="CE">Ceará (CE)</option>
-            <option value="DF">Distrito Federal (DF)</option>
-            <option value="ES">Espírito Santo (ES)</option>
-            <option value="GO">Goiás (GO)</option>
-            <option value="MA">Maranhão (MA)</option>
-            <option value="MT">Mato Grosso (MT)</option>
-            <option value="MS">Mato Grosso do Sul (MS)</option>
-            <option value="MG">Minas Gerais (MG)</option>
-            <option value="PA">Pará (PA)</option>
-            <option value="PB">Paraíba (PB)</option>
-            <option value="PR">Paraná (PR)</option>
-            <option value="PE">Pernambuco (PE)</option>
-            <option value="PI">Piauí (PI)</option>
-            <option value="RJ">Rio de Janeiro (RJ)</option>
-            <option value="RN">Rio Grande do Norte (RN)</option>
-            <option value="RS">Rio Grande do Sul (RS)</option>
-            <option value="RO">Rondônia (RO)</option>
-            <option value="RR">Roraima (RR)</option>
-            <option value="SC">Santa Catarina (SC)</option>
-            <option value="SP">São Paulo (SP)</option>
-            <option value="SE">Sergipe (SE)</option>
-            <option value="TO">Tocantins (TO)</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="country">País</label>
-          <select id="country" required>
-            <option value="Brasil">Brasil</option>
-            <option value="">— selecione —</option>
-            <option value="Argentina">Argentina</option>
-            <option value="Bolívia">Bolívia</option>
-            <option value="Chile">Chile</option>
-            <option value="Colômbia">Colômbia</option>
-            <option value="Equador">Equador</option>
-            <option value="Guiana">Guiana</option>
-            <option value="Guiana francesa">Guiana francesa</option>
-            <option value="Paraguai">Paraguai</option>
-            <option value="Peru">Peru</option>
-            <option value="Suriname">Suriname</option>
-            <option value="Uruguai">Uruguai</option>
-            <option value="Venezuela">Venezuela</option>
-          </select>
-        </div>
-      </div>
-
-      <hr />
-
-      <label class="checkbox" for="acceptRules">
-        <input type="checkbox" id="acceptRules" required />
-        <span>
-          Eu li e aceito o <a id="regLink" href="#" rel="noopener">Regimento</a> da Biblioteca (empréstimos, prazos, prorrogações e atrasos).
-        </span>
-      </label>
-
-      <label class="checkbox" for="consent">
-        <input type="checkbox" id="consent" required />
-        <span>
-          Eu aceito que meu endereço de e-mail seja usado para o envio de informações sobre minha conta:
-          <b>reservas</b>, <b>empréstimos</b>, <b>prorrogações</b>, <b>devoluções</b> e <b>avisos de atraso</b>.
-        </span>
-      </label>
-
-      <p id="requiredMsg" class="required" style="display:none;">
-        Você precisa marcar as caixas obrigatórias para enviar o cadastro.
-      </p>
-
-      <button type="submit">Enviar cadastro</button>
-      <button type="button" class="secondary" id="back">Voltar</button>
+        <button type="submit">Entrar</button>
+      </form>
 
       <p id="msg" class="msg" aria-live="polite"></p>
-    </form>
+
+      <div class="notice" aria-label="Recuperação de senha">
+        <b>Esqueceu a senha?</b>
+        <div class="small">Envie um link para redefinir sua senha (você voltará para esta tela).</div>
+        <div class="small">Se você não encontrar o e-mail, verifique “Spam/Lixo eletrônico”.</div>
+      </div>
+
+      <div class="rowbtn">
+        <button id="forgotBtn" class="secondary" type="button">Esqueci minha senha</button>
+      </div>
+
+      <form id="forgotForm" class="hide" novalidate style="margin-top:10px;">
+        <label for="forgotEmail">E-mail da conta</label>
+        <input id="forgotEmail" type="email" autocomplete="email" required />
+
+        <div class="rowbtn">
+          <button type="submit">Enviar link</button>
+          <button type="button" id="cancelForgot" class="secondary">Cancelar</button>
+        </div>
+
+        <p id="forgotMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <!-- RECOVERY MODE (reset password) -->
+    <section id="recoveryBox" class="hide" aria-label="Redefinir senha">
+      <div class="notice">
+        <b>Redefinir senha</b>
+        <div class="small">Escolha uma nova senha para sua conta.</div>
+      </div>
+
+      <form id="resetForm" novalidate>
+        <label for="newPassword">Nova senha</label>
+        <input id="newPassword" type="password" autocomplete="new-password" required />
+
+        <label for="newPassword2">Confirmar nova senha</label>
+        <input id="newPassword2" type="password" autocomplete="new-password" required />
+
+        <div class="rowbtn">
+          <button type="submit">Salvar nova senha</button>
+          <button type="button" id="toggleResetPw" class="secondary">Mostrar senha</button>
+        </div>
+
+        <p id="resetMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
   </main>
 
   <script type="module">
-    import { CONFIG } from "./js/config.js";
+    import { supabase } from "./js/auth.js";
 
+    const BLOG_URL = "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/";
     const REGIMENTO_URL = 'https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/';
 
-    // Wire regimento links
-    for (const id of ["regLinkTop", "regLink"]) {
-      const a = document.getElementById(id);
-      if (a) a.href = REGIMENTO_URL;
-    }
+    document.getElementById("regLink").href = REGIMENTO_URL;
 
-    const form = document.getElementById("cadastroForm");
-    const msg = document.getElementById("msg");
-    const requiredMsg = document.getElementById("requiredMsg");
-
-    const consent = document.getElementById("consent");
-    const acceptRules = document.getElementById("acceptRules");
-
-    function validateCheckboxes() {
-      const ok = consent.checked && acceptRules.checked;
-      requiredMsg.style.display = ok ? "none" : "block";
-      return ok;
-    }
-
-    for (const cb of [consent, acceptRules]) {
-      cb.addEventListener("invalid", () => {
-        cb.setCustomValidity("Você precisa marcar esta caixa para continuar.");
-      });
-      cb.addEventListener("change", () => {
-        cb.setCustomValidity("");
-        validateCheckboxes();
-      });
-    }
-
-    document.getElementById("back").addEventListener("click", () => {
-      window.location.href = "./conta.html";
+    document.getElementById("backBlog").addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.href = BLOG_URL;
     });
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      msg.textContent = "";
-      requiredMsg.style.display = "none";
+    document.getElementById("goCriarConta").addEventListener("click", () => {
+      window.location.href = "./criar-conta.html";
+    });
+document.getElementById("goRegimento").addEventListener("click", () => {
+      window.location.href = REGIMENTO_URL;
+    });
 
-      if (!validateCheckboxes()) {
-        requiredMsg.style.display = "block";
-        (!acceptRules.checked ? acceptRules : consent).focus();
-        return;
-      }
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
+    const loginBox = document.getElementById("loginBox");
+    const recoveryBox = document.getElementById("recoveryBox");
 
-      const payload = {
-        email: document.getElementById("email").value.trim(),
-        first_name: document.getElementById("firstName").value.trim(),
-        last_name: document.getElementById("lastName").value.trim(),
-        phone: document.getElementById("phone").value.trim(),
-        gender: document.getElementById("gender").value,
-        address_1: document.getElementById("addr1").value.trim(),
-        address_2: document.getElementById("addr2").value.trim(),
-        address_unit: document.getElementById("unit").value.trim(),
-        cep: document.getElementById("cep").value.trim(),
-        city: document.getElementById("city").value.trim(),
-        state: document.getElementById("state").value,
-        country: document.getElementById("country").value,
-        consent_email: true,
-        accept_rules: true
-      };
+    const forgotBtn = document.getElementById("forgotBtn");
+    const forgotForm = document.getElementById("forgotForm");
+    const forgotMsg = document.getElementById("forgotMsg");
+    const cancelForgot = document.getElementById("cancelForgot");
+
+    forgotBtn.addEventListener("click", () => {
+      forgotForm.classList.remove("hide");
+      forgotBtn.classList.add("hide");
+      document.getElementById("forgotEmail").value = document.getElementById("email").value.trim();
+      forgotMsg.textContent = "";
+    });
+
+    cancelForgot.addEventListener("click", () => {
+      forgotForm.classList.add("hide");
+      forgotBtn.classList.remove("hide");
+      forgotMsg.textContent = "";
+    });
+
+    function parseHashParams() {
+      const raw = (window.location.hash || "").replace(/^#/, "");
+      return new URLSearchParams(raw);
+    }
+
+    const params = parseHashParams();
+    const isRecovery = params.get("type") === "recovery" && !!params.get("access_token");
+
+    if (isRecovery) {
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token") || "";
 
       try {
-        const res = await fetch(`${CONFIG.FUNCTIONS_BASE_URL}/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        const text = await res.text();
-        let data = {};
-        try { data = JSON.parse(text); } catch {}
-
-        if (!res.ok) {
-          msg.textContent = data.error || `Erro ao enviar o cadastro (HTTP ${res.status}).`;
-          return;
-        }
-
-        if (data.email_usuaria_enviado === false) {
-          msg.textContent =
-            "Cadastro concluído, mas houve um problema ao enviar o e-mail automaticamente. " +
-            "Entre em contato com a biblioteca para receber sua senha. " +
-            "Depois do primeiro acesso, altere sua senha no Painel.";
-        } else {
-          msg.textContent =
-            "Cadastro enviado com sucesso. Verifique seu e-mail (e Spam/Lixo eletrônico) para receber sua senha. " +
-            "Depois do primeiro acesso, altere sua senha no Painel.";
-        }
-
-        form.reset();
-      } catch (err) {
-        msg.textContent = "Falha de rede ao enviar o cadastro. Tente novamente.";
+        await supabase.auth.setSession({ access_token, refresh_token });
+      } catch (e) {
+        console.warn("setSession failed:", e);
       }
+
+      loginBox.classList.add("hide");
+      recoveryBox.classList.remove("hide");
+    }
+
+    
+
+function getNextParam() {
+  const u = new URL(window.location.href);
+  const next = (u.searchParams.get("next") || "").trim();
+  if (!next) return "";
+  // Segurança simples: só aceita navegação interna para arquivos .html (com query/hash opcionais)
+  if (!/^[a-z0-9_\-./]+\.html(\?.*)?(#.*)?$/i.test(next)) return "";
+  return next;
+}
+
+async function fetchIsLibrarian(userId) {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("is_librarian")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) return false;
+    return !!data?.is_librarian;
+  } catch {
+    return false;
+  }
+}
+
+async function afterLoginRedirect() {
+  const { data: sess } = await supabase.auth.getSession();
+  const session = sess?.session || null;
+  const userId = session?.user?.id || null;
+  const next = getNextParam();
+
+  if (!userId) {
+    window.location.href = "./cadastro.html";
+    return;
+  }
+
+  const isLib = await fetchIsLibrarian(userId);
+
+  // Protege o Painel
+  if (next && /painel\.html/i.test(next) && !isLib) {
+    window.location.href = "./conta.html";
+    return;
+  }
+
+  // Se for bibliotecário, vai pro Painel por padrão
+  if (!next && isLib) {
+    window.location.href = "./painel.html";
+    return;
+  }
+
+  // Padrão: conta do leitor
+  window.location.href = next || "./conta.html";
+}
+
+// Se o usuário já está logado e não estamos no modo recovery, redireciona
+try {
+  const { data: sess0 } = await supabase.auth.getSession();
+  if (sess0?.session?.user?.id && !isRecovery) {
+    await afterLoginRedirect();
+  }
+} catch {}
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("msg");
+      msg.textContent = "";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        msg.textContent = "Falha no login: " + error.message;
+        return;
+      }
+      await afterLoginRedirect();
+    });
+
+    document.getElementById("forgotForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      forgotMsg.textContent = "";
+
+      const email = document.getElementById("forgotEmail").value.trim();
+      if (!email) { forgotMsg.textContent = "Informe um e-mail válido."; return; }
+
+      const redirectTo = new URL("./cadastro.html", window.location.href).toString();
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        forgotMsg.textContent = "Erro ao enviar link: " + error.message;
+        return;
+      }
+
+      forgotMsg.textContent = "Link enviado. Se você não encontrar o e-mail, verifique “Spam/Lixo eletrônico”.";
+    });
+
+    const resetMsg = document.getElementById("resetMsg");
+    const rp1 = document.getElementById("newPassword");
+    const rp2 = document.getElementById("newPassword2");
+    const toggleResetPw = document.getElementById("toggleResetPw");
+
+    toggleResetPw.addEventListener("click", () => {
+      const show = rp1.type === "password";
+      rp1.type = show ? "text" : "password";
+      rp2.type = show ? "text" : "password";
+      toggleResetPw.textContent = show ? "Ocultar senha" : "Mostrar senha";
+    });
+
+    document.getElementById("resetForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      resetMsg.textContent = "";
+
+      const p1 = rp1.value;
+      const p2 = rp2.value;
+
+      if (!p1 || p1.length < 10) { resetMsg.textContent = "A senha deve ter pelo menos 10 caracteres."; return; }
+      if (p1 !== p2) { resetMsg.textContent = "As senhas não coincidem."; return; }
+
+      const { error } = await supabase.auth.updateUser({ password: p1 });
+      if (error) {
+        resetMsg.textContent = "Erro ao salvar senha: " + error.message;
+        return;
+      }
+
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+        if (userId) {
+          const { error: profErr } = await supabase
+            .from("profiles")
+            .update({ must_change_password: false, password_changed_at: new Date().toISOString() })
+            .eq("id", userId);
+
+          if (profErr) console.warn("profiles update warn:", profErr.message);
+        }
+      } catch (e) {
+        console.warn("profiles update skipped:", e);
+      }
+
+      resetMsg.textContent = "Senha redefinida com sucesso. Agora você pode entrar.";
+
+      history.replaceState(null, "", window.location.pathname);
+
+      setTimeout(() => { window.location.href = "./cadastro.html"; }, 900);
     });
   </script>
 </body>
