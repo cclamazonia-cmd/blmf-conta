@@ -121,6 +121,24 @@
   
     .table-scroll{ width:100%; overflow-x:auto; }
 
+  
+
+    /* accent-red-fix */
+    a, a:visited{ color:inherit; }
+    .card a:not(.secondary), .card a:not(.secondary):visited{ color:#c00000; }
+    label.checkbox a, label.checkbox a:visited, label.checkbox a:hover, label.checkbox a:active{ color:#c00000; }
+    input:focus, select:focus, textarea:focus{
+      outline:none;
+      border-color: rgba(225,29,47,.8) !important;
+      box-shadow: 0 0 0 3px rgba(225,29,47,.2) !important;
+    }
+    button[type="submit"], .secondary{
+      transition: border-color .12s ease, transform .06s ease;
+    }
+    button[type="submit"]:hover, .secondary:hover{
+      border-color: rgba(225,29,47,.55) !important;
+    }
+
   </style>
 </head>
 
@@ -142,9 +160,9 @@
         </div>
 
         <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <a class="secondary" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
+          <a class="secondary" href="https://cclamazonia-cmd.github.io/blmf-catalogo/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
           <a class="secondary" href="https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
-          <a id="goPainelBiblio" class="secondary" href="./painel.html" style="display:none; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
+          <a id="goPainelBiblio" class="secondary" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
         </div>
         </div>
       </div>
@@ -366,15 +384,24 @@
   </main>
 
   <script type="module">
-    import { supabase, signOut } from "./js/auth.js";
+    import { supabase } from "./js/auth.js";
     import { CONFIG } from "./js/config.js";
 
-    document.getElementById("logout").addEventListener("click", signOut);
+    const ROUTES = {
+      CADASTRO: "https://cclamazonia-cmd.github.io/blmf-conta/cadastro.html",
+      CATALOGO: "https://cclamazonia-cmd.github.io/blmf-catalogo/",
+      PAINEL: "https://cclamazonia-cmd.github.io/blmf-conta/painel.html",
+    };
+
+    document.getElementById("logout").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      window.location.href = ROUTES.CADASTRO;
+    });
 
     const { data: sessData } = await supabase.auth.getSession();
     const session = sessData?.session || null;
     if (!session) {
-      window.location.href = "./cadastro.html?next=conta.html";
+      window.location.href = ROUTES.CADASTRO + "?next=conta.html";
       throw new Error("No session");
     }
 
@@ -579,7 +606,7 @@
       const isLib = (typeof data.is_librarian === "boolean") ? data.is_librarian : false;
       isLibrarian = isLib;
       const go = document.getElementById("goPainelBiblio");
-      if (go) go.style.display = isLib ? "" : "none";
+      if (go) { go.href = ROUTES.PAINEL; go.style.display = isLib ? "inline-flex" : "none"; }
 }
 
     await loadProfile();
@@ -896,13 +923,8 @@
 
       el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
     }
-await renderLoans();
-        await renderHistory();
-      });
-    }
 
-
-
+    const returnForm = document.getElementById("returnForm");
     if (returnForm) {
       returnForm.addEventListener("submit", async (e) => {
         e.preventDefault();
