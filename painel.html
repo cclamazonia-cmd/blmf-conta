@@ -1427,19 +1427,51 @@
     async function cancelReservations(reservationIds){
       const ids = Array.from(new Set((reservationIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
       if (!ids.length) return setStatus('statusRes', 'Selecione pelo menos 1 livro reservado.', 'warn');
+
+      const rows = activeReservations.filter((r) => ids.includes(r.id));
+      if (!rows.length) return setStatus('statusRes', 'As reservas selecionadas já não estão ativas.', 'warn');
+
       $('btnCancelarSelecionados').disabled = true;
       try {
-        const payload = {
-          status: 'cancelled',
-          cancelled_at: nowISO(),
-          cancelled_by: session.user.id,
-          cancelled_by_role: 'biblioteca',
-          cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
-        };
-        const { error } = await supabase.from('reservas').update(payload).in('id', ids).eq('status', 'pending');
-        if (error) throw error;
+        const v2Rows = rows.filter((r) => r.source === 'v2');
+        const oldRows = rows.filter((r) => r.source !== 'v2');
+
+        if (v2Rows.length) {
+          const grouped = groupBy(v2Rows, (r) => r.reserva_id);
+          for (const [reservaId, items] of grouped.entries()) {
+            const lineNos = items.map((i) => Number(i.line_no)).filter((n) => Number.isFinite(n) && n > 0);
+            if (!lineNos.length) continue;
+
+            const rpc = await supabase.rpc('fn_v2_cancel_reserva_linhas_as_biblioteca', {
+              p_reserva_id: Number(reservaId),
+              p_line_nos: lineNos,
+              p_notes: 'Cancelamento registrado pela biblioteca no painel.'
+            });
+            if (rpc.error) throw rpc.error;
+          }
+        }
+
+        if (oldRows.length) {
+          const oldIds = oldRows.map((r) => Number(r.reserva_id)).filter((v) => Number.isFinite(v) && v > 0);
+          if (oldIds.length) {
+            const payload = {
+              status: 'cancelled_by_staff_temp',
+              cancelled_at: nowISO(),
+              cancelled_by: session.user.id,
+              cancelled_by_role: 'biblioteca',
+              cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
+            };
+            const { error } = await supabase
+              .from('reservas')
+              .update(payload)
+              .in('id', oldIds)
+              .eq('status', 'pending');
+            if (error) throw error;
+          }
+        }
+
         selectedReservaIds = new Set([...selectedReservaIds].filter((id) => !ids.includes(id)));
-        setStatus('statusRes', `Livro(s) cancelado(s): ${ids.length}.`, 'ok');
+        setStatus('statusRes', `Livro(s) cancelado(s): ${rows.length}.`, 'ok');
         await refreshCollections({silent:true});
       } catch (e) {
         setStatus('statusRes', e.message || String(e), 'bad', false);
