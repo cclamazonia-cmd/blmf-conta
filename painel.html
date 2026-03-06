@@ -104,6 +104,17 @@
       background:linear-gradient(135deg,var(--red2),var(--red));
     }
     .tab-pane.hidden{display:none}
+    .main-tabs-layout{display:flex;gap:14px;align-items:flex-start}
+    .main-tabs-nav{width:260px;display:flex;flex-direction:column;gap:10px;position:sticky;top:14px}
+    .main-tabs-panels{flex:1 1 auto;min-width:0}
+    .main-tab-panel{display:none}
+    .main-tab-panel.active{display:block}
+    .main-tab-panel > .card{margin-bottom:14px}
+    @media (max-width:980px){
+      .main-tabs-layout{flex-direction:column}
+      .main-tabs-nav{width:100%;position:static;flex-direction:row;flex-wrap:wrap}
+      .main-tabs-nav .tab-btn{width:auto;flex:1 1 220px}
+    }
   </style>
 </head>
 <body>
@@ -130,225 +141,244 @@
     </div>
 
     <div class="grid">
-      <div class="card">
-        <h2 style="margin:0 0 10px">Registrar saída (novo empréstimo)</h2>
-        <div class="row">
-          <div>
-            <label for="borrowerEmail">E-mail do(a/e) leitor(a/e)</label>
-            <input class="input" id="borrowerEmail" type="email" placeholder="leitor@exemplo.org">
-            <div class="hint">O e-mail precisa estar cadastrado e ativo.</div>
-          </div>
-          <div>
-            <label for="bibRefs">Referências (até 5, separadas por vírgula)</label>
-            <input class="input" id="bibRefs" type="text" placeholder="0000124, 0000138, 0000056">
-            <div class="hint" id="loanHint">Digite de 1 a 5 referências separadas por vírgula.</div>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn primary" id="btnRegistrarSaida" type="button">Registrar saída</button>
-        </div>
-        <div class="status" id="statusSaida"></div>
-      </div>
+      <div class="main-tabs-layout">
+        <nav class="main-tabs-nav" aria-label="Categorias do painel">
+          <button class="btn tab-btn active" type="button" data-main-tab="acoes">Ações</button>
+          <button class="btn tab-btn" type="button" data-main-tab="reservas">Reservas ativas</button>
+          <button class="btn tab-btn" type="button" data-main-tab="emprestimos">Empréstimos ativos</button>
+          <button class="btn tab-btn" type="button" data-main-tab="leitor">Gerir leitor(a/e)</button>
+        </nav>
 
-      <div class="card">
-        <h2 style="margin:0 0 10px">Registrar devolução</h2>
-        <div class="row">
-          <div>
-            <label for="loanId">Devolução total (por ID do empréstimo)</label>
-            <input class="input" id="loanId" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ex.: 154">
-            <div class="actions">
-              <button class="btn" id="btnDevolverId" type="button">Registrar devolução total</button>
-            </div>
-            <div class="hint">Unicamente se todos os livros do empréstimo forem devolvidos ao mesmo tempo.</div>
-          </div>
-          <div>
-            <label for="loanSubIds">Devolução parcial (por sub-IDs)</label>
-            <input class="input" id="loanSubIds" type="text" placeholder="154.1, 154.2">
-            <div class="actions">
-              <button class="btn" id="btnDevolverSubIds" type="button">Registrar devolução parcial</button>
-            </div>
-            <div class="hint">Use os sub-IDs exibidos abaixo. Exemplo: 154.2.</div>
-          </div>
-        </div>
-        <div class="status" id="statusDev"></div>
-      </div>
-
-      <div class="card">
-        <h2 style="margin:0 0 10px">Reservas ativas</h2>
-        <div class="mini">Seleciona exatamente os livros que a pessoa retirou ou que a biblioteca precisa cancelar. A conversão em empréstimo é feita livro por livro.</div>
-        <div class="sep"></div>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Selecionar</th>
-                <th>Sub-ID</th>
-                <th>Leitor(a/e)</th>
-                <th>Livro</th>
-                <th>Referência</th>
-                <th>Rótulo</th>
-                <th>Reserva</th>
-                <th>Validade</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyRes"><tr><td colspan="8">Carregando…</td></tr></tbody>
-          </table>
-        </div>
-        <div class="actions">
-          <button class="btn primary" id="btnConfirmarSelecionados" type="button">Confirmar retirada (selecionados)</button>
-          <button class="btn" id="btnCancelarSelecionados" type="button">Cancelar (selecionados)</button>
-          <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
-        </div>
-        <div class="status" id="statusRes"></div>
-      </div>
-
-      <div class="card">
-        <h2 style="margin:0 0 10px">Empréstimos abertos</h2>
-        <div class="mini">Consulta rápida dos sub-IDs para devolução parcial.</div>
-        <div class="sep"></div>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Sub-ID</th>
-                <th>Leitor(a/e)</th>
-                <th>Livro</th>
-                <th>Referência</th>
-                <th>Rótulo</th>
-                <th>Empréstimo</th>
-                <th>Prazo</th>
-                <th>Situação</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyLoans"><tr><td colspan="9">Carregando…</td></tr></tbody>
-          </table>
-        </div>
-        <div class="actions">
-          <button class="btn" id="btnRecarregarLoans" type="button">Recarregar</button>
-        </div>
-        <div class="status" id="statusLoans"></div>
-      </div>
-
-      <div class="card">
-        <h2 style="margin:0 0 10px">Gerir leitor(a/e)</h2>
-        <div class="row">
-          <div>
-            <label for="searchEmail">Buscar por e-mail</label>
-            <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org">
-            <div class="actions">
-              <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
-            </div>
-          </div>
-          <div class="mini" style="display:flex;align-items:flex-end">Depois de carregar o perfil, os separadores abaixo permitem gerir dados, reservas e empréstimos dessa pessoa.</div>
-        </div>
-
-        <div class="profile-layout hidden" id="profileArea">
-          <div class="tabs-col">
-            <button class="btn tab-btn active" id="tabBtnDados" type="button">Dados</button>
-            <button class="btn tab-btn" id="tabBtnReservas" type="button">Reservas</button>
-            <button class="btn tab-btn" id="tabBtnEmprestimos" type="button">Empréstimos</button>
-          </div>
-
-          <div>
-            <div class="tab-pane" id="paneDados">
+        <div class="main-tabs-panels">
+          <section class="main-tab-panel active" data-main-tab="acoes">
+            <div class="card">
+              <h2 style="margin:0 0 10px">Registrar saída (novo empréstimo)</h2>
               <div class="row">
                 <div>
-                  <label for="editSurname">Sobrenome (patronímico)</label>
-                  <input class="input" id="editSurname" type="text">
+                  <label for="borrowerEmail">E-mail do(a/e) leitor(a/e)</label>
+                  <input class="input" id="borrowerEmail" type="email" placeholder="leitor@exemplo.org">
+                  <div class="hint">O e-mail precisa estar cadastrado e ativo.</div>
                 </div>
                 <div>
-                  <label for="editPhone">Telefone</label>
-                  <input class="input" id="editPhone" type="text">
+                  <label for="bibRefs">Referências (até 5, separadas por vírgula)</label>
+                  <input class="input" id="bibRefs" type="text" placeholder="0000124, 0000138, 0000056">
+                  <div class="hint" id="loanHint">Digite de 1 a 5 referências separadas por vírgula.</div>
                 </div>
               </div>
-
-              <div class="row" style="margin-top:12px">
-                <div>
-                  <label for="editAddress1">Endereço 1</label>
-                  <input class="input" id="editAddress1" type="text" placeholder="Rua e número">
-                </div>
-                <div>
-                  <label for="editAddress2">Endereço 2</label>
-                  <input class="input" id="editAddress2" type="text" placeholder="Complemento, bairro, referência">
-                </div>
-              </div>
-
-              <div class="row" style="margin-top:12px">
-                <div>
-                  <label for="editPostalCode">CEP</label>
-                  <input class="input" id="editPostalCode" type="text">
-                </div>
-                <div>
-                  <label for="editCity">Cidade</label>
-                  <input class="input" id="editCity" type="text">
-                </div>
-              </div>
-
-              <div class="row" style="margin-top:12px">
-                <div>
-                  <label for="editCountry">País</label>
-                  <input class="input" id="editCountry" type="text">
-                </div>
-                <div>
-                  <label for="editLibrarian">Função bibliotecária</label>
-                  <select class="select" id="editLibrarian">
-                    <option value="false">Não</option>
-                    <option value="true">Sim</option>
-                  </select>
-                </div>
-              </div>
-
               <div class="actions">
-                <button class="btn primary" id="btnSalvarPerfil" type="button">Salvar alterações</button>
+                <button class="btn primary" id="btnRegistrarSaida" type="button">Registrar saída</button>
               </div>
+              <div class="status" id="statusSaida"></div>
             </div>
 
-            <div class="tab-pane hidden" id="paneReservas">
+            <div class="card">
+              <h2 style="margin:0 0 10px">Registrar devolução</h2>
+              <div class="row">
+                <div>
+                  <label for="loanId">Devolução total (por ID do empréstimo)</label>
+                  <input class="input" id="loanId" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ex.: 154">
+                  <div class="actions">
+                    <button class="btn" id="btnDevolverId" type="button">Registrar devolução total</button>
+                  </div>
+                  <div class="hint">Unicamente se todos os livros do empréstimo forem devolvidos ao mesmo tempo.</div>
+                </div>
+                <div>
+                  <label for="loanSubIds">Devolução parcial (por sub-IDs)</label>
+                  <input class="input" id="loanSubIds" type="text" placeholder="154.1, 154.2">
+                  <div class="actions">
+                    <button class="btn" id="btnDevolverSubIds" type="button">Registrar devolução parcial</button>
+                  </div>
+                  <div class="hint">Use os sub-IDs exibidos abaixo. Exemplo: 154.2.</div>
+                </div>
+              </div>
+              <div class="status" id="statusDev"></div>
+            </div>
+          </section>
+
+          <section class="main-tab-panel" data-main-tab="reservas">
+            <div class="card">
+              <h2 style="margin:0 0 10px">Reservas ativas</h2>
+              <div class="mini">Seleciona exatamente os livros que a pessoa retirou ou que a biblioteca precisa cancelar. A conversão em empréstimo é feita livro por livro.</div>
+              <div class="sep"></div>
               <div class="tableWrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>Selecionar</th>
                       <th>Sub-ID</th>
+                      <th>Leitor(a/e)</th>
                       <th>Livro</th>
                       <th>Referência</th>
                       <th>Rótulo</th>
-                      <th>Status</th>
-                      <th>Criada em</th>
+                      <th>Reserva</th>
                       <th>Validade</th>
-                      <th>Conversão / cancelamento</th>
                     </tr>
                   </thead>
-                  <tbody id="tbodyPerfilReservas"><tr><td colspan="9">Carregando…</td></tr></tbody>
+                  <tbody id="tbodyRes"><tr><td colspan="8">Carregando…</td></tr></tbody>
                 </table>
               </div>
+              <div class="actions">
+                <button class="btn primary" id="btnConfirmarSelecionados" type="button">Confirmar retirada (selecionados)</button>
+                <button class="btn" id="btnCancelarSelecionados" type="button">Cancelar (selecionados)</button>
+                <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
+              </div>
+              <div class="status" id="statusRes"></div>
             </div>
+          </section>
 
-            <div class="tab-pane hidden" id="paneEmprestimos">
+          <section class="main-tab-panel" data-main-tab="emprestimos">
+            <div class="card">
+              <h2 style="margin:0 0 10px">Empréstimos abertos</h2>
+              <div class="mini">Consulta rápida dos sub-IDs para devolução parcial e renovação.</div>
+              <div class="sep"></div>
               <div class="tableWrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>ID</th>
                       <th>Sub-ID</th>
+                      <th>Leitor(a/e)</th>
                       <th>Livro</th>
                       <th>Referência</th>
                       <th>Rótulo</th>
-                      <th>Status</th>
-                      <th>Saída em</th>
+                      <th>Empréstimo</th>
                       <th>Prazo</th>
-                      <th>Devolução efetiva</th>
+                      <th>Situação</th>
                       <th>Ação</th>
                     </tr>
                   </thead>
-                  <tbody id="tbodyPerfilEmprestimos"><tr><td colspan="10">Carregando…</td></tr></tbody>
+                  <tbody id="tbodyLoans"><tr><td colspan="9">Carregando…</td></tr></tbody>
                 </table>
               </div>
+              <div class="actions">
+                <button class="btn" id="btnRecarregarLoans" type="button">Recarregar</button>
+              </div>
+              <div class="status" id="statusLoans"></div>
             </div>
+          </section>
 
-            <div class="status" id="statusPerfil"></div>
-          </div>
+          <section class="main-tab-panel" data-main-tab="leitor">
+            <div class="card">
+              <h2 style="margin:0 0 10px">Gerir leitor(a/e)</h2>
+              <div class="row">
+                <div>
+                  <label for="searchEmail">Buscar por e-mail</label>
+                  <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org">
+                  <div class="actions">
+                    <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
+                  </div>
+                </div>
+                <div class="mini" style="display:flex;align-items:flex-end">Depois de carregar o perfil, os separadores abaixo permitem gerir dados, reservas e empréstimos dessa pessoa.</div>
+              </div>
+
+              <div class="profile-layout hidden" id="profileArea">
+                <div class="tabs-col">
+                  <button class="btn tab-btn active" id="tabBtnDados" type="button">Dados</button>
+                  <button class="btn tab-btn" id="tabBtnReservas" type="button">Reservas</button>
+                  <button class="btn tab-btn" id="tabBtnEmprestimos" type="button">Empréstimos</button>
+                </div>
+
+                <div>
+                  <div class="tab-pane" id="paneDados">
+                    <div class="row">
+                      <div>
+                        <label for="editSurname">Sobrenome (patronímico)</label>
+                        <input class="input" id="editSurname" type="text">
+                      </div>
+                      <div>
+                        <label for="editPhone">Telefone</label>
+                        <input class="input" id="editPhone" type="text">
+                      </div>
+                    </div>
+
+                    <div class="row" style="margin-top:12px">
+                      <div>
+                        <label for="editAddress1">Endereço 1</label>
+                        <input class="input" id="editAddress1" type="text" placeholder="Rua e número">
+                      </div>
+                      <div>
+                        <label for="editAddress2">Endereço 2</label>
+                        <input class="input" id="editAddress2" type="text" placeholder="Complemento, bairro, referência">
+                      </div>
+                    </div>
+
+                    <div class="row" style="margin-top:12px">
+                      <div>
+                        <label for="editPostalCode">CEP</label>
+                        <input class="input" id="editPostalCode" type="text">
+                      </div>
+                      <div>
+                        <label for="editCity">Cidade</label>
+                        <input class="input" id="editCity" type="text">
+                      </div>
+                    </div>
+
+                    <div class="row" style="margin-top:12px">
+                      <div>
+                        <label for="editCountry">País</label>
+                        <input class="input" id="editCountry" type="text">
+                      </div>
+                      <div>
+                        <label for="editLibrarian">Função bibliotecária</label>
+                        <select class="select" id="editLibrarian">
+                          <option value="false">Não</option>
+                          <option value="true">Sim</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="actions">
+                      <button class="btn primary" id="btnSalvarPerfil" type="button">Salvar alterações</button>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane hidden" id="paneReservas">
+                    <div class="tableWrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Sub-ID</th>
+                            <th>Livro</th>
+                            <th>Referência</th>
+                            <th>Rótulo</th>
+                            <th>Status</th>
+                            <th>Criada em</th>
+                            <th>Validade</th>
+                            <th>Conversão / cancelamento</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbodyPerfilReservas"><tr><td colspan="9">Carregando…</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="tab-pane hidden" id="paneEmprestimos">
+                    <div class="tableWrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Sub-ID</th>
+                            <th>Livro</th>
+                            <th>Referência</th>
+                            <th>Rótulo</th>
+                            <th>Status</th>
+                            <th>Saída em</th>
+                            <th>Prazo</th>
+                            <th>Devolução efetiva</th>
+                            <th>Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbodyPerfilEmprestimos"><tr><td colspan="10">Carregando…</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="status" id="statusPerfil"></div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -413,18 +443,7 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     }
 
-    function normalizeBibRef(input){
-      const raw = String(input || "").trim();
-      if (!raw) return "";
-      const direct = raw
-        .replace(/^biblivre[-:\s]*/i, "")
-        .replace(/^bib[_\s-]*ref\s*:?\s*/i, "")
-        .trim();
-      const m = direct.match(/(\d{3,})/);
-      return m ? m[1] : direct;
-    }
-
-    function parseRefs(raw){ return Array.from(new Set((raw || "").split(",").map(normalizeBibRef).filter(Boolean))); }
+    function parseRefs(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
     function parseSubIds(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
 
     function groupBy(items, keyFn){
@@ -493,6 +512,20 @@
       }
     }
     initProfileTabs();
+
+    const mainTabButtons = Array.from(document.querySelectorAll("[data-main-tab]"));
+    const mainTabPanels = Array.from(document.querySelectorAll(".main-tab-panel"));
+    function setMainTab(key){
+      mainTabButtons.forEach((btn) => btn.classList.toggle("active", btn.getAttribute("data-main-tab") === key));
+      mainTabPanels.forEach((panel) => panel.classList.toggle("active", panel.getAttribute("data-main-tab") === key));
+    }
+    mainTabButtons.forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        setMainTab(btn.getAttribute("data-main-tab"));
+      });
+    });
+    setMainTab("acoes");
 
     async function requireSession(){
       const { data: { session } } = await supabase.auth.getSession();
@@ -704,27 +737,18 @@
     }
 
     function displayUser(u){
-      const firstLast = [u?.first_name, u?.last_name].filter(Boolean).join(" ").trim();
       return {
-        name: u?.full_name || u?.name || u?.nome || firstLast || u?.surname || "—",
+        name: u?.full_name || u?.name || u?.nome || u?.surname || "—",
         email: u?.email || "—"
       };
     }
 
     async function loadBookMapByBibRefs(bibRefs){
-      const refs = Array.from(new Set((bibRefs || []).map(x => normalizeBibRef(x)).filter(Boolean)));
+      const refs = Array.from(new Set((bibRefs || []).map(x => String(x || '').trim()).filter(Boolean)));
       if (!refs.length) return new Map();
       const { data, error } = await supabase.from("books").select("*").in("bib_ref", refs);
       if (error || !Array.isArray(data)) return new Map();
       return new Map(data.map(b => [String(b.bib_ref), b]));
-    }
-
-    async function loadBookMapByIds(bookIds){
-      const ids = Array.from(new Set((bookIds || []).map(x => Number(x)).filter(Boolean)));
-      if (!ids.length) return new Map();
-      const { data, error } = await supabase.from("books").select("*").in("id", ids);
-      if (error || !Array.isArray(data)) return new Map();
-      return new Map(data.map(b => [Number(b.id), b]));
     }
 
     function displayBook(b){
@@ -738,21 +762,27 @@
       const merged = new Map();
       let lastError = null;
 
-      let qDirect = supabase.from("reservas")
-        .select("id, bib_ref, user_id, created_at, status, fulfilled_at, fulfilled_loan_id, fulfilled_by, cancelled_at, cancelled_by, reserva_em")
-        .eq("status", "pending")
-        .is("fulfilled_at", null)
-        .is("cancelled_at", null)
-        .order("created_at", { ascending:true })
-        .limit(500);
+      let qView = supabase.from("v_reserva_itens_v2_ui").select("*").eq("item_status", "ativa").order("reserva_id", { ascending:true }).order("line_no", { ascending:true }).limit(500);
+      if (userId) qView = qView.eq("user_id", userId);
+      const viewRes = await qView;
+      if (!viewRes.error && Array.isArray(viewRes.data)) {
+        for (const r of viewRes.data) {
+          const key = `${r.reserva_id}::${r.line_no || 1}::${r.bib_ref || ''}`;
+          merged.set(key, { ...r, source:"view" });
+        }
+      } else {
+        lastError = viewRes.error;
+      }
+
+      let qDirect = supabase.from("reservas").select("*").eq("status", "pending").is("fulfilled_at", null).is("cancelled_at", null).order("id", { ascending:true }).limit(500);
       if (userId) qDirect = qDirect.eq("user_id", userId);
       const directRes = await qDirect;
       if (!directRes.error && Array.isArray(directRes.data) && directRes.data.length) {
         const bookMap = await loadBookMapByBibRefs(directRes.data.map(r => r.bib_ref));
         for (const r of directRes.data) {
-          const bibRef = normalizeBibRef(r.bib_ref);
-          const key = `${r.id}::1::${bibRef || ''}`;
-          const book = displayBook(bookMap.get(String(bibRef)) || null);
+          const key = `${r.id}::1::${r.bib_ref || ''}`;
+          if (merged.has(key)) continue;
+          const book = displayBook(bookMap.get(String(r.bib_ref)) || null);
           merged.set(key, {
             source: "direct",
             reserva_id: r.id,
@@ -760,7 +790,7 @@
             sub_id: `${r.id}.1`,
             user_id: r.user_id,
             titulo: book.titulo,
-            bib_ref: bibRef,
+            bib_ref: r.bib_ref,
             rotulo: book.rotulo,
             reserva_created_at: r.reserva_em || r.created_at,
             expires_at: null,
@@ -768,27 +798,8 @@
             raw: r
           });
         }
-      } else if (directRes.error) {
+      } else if (directRes.error && !viewRes.data?.length) {
         lastError = directRes.error;
-      }
-
-      let qView = supabase.from("v_reserva_itens_v2_ui")
-        .select("*")
-        .eq("item_status", "ativa")
-        .order("reserva_id", { ascending:true })
-        .order("line_no", { ascending:true })
-        .limit(500);
-      if (userId) qView = qView.eq("user_id", userId);
-      const viewRes = await qView;
-      if (!viewRes.error && Array.isArray(viewRes.data)) {
-        for (const r of viewRes.data) {
-          const bibRef = normalizeBibRef(r.bib_ref);
-          const key = `${r.reserva_id}::${r.line_no || 1}::${bibRef || ''}`;
-          if (merged.has(key)) continue;
-          merged.set(key, { ...r, bib_ref: bibRef, source:"view" });
-        }
-      } else if (!merged.size) {
-        lastError = viewRes.error;
       }
 
       if (!merged.size && lastError) throw lastError;
@@ -817,35 +828,31 @@
       const groups = groupBy(rows, x => String(x.user_id || ""));
       const created = [];
       for (const [userId, items] of groups.entries()) {
-        const bibRefs = Array.from(new Set(items.map(x => normalizeBibRef(x.bib_ref)).filter(Boolean)));
+        const bibRefs = Array.from(new Set(items.map(x => String(x.bib_ref || "").trim()).filter(Boolean)));
         const reservaIds = Array.from(new Set(items.map(x => Number(x.reserva_id)).filter(Boolean)));
         if (!userId || !bibRefs.length || !reservaIds.length) throw new Error("Dados insuficientes para confirmar a retirada desta reserva.");
 
-        const holdAt = new Date().toISOString();
-        const holdPatch = {
+        const nowIso = new Date().toISOString();
+        const prePatch = {
           status: "fulfilled",
-          fulfilled_at: holdAt,
+          fulfilled_at: nowIso,
           fulfilled_loan_id: null,
-          fulfilled_by: currentSession?.user?.id || null
+          fulfilled_by: currentSession?.user?.id || null,
+          cancelled_at: null,
+          cancelled_by: null,
+          cancelled_by_role: null,
+          cancelled_reason: null
         };
-        const { error: holdErr } = await supabase
-          .from("reservas")
-          .update(holdPatch)
-          .in("id", reservaIds)
-          .eq("status", "pending")
-          .is("cancelled_at", null);
-        if (holdErr) throw holdErr;
+        const { error: preErr } = await supabase.from("reservas").update(prePatch).in("id", reservaIds);
+        if (preErr) throw preErr;
 
         let loanId = null;
         try {
-          const rpc = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
-            p_user_id: userId,
-            p_bib_refs: bibRefs,
-            p_due_at: null,
-            p_notes: "Retirada presencial confirmada no painel."
+          const res = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
+            p_user_id: userId, p_bib_refs: bibRefs, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
           });
-          if (rpc.error) throw rpc.error;
-          loanId = rpc.data;
+          if (res.error) throw res.error;
+          loanId = res.data;
         } catch (error) {
           await supabase.from("reservas").update({
             status: "pending",
@@ -879,16 +886,13 @@
     }
 
     async function extendLoan(loanId){
-      let rpc = await supabase.rpc("renew_loan", { p_loan_id: loanId });
-      if (rpc.error && /function|does not exist|não existe|not exist/i.test(String(rpc.error.message || ""))) {
-        rpc = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
+      let res = await supabase.rpc("renew_loan", { p_loan_id: loanId });
+      if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ""))) {
+        res = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
       }
-      if (!rpc.error) {
-        const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-        return row?.due_date || row?.new_due_date || row?.nova_data || row?.due_at || null;
-      }
-      if (rpc.error && !/function|does not exist|não existe|not exist/i.test(String(rpc.error.message || ""))) {
-        throw rpc.error;
+      if (!res.error) {
+        const row = Array.isArray(res.data) ? res.data[0] : res.data;
+        return row?.due_date || row?.new_due_date || "renovado";
       }
 
       const { data: loan, error } = await supabase.from("loans").select("id,due_date,returned_date,extended_once").eq("id", loanId).maybeSingle();
@@ -904,74 +908,6 @@
       }).eq("id", loanId).is("returned_date", null).eq("extended_once", false);
       if (upErr) throw upErr;
       return newDue;
-    }
-
-
-    function displayLoanStatus(r){
-      if (r?.emprestimo_status) return r.emprestimo_status;
-      if (r?.returned_at || r?.returned_date) return "encerrado";
-      if (r?.extended_once) return "renovado";
-      return "aberto";
-    }
-
-    async function loadActiveLoanRows(userId = null){
-      const merged = new Map();
-      let lastError = null;
-
-      let qView = supabase.from("v_emprestimo_itens_v2_ui")
-        .select("*")
-        .eq("item_status", "aberto")
-        .order("emprestimo_id", { ascending: true })
-        .order("line_no", { ascending: true })
-        .limit(500);
-      if (userId) qView = qView.eq("user_id", userId);
-      const viewRes = await qView;
-      if (!viewRes.error && Array.isArray(viewRes.data)) {
-        for (const r of viewRes.data) {
-          const bibRef = normalizeBibRef(r.bib_ref);
-          const key = `${r.emprestimo_id}::${r.line_no || 1}::${bibRef || ''}`;
-          merged.set(key, { ...r, bib_ref: bibRef, source: "view" });
-        }
-      } else {
-        lastError = viewRes.error;
-      }
-
-      let qDirect = supabase.from("loans")
-        .select("id,user_id,book_id,checkout_date,due_date,returned_date,created_at,batch_id,batch_size,extended_once,extended_at,books(id,bib_ref,titulo,autor,rotulo,tombo)")
-        .is("returned_date", null)
-        .order("id", { ascending: true })
-        .limit(500);
-      if (userId) qDirect = qDirect.eq("user_id", userId);
-      const directRes = await qDirect;
-      if (!directRes.error && Array.isArray(directRes.data) && directRes.data.length) {
-        for (const l of directRes.data) {
-          const book = displayBook(l.books || null);
-          const bibRef = normalizeBibRef(l.books?.bib_ref || "");
-          const key = `${l.id}::1::${bibRef || l.book_id || ''}`;
-          if (merged.has(key)) continue;
-          merged.set(key, {
-            source: "direct",
-            emprestimo_id: l.id,
-            line_no: 1,
-            sub_id: `${l.id}.1`,
-            user_id: l.user_id,
-            titulo: book.titulo,
-            bib_ref: bibRef,
-            rotulo: book.rotulo,
-            due_at: l.due_date,
-            emprestimo_status: l.extended_once ? "renovado" : "aberto",
-            emprestimo_created_at: l.created_at || l.checkout_date,
-            returned_at: l.returned_date,
-            extended_once: !!l.extended_once,
-            raw: l
-          });
-        }
-      } else if (directRes.error && !merged.size) {
-        lastError = directRes.error;
-      }
-
-      if (!merged.size && lastError) throw lastError;
-      return Array.from(merged.values()).sort((a,b) => Number(a.emprestimo_id) - Number(b.emprestimo_id) || Number(a.line_no||1) - Number(b.line_no||1));
     }
 
     async function loadReservasAtivas(){
@@ -1007,30 +943,26 @@
       setStatus("statusLoans", "");
       const tbody = $("tbodyLoans");
       tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
-      try {
-        const data = await loadActiveLoanRows();
-        if (!data.length){ tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos abertos.</td></tr>`; return; }
+      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("item_status", "aberto").order("emprestimo_id", { ascending: true }).order("line_no", { ascending: true }).limit(500);
+      if (error){ tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`; return setStatus("statusLoans", error.message, "bad"); }
+      if (!data?.length){ tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos abertos.</td></tr>`; return; }
 
-        const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
-        tbody.innerHTML = data.map(r => {
-          const du = displayUser(userMap.get(String(r.user_id)) || null);
-          const who = `${du.name}<br><span class="mini subtle">${du.email}</span>`;
-          return `<tr>
-            <td class="mono">${r.sub_id || `${r.emprestimo_id}.${r.line_no || 1}`}</td>
-            <td>${who}</td>
-            <td>${r.titulo || "—"}</td>
-            <td class="mono">${r.bib_ref || "—"}</td>
-            <td class="mono">${r.rotulo || "—"}</td>
-            <td>#${r.emprestimo_id}</td>
-            <td>${r.due_at || "—"}</td>
-            <td>${displayLoanStatus(r)}</td>
-            <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
-          </tr>`;
-        }).join("");
-      } catch (error) {
-        tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`;
-        setStatus("statusLoans", error.message || String(error), "bad");
-      }
+      const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
+      tbody.innerHTML = data.map(r => {
+        const du = displayUser(userMap.get(String(r.user_id)) || null);
+        const who = `${du.name}<br><span class="mini subtle">${du.email}</span>`;
+        return `<tr>
+          <td class="mono">${r.sub_id}</td>
+          <td>${who}</td>
+          <td>${r.titulo || "—"}</td>
+          <td class="mono">${r.bib_ref || "—"}</td>
+          <td class="mono">${r.rotulo || "—"}</td>
+          <td>#${r.emprestimo_id}</td>
+          <td>${r.due_at || "—"}</td>
+          <td>${r.emprestimo_status || "—"}</td>
+          <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
+        </tr>`;
+      }).join("");
     }
 
     async function loadProfileReservations(userId){
@@ -1061,27 +993,27 @@
     async function loadProfileLoans(userId){
       const tbody = $("tbodyPerfilEmprestimos");
       tbody.innerHTML = `<tr><td colspan="10">Carregando…</td></tr>`;
-      try {
-        const data = await loadActiveLoanRows(userId);
-        if (!data.length){
-          tbody.innerHTML = `<tr><td colspan="10">Sem empréstimos ativos para esse perfil.</td></tr>`;
-          return;
-        }
-        tbody.innerHTML = data.map(r => `<tr>
-          <td>#${r.emprestimo_id}</td>
-          <td class="mono">${r.sub_id || `${r.emprestimo_id}.${r.line_no || 1}`}</td>
-          <td>${r.titulo || "—"}</td>
-          <td class="mono">${r.bib_ref || "—"}</td>
-          <td class="mono">${r.rotulo || "—"}</td>
-          <td>${displayLoanStatus(r)}</td>
-          <td>${formatDateTime(r.emprestimo_created_at)}</td>
-          <td>${r.due_at || "—"}</td>
-          <td>${r.returned_at ? formatDateTime(r.returned_at) : "—"}</td>
-          <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
-        </tr>`).join("");
-      } catch (error) {
+      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("user_id", userId).eq("item_status", "aberto").order("emprestimo_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
+      if (error){
         tbody.innerHTML = `<tr><td colspan="10">Erro ao carregar empréstimos.</td></tr>`;
+        return;
       }
+      if (!data?.length){
+        tbody.innerHTML = `<tr><td colspan="10">Sem empréstimos ativos para esse perfil.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(r => `<tr>
+        <td>#${r.emprestimo_id}</td>
+        <td class="mono">${r.sub_id}</td>
+        <td>${r.titulo || "—"}</td>
+        <td class="mono">${r.bib_ref || "—"}</td>
+        <td class="mono">${r.rotulo || "—"}</td>
+        <td>${r.item_status || "—"}</td>
+        <td>${formatDateTime(r.emprestimo_created_at)}</td>
+        <td>${r.due_at || "—"}</td>
+        <td>${r.returned_at ? formatDateTime(r.returned_at) : "—"}</td>
+        <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
+      </tr>`).join("");
     }
 
     $("btnRecarregarRes").addEventListener("click", loadReservasAtivas);
