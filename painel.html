@@ -12,7 +12,299 @@
       --line:rgba(255,255,255,.10);
       --shadow: 0 10px 30px rgba(0,0,0,.35);
       --ok:#4ade80; --warn:#fbbf24; --bad:#fb7185;
+    }<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Painel (bibliotecário-a-e) — Biblioteca Libertária Maxwell Ferreira</title>
+  <link rel="stylesheet" href="./css/app.css" />
+  <style>
+    body{background-image:url("https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg");background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat;}
+    .card{background: rgba(27,27,27,0.92);backdrop-filter: blur(2px);}
+    .brand{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;}
+    .brand img{width:82px;height:82px;object-fit:contain;flex:0 0 auto;}
+    .subtitle{margin:6px 0 0;color:#cfcfcf;font-size:.95rem;line-height:1.3;}
+    .small{color:#cfcfcf;font-size:.9rem;}
+    .notice{border:1px solid rgba(255,255,255,0.18);background: rgba(200, 0, 0, 0.16);padding:10px 12px;border-radius:12px;margin:0 0 12px;color:#fff;}
+    .notice .small{color:#f0f0f0;}
+    .panel-head{margin-bottom:10px;}
+    .panel-head h2{margin-top:0;}
+    .table-scroll{width:100%;overflow-x:auto;}
+    .list-table{width:100%;border-collapse:collapse;margin-top:10px;}
+    .list-table th,.list-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.14);vertical-align:top;}
+    .list-table th{text-align:left;color:#cfcfcf;font-weight:600;}
+    .list-table td small{color:#cfcfcf;}
+    .inline-select{max-width:160px;}
+    .mini-btn{padding:6px 10px;font-size:.9rem;border-radius:12px;line-height:1.1;}
+    .loan-actions{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <img src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png" alt="Logotipo BLMF" onerror="this.style.display='none'" />
+      <div style="flex:1;">
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <h1 style="margin:0;">Painel — Biblioteca Libertária Maxwell Ferreira</h1>
+            <p class="subtitle">Gestão (bibliotecário-a-e)</p>
+          </div>
+          <button id="logout" class="secondary">Sair</button>
+        </div>
+        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <a class="secondary" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
+          <a class="secondary" href="./conta.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Conta (leitor/a/e)</a>
+          <a class="secondary" href="https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="accessNotice" class="notice" style="display:none;">
+      <b>Acesso restrito</b>
+      <div class="small">Este painel é reservado a bibliotecários.</div>
+    </div>
+
+    <section aria-label="Reservas pendentes">
+      <div class="panel-head">
+        <h2>Reservas pendentes</h2>
+        <p class="small">Clique em uma linha para preencher o ID e o lote. Use “Cancelar” para anular uma reserva.</p>
+      </div>
+      <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+        <button type="button" id="refreshPendentes" class="secondary">Atualizar lista</button>
+      </div>
+      <div id="pendingReservas"></div>
+      <p id="pendingMsg" class="msg" aria-live="polite"></p>
+    </section>
+
+    <hr />
+
+    <section aria-label="Confirmar retirada">
+      <div class="panel-head">
+        <h2>Confirmar retirada</h2>
+        <p class="small">Transforma uma reserva em empréstimo.</p>
+      </div>
+      <form id="fulfillForm" novalidate>
+        <div class="grid2">
+          <div>
+            <label for="fulfillReservaId">ID da reserva (reserva_id)</label>
+            <input type="number" id="fulfillReservaId" inputmode="numeric" required />
+          </div>
+          <div>
+            <label for="fulfillBatchSize">Quantidade no lote</label>
+            <select id="fulfillBatchSize">
+              <option value="1">1 livro</option><option value="2">2 livros</option><option value="3">3 livros</option><option value="4">4 livros</option><option value="5">5 livros</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+          <button type="submit">Confirmar retirada</button>
+        </div>
+        <p id="fulfillMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <hr />
+
+    <section aria-label="Registrar saída">
+      <div class="panel-head"><h2>Registrar saída (novo empréstimo)</h2></div>
+      <form id="checkoutForm" novalidate>
+        <div class="grid2">
+          <div>
+            <label for="checkoutUserEmail">E-mail do/a/e leitor/a/e</label>
+            <input type="email" id="checkoutUserEmail" autocomplete="email" required />
+          </div>
+          <div>
+            <label for="checkoutBibRef">Referência BibLivre (bib_ref)</label>
+            <input type="text" id="checkoutBibRef" placeholder="Ex.: 0000084" required />
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <label for="checkoutBatchSize">Quantidade no lote</label>
+            <select id="checkoutBatchSize"><option value="1">1 livro</option><option value="2">2 livros</option><option value="3">3 livros</option><option value="4">4 livros</option><option value="5">5 livros</option></select>
+          </div>
+          <div style="display:flex; align-items:flex-end;"><button type="submit">Registrar saída</button></div>
+        </div>
+        <p id="checkoutMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <hr />
+
+    <section aria-label="Registrar devolução">
+      <div class="panel-head"><h2>Registrar devolução</h2></div>
+      <form id="returnForm" novalidate>
+        <div class="grid2">
+          <div>
+            <label for="returnLoanId">ID do empréstimo (loan_id)</label>
+            <input type="number" id="returnLoanId" inputmode="numeric" required />
+          </div>
+          <div style="display:flex; align-items:flex-end;"><button type="submit">Registrar devolução</button></div>
+        </div>
+        <p id="returnMsg" class="msg" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <script type="module">
+    import { supabase, signOut } from "./js/auth.js";
+    document.getElementById("logout").addEventListener("click", signOut);
+
+    const { data: sessData } = await supabase.auth.getSession();
+    const session = sessData?.session || null;
+    if (!session) { window.location.href = "./cadastro.html?next=painel.html"; throw new Error("No session"); }
+
+    let isLibrarian = false;
+    try{
+      const { data, error } = await supabase.from("profiles").select("is_librarian").eq("id", session.user.id).maybeSingle();
+      if (!error && data?.is_librarian) isLibrarian = true;
+    }catch{}
+    if (!isLibrarian){
+      document.getElementById("accessNotice").style.display = "block";
+      setTimeout(() => { window.location.href = "./conta.html"; }, 800);
+      throw new Error("Not librarian");
     }
+
+    const refreshPendentes = document.getElementById("refreshPendentes");
+    if (refreshPendentes) refreshPendentes.addEventListener("click", renderPendingReservas);
+
+    async function renderPendingReservas(){
+      const box = document.getElementById("pendingReservas");
+      const msg = document.getElementById("pendingMsg");
+      const fulfillIdInput = document.getElementById("fulfillReservaId");
+      const fulfillBatchSelect = document.getElementById("fulfillBatchSize");
+      msg.textContent = "";
+      box.innerHTML = "<p>Carregando...</p>";
+
+      const { data, error } = await supabase.rpc("list_pending_reservas");
+      if (error){ box.innerHTML=""; msg.textContent="Erro ao carregar: " + error.message; return; }
+
+      const rows = (Array.isArray(data) ? data : []).map(r => {
+        let retirar_ate = "";
+        try{ const dt = new Date(r.reserva_em); if (!isNaN(dt)){ dt.setDate(dt.getDate()+14); retirar_ate = dt.toISOString().slice(0,10);} }catch{}
+        return { ...r, retirar_ate };
+      });
+
+      if (!rows.length){ box.innerHTML="<p>Não há reservas pendentes.</p>"; return; }
+
+      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const batchOptions = (selected) => [1,2,3,4,5].map(n => `<option value="${n}" ${String(n)===String(selected) ? "selected":""}>${n}</option>`).join("");
+
+      box.innerHTML = `
+        <div class="table-scroll">
+          <table class="list-table">
+            <thead><tr><th>ID</th><th>Data</th><th>Livro</th><th>Leitor(a/e)</th><th>Lote</th></tr></thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr data-select-reserva="${esc(r.reserva_id)}" style="cursor:pointer;">
+                  <td><b>${esc(r.reserva_id)}</b></td>
+                  <td><small>${esc(r.reserva_em)}</small><div><small>retirar até: ${esc(r.retirar_ate || "")}</small></div></td>
+                  <td><div><b>${esc(r.titulo || "—")}</b></div><div><small>${esc(r.autor || "")}</small></div><div><small>bib_ref: ${esc(r.bib_ref || "")}</small></div></td>
+                  <td><div>${esc(((r.first_name||"")+" "+(r.last_name||"")).trim() || "—")}</div><div><small>${esc(r.user_email || "")}</small></div></td>
+                  <td>
+                    <span class="loan-actions">
+                      <select class="inline-select" data-batch-size="${esc(r.reserva_id)}">${batchOptions(1)}</select>
+                      <button type="button" class="secondary mini-btn" data-cancel-inline="${esc(r.reserva_id)}">Cancelar</button>
+                    </span>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      box.querySelectorAll("[data-select-reserva]").forEach((tr) => {
+        tr.addEventListener("click", (ev) => {
+          const t = ev.target;
+          if (t && (t.tagName==="SELECT" || t.tagName==="OPTION" || t.closest("[data-cancel-inline]"))) return;
+          const rid = tr.getAttribute("data-select-reserva");
+          const sel = box.querySelector(`[data-batch-size="${rid}"]`);
+          const batch = sel ? (parseInt(sel.value,10) || 1) : 1;
+          fulfillIdInput.value = String(rid);
+          fulfillBatchSelect.value = String(batch);
+          msg.textContent = `Reserva selecionada: ${rid}. Agora clique em “Confirmar retirada”.`;
+          document.getElementById("fulfillForm").scrollIntoView({ behavior:"smooth", block:"start" });
+        });
+      });
+
+      box.querySelectorAll("[data-cancel-inline]").forEach((btn) => {
+        btn.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          const rid = Number(btn.getAttribute("data-cancel-inline"));
+          if (!rid) return;
+          if (!confirm(`Cancelar a reserva #${rid}?`)) return;
+          btn.disabled = true;
+          msg.textContent = "Cancelando reserva...";
+          const { data, error } = await supabase.rpc("cancel_reserva", { p_reserva_id: rid });
+          btn.disabled = false;
+          if (error){ msg.textContent = "Erro ao cancelar: " + error.message; return; }
+          const row = Array.isArray(data) ? data[0] : data;
+          msg.textContent = row?.message || "Reserva cancelada.";
+          if (String(fulfillIdInput.value || "") === String(rid)) fulfillIdInput.value = "";
+          await renderPendingReservas();
+        });
+      });
+    }
+
+    document.getElementById("fulfillForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const out = document.getElementById("fulfillMsg");
+      out.textContent = "";
+      const reservaId = parseInt((document.getElementById("fulfillReservaId").value||"").trim(),10);
+      const batchSize = parseInt((document.getElementById("fulfillBatchSize").value||"1"),10) || 1;
+      if (!reservaId){ out.textContent = "Informe o ID da reserva."; return; }
+      out.textContent = "Confirmando retirada...";
+      const { data, error } = await supabase.rpc("fulfill_reserva", { p_reserva_id: reservaId, p_batch_size: batchSize });
+      if (error){ out.textContent = "Erro: " + error.message; return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      out.textContent = (row?.message || "Confirmação concluída.") + (row?.loan_id ? ` (Empréstimo ID: ${row.loan_id})` : "") + (row?.due_date ? ` Devolução: ${row.due_date}.` : "");
+      await renderPendingReservas();
+    });
+
+    document.getElementById("checkoutForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const out = document.getElementById("checkoutMsg");
+      out.textContent = "";
+      const email = (document.getElementById("checkoutUserEmail").value||"").trim();
+      const bibRef = (document.getElementById("checkoutBibRef").value||"").trim();
+      const batchSize = parseInt((document.getElementById("checkoutBatchSize").value||"1"),10) || 1;
+      if (!email || !bibRef){ out.textContent = "Preencha o e-mail e a referência BibLivre."; return; }
+      out.textContent = "Buscando usuárie e livro...";
+      const { data: u, error: uErr } = await supabase.from("profiles").select("id,email").ilike("email", email).maybeSingle();
+      if (uErr){ out.textContent = "Erro ao buscar usuárie: " + uErr.message; return; }
+      if (!u){ out.textContent = "Usuárie não encontrado(a/e) com este e-mail."; return; }
+      const { data: bk, error: bkErr } = await supabase.from("books").select("id,bib_ref").eq("bib_ref", bibRef).maybeSingle();
+      if (bkErr){ out.textContent = "Erro ao buscar livro: " + bkErr.message; return; }
+      if (!bk){ out.textContent = "Livro não encontrado para esta referência (bib_ref)."; return; }
+      out.textContent = "Registrando saída...";
+      const { data, error } = await supabase.rpc("mark_loan_checkout", { p_user_id: u.id, p_book_id: bk.id, p_batch_size: batchSize });
+      if (error){ out.textContent = "Erro ao registrar saída: " + error.message; return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      out.textContent = (row?.message || "Saída registrada.") + (row?.loan_id ? ` (ID: ${row.loan_id})` : "") + (row?.due_date ? ` Devolução: ${row.due_date}.` : "");
+      document.getElementById("checkoutBibRef").value = "";
+    });
+
+    document.getElementById("returnForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const out = document.getElementById("returnMsg");
+      out.textContent = "";
+      const loanId = parseInt((document.getElementById("returnLoanId").value||"").trim(),10);
+      if (!loanId){ out.textContent = "Informe o ID do empréstimo."; return; }
+      out.textContent = "Registrando devolução...";
+      const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
+      if (error){ out.textContent = "Erro ao registrar devolução: " + error.message; return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      out.textContent = row?.message || "Devolução registrada.";
+      document.getElementById("returnLoanId").value = "";
+    });
+
+    await renderPendingReservas();
+  </script>
+</body>
+</html>
+
     *{box-sizing:border-box}
     html,body{margin:0;padding:0;color:var(--text);font-family:Inter, Segoe UI, Arial, sans-serif;}
     body{
