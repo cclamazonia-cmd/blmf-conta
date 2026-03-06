@@ -652,32 +652,17 @@
     }
 
     async function loadUsersByIds(userIds){
-      const ids = Array.from(new Set((userIds || []).map(v => String(v || "").trim()).filter(Boolean)));
-      if (!ids.length) return new Map();
-
-      const attempts = [
-        "id,full_name,email",
-        "id,name,email",
-        "id,nome,email",
-        "*"
-      ];
-
-      let lastError = null;
-      for (const selectExpr of attempts){
+      if (!userIds.length) return new Map();
+      const uniqueIds = Array.from(new Set((userIds || []).map(v => String(v || "").trim()).filter(Boolean)));
+      const attempts = ["id,full_name,email", "id,name,email", "id,nome,email", "*"];
+      for (const fields of attempts){
         try {
-          const { data, error } = await supabase.from("profiles").select(selectExpr).in("id", ids);
-          if (error) {
-            lastError = error;
-            continue;
-          }
+          const { data, error } = await supabase.from("profiles").select(fields).in("id", uniqueIds);
+          if (error) continue;
           return new Map((data || []).map(x => [String(x.id), x]));
-        } catch (error) {
-          lastError = error;
-        }
+        } catch (_) {}
       }
-
-      console.warn("Falha ao carregar perfis para as listas:", lastError);
-      return new Map(ids.map(id => [String(id), { id, email: "", full_name: "", name: "", nome: "" }]));
+      return new Map(uniqueIds.map(id => [String(id), { id, full_name: "—", email: "—" }]));
     }
 
     async function loadBooksByRefs(bibRefs){
@@ -695,9 +680,8 @@
 
     function renderWho(userMap, userId){
       const u = userMap.get(String(userId)) || {};
-      const name = u.full_name || u.name || u.nome || u.display_name || "—";
-      const email = u.email || "—";
-      return `${safeHtml(name)}<br><span class="mini subtle">${safeHtml(email)}</span>`;
+      const name = u.full_name || u.name || u.nome || "—";
+      return `${safeHtml(name)}<br><span class="mini subtle">${safeHtml(u.email || "—")}</span>`;
     }
 
     function notBlank(v){ return v !== null && v !== undefined && String(v).trim() !== ""; }
@@ -1038,10 +1022,49 @@
     }
 
     function getSelectedReservaRows(){
-      return Array.from(document.querySelectorAll("input[data-reserva-item]:checked")).map(el => ({
-        reserva_id: Number(el.getAttribute("data-reserva-id")),
-        line_no: Number(el.getAttribute("data-line-no"))
-      }));
+      const activeMap = new Map((currentActiveReservations || []).map(r => [reservationKey(r), r]));
+      return Array.from(document.querySelectorAll("input[data-reserva-item]:checked")).map(el => {
+        const selected = {
+          reserva_id: Number(el.getAttribute("data-reserva-id")),
+          line_no: Number(el.getAttribute("data-line-no"))
+        };
+        const live = activeMap.get(reservationKey(selected)) || {};
+        return { ...live, ...selected };
+      });
+    }
+
+    function shouldFallbackDirectReservation(error, items){
+      const msg = normalizeText(error && (error.message || error.details || error.hint || error.code || String(error)) || "");
+      if (/(nao encontrada|não encontrada|not found|does not exist|inexistente)/.test(msg)) return true;
+      return (items || []).some(item => String(item?._source || "") === "reservas");
+    }
+
+    async function fallbackConvertDirectReservations(items){
+      const validItems = (items || []).filter(item => item && item.user_id && item.bib_ref);
+      if (!validItems.length) throw new Error("Reserva sem dados suficientes para conversão direta.");
+      const userIds = Array.from(new Set(validItems.map(item => String(item.user_id))));
+      if (userIds.length !== 1) throw new Error("As reservas selecionadas pertencem a mais de um perfil; confirme separadamente.");
+      const bibRefs = Array.from(new Set(validItems.map(item => String(item.bib_ref)).filter(Boolean)));
+      if (!bibRefs.length) throw new Error("Nenhuma referência válida encontrada para conversão.");
+      const { data: loanId, error: createError } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
+        p_user_id: validItems[0].user_id,
+        p_bib_refs: bibRefs,
+        p_due_at: null,
+        p_notes: "Retirada presencial confirmada no painel."
+      });
+      if (createError) throw createError;
+      const reservaIds = Array.from(new Set(validItems.map(item => Number(item.reserva_id)).filter(Number.isFinite)));
+      const payload = {
+        status: "fulfilled",
+        fulfilled_at: new Date().toISOString(),
+        fulfilled_loan_id: loanId || null
+      };
+      const { data: authData } = await supabase.auth.getUser();
+      const actorId = authData?.user?.id || null;
+      if (actorId) payload.fulfilled_by = actorId;
+      const { error: updateError } = await supabase.from("reservas").update(payload).in("id", reservaIds);
+      if (updateError) throw updateError;
+      return loanId;
     }
 
     async function refreshAllActiveLists(options = {}){
@@ -1186,7 +1209,12 @@
           const { data, error } = await supabase.rpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
             p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
           });
-          if (error) throw error;
+          if (error){
+            if (!shouldFallbackDirectReservation(error, items)) throw error;
+            const loanId = await fallbackConvertDirectReservations(items);
+            created.push(loanId);
+            continue;
+          }
           created.push(data);
         }
         const activeAfter = await loadReservasAtivas({ quiet: true });
@@ -1200,7 +1228,7 @@
         if (stillActive.length){
           setStatus("statusRes", `A retirada foi solicitada, mas ${stillActive.length} item(ns) continuam ativos após o refresco. Verifique a lógica RPC.`, "warn");
         } else {
-          setStatus("statusRes", `Retirada confirmada. Empréstimo(s) criado(s): ${created.join(", ")}.`, "ok");
+          setStatus("statusRes", `Retirada confirmada. Empréstimo(s) criado(s): ${created.filter(v => v !== null && v !== undefined && v !== "").join(", ") || "—"}.`, "ok");
         }
       } catch (e) {
         setStatus("statusRes", e.message || String(e), "bad");
