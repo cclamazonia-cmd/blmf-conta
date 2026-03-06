@@ -36,6 +36,19 @@
       border-color: rgba(225,29,47,.55) !important;
     }
 
+
+/* red-only override */
+html{ accent-color:#c00000; }
+a:any-link{ color:inherit; }
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color: rgba(225,29,47,.8) !important;
+  box-shadow: 0 0 0 3px rgba(225,29,47,.2) !important;
+}
+button:hover, button:focus, .secondary:hover, .secondary:focus{
+  border-color: rgba(225,29,47,.55) !important;
+}
+.qty-note{display:block;color:#ffb4b4;font-size:.82rem;line-height:1.2;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -53,7 +66,7 @@
         <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
           <a class="secondary" href="https://cclamazonia-cmd.github.io/blmf-catalogo/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
           <a class="secondary" href="https://cclamazonia-cmd.github.io/blmf-conta/conta.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Conta (leitor/a/e)</a>
-          <a class="secondary" href="https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
+          <a class="secondary" href="https://cclamazonia.noblogs.org" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
         </div>
       </div>
     </div>
@@ -66,7 +79,7 @@
     <section aria-label="Reservas pendentes">
       <div class="panel-head">
         <h2>Reservas pendentes</h2>
-        <p class="small">Clique em uma linha para preencher o ID e o lote. Use “Cancelar” para anular uma reserva.</p>
+        <p class="small">Clique em uma linha para preencher o ID e o lote. Em caso de atendimento parcial, escolha apenas a quantidade entregue. Use “Cancelar” para anular uma reserva.</p>
       </div>
       <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
         <button type="button" id="refreshPendentes" class="secondary">Atualizar lista</button>
@@ -80,7 +93,7 @@
     <section aria-label="Confirmar retirada">
       <div class="panel-head">
         <h2>Confirmar retirada</h2>
-        <p class="small">Transforma uma reserva em empréstimo.</p>
+        <p class="small">Transforma uma reserva em empréstimo. Se a reserva for atendida só em parte, informe apenas a quantidade retirada; o restante permanece pendente.</p>
       </div>
       <form id="fulfillForm" novalidate>
         <div class="grid2">
@@ -138,7 +151,14 @@
             <label for="returnLoanId">ID do empréstimo (loan_id)</label>
             <input type="number" id="returnLoanId" inputmode="numeric" required />
           </div>
-          <div style="display:flex; align-items:flex-end;"><button type="submit">Registrar devolução</button></div>
+          <div>
+            <label for="returnBatchSize">Quantidade devolvida</label>
+            <select id="returnBatchSize"><option value="1">1 livro</option><option value="2">2 livros</option><option value="3">3 livros</option><option value="4">4 livros</option><option value="5">5 livros</option></select>
+            <small id="returnBatchHint" class="qty-note">Para devolução parcial, escolha só a quantidade efetivamente devolvida.</small>
+          </div>
+        </div>
+        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+          <button type="submit">Registrar devolução</button>
         </div>
         <p id="returnMsg" class="msg" aria-live="polite"></p>
       </form>
@@ -174,6 +194,69 @@
     const refreshPendentes = document.getElementById("refreshPendentes");
     if (refreshPendentes) refreshPendentes.addEventListener("click", renderPendingReservas);
 
+    function pickPositiveInt(...values){
+      for (const value of values){
+        const n = parseInt(String(value ?? "").trim(), 10);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+      return null;
+    }
+
+    function buildBatchOptions(maxValue, selectedValue = 1){
+      const safeMax = Math.max(1, Math.min(5, pickPositiveInt(maxValue) || 1));
+      const safeSelected = Math.max(1, Math.min(safeMax, pickPositiveInt(selectedValue) || 1));
+      return Array.from({ length: safeMax }, (_, idx) => idx + 1)
+        .map((n) => `<option value="${n}" ${n===safeSelected ? "selected" : ""}>${n}</option>`)
+        .join("");
+    }
+
+    function getReservaRemainingBatch(row){
+      return Math.max(1, Math.min(5, pickPositiveInt(
+        row?.remaining_batch_size,
+        row?.pending_batch_size,
+        row?.remaining_qty,
+        row?.remaining_quantity,
+        row?.qtd_pendente,
+        row?.lote_pendente,
+        row?.batch_size,
+        row?.quantity,
+        row?.qty
+      ) || 1));
+    }
+
+    async function syncReturnBatchOptions(){
+      const loanId = parseInt((document.getElementById("returnLoanId").value || "").trim(), 10);
+      const select = document.getElementById("returnBatchSize");
+      const hint = document.getElementById("returnBatchHint");
+      const current = parseInt(select.value || "1", 10) || 1;
+
+      if (!loanId){
+        select.innerHTML = buildBatchOptions(5, 1);
+        hint.textContent = "Para devolução parcial, escolha só a quantidade efetivamente devolvida.";
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.from("loans").select("id,batch_size").eq("id", loanId).maybeSingle();
+        if (error || !data){
+          select.innerHTML = buildBatchOptions(5, current);
+          hint.textContent = "Se o empréstimo tiver lote, ajuste aqui a quantidade devolvida.";
+          return;
+        }
+        const maxBatch = Math.max(1, Math.min(5, pickPositiveInt(data.batch_size) || 1));
+        select.innerHTML = buildBatchOptions(maxBatch, current);
+        hint.textContent = maxBatch > 1
+          ? `Empréstimo em lote detectado: até ${maxBatch} livro(s) neste registro.`
+          : "Este empréstimo corresponde a 1 livro.";
+      } catch {
+        select.innerHTML = buildBatchOptions(5, current);
+        hint.textContent = "Se o empréstimo tiver lote, ajuste aqui a quantidade devolvida.";
+      }
+    }
+
+    document.getElementById("returnLoanId").addEventListener("change", syncReturnBatchOptions);
+    document.getElementById("returnLoanId").addEventListener("blur", syncReturnBatchOptions);
+
     async function renderPendingReservas(){
       const box = document.getElementById("pendingReservas");
       const msg = document.getElementById("pendingMsg");
@@ -194,7 +277,6 @@
       if (!rows.length){ box.innerHTML="<p>Não há reservas pendentes.</p>"; return; }
 
       const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-      const batchOptions = (selected) => [1,2,3,4,5].map(n => `<option value="${n}" ${String(n)===String(selected) ? "selected":""}>${n}</option>`).join("");
 
       box.innerHTML = `
         <div class="table-scroll">
@@ -209,9 +291,10 @@
                   <td><div>${esc(((r.first_name||"")+" "+(r.last_name||"")).trim() || "—")}</div><div><small>${esc(r.user_email || "")}</small></div></td>
                   <td>
                     <span class="loan-actions">
-                      <select class="inline-select" data-batch-size="${esc(r.reserva_id)}">${batchOptions(1)}</select>
+                      <select class="inline-select" data-batch-size="${esc(r.reserva_id)}">${buildBatchOptions(getReservaRemainingBatch(r), 1)}</select>
                       <button type="button" class="secondary mini-btn" data-cancel-inline="${esc(r.reserva_id)}">Cancelar</button>
                     </span>
+                    <small class="qty-note">Pendente: ${esc(getReservaRemainingBatch(r))} livro(s)</small>
                   </td>
                 </tr>
               `).join("")}
@@ -228,8 +311,9 @@
           const sel = box.querySelector(`[data-batch-size="${rid}"]`);
           const batch = sel ? (parseInt(sel.value,10) || 1) : 1;
           fulfillIdInput.value = String(rid);
+          fulfillBatchSelect.innerHTML = buildBatchOptions(batch, batch);
           fulfillBatchSelect.value = String(batch);
-          msg.textContent = `Reserva selecionada: ${rid}. Agora clique em “Confirmar retirada”.`;
+          msg.textContent = `Reserva selecionada: ${rid}. Atendimento atual: ${batch} livro(s). Agora clique em “Confirmar retirada”.`;
           document.getElementById("fulfillForm").scrollIntoView({ behavior:"smooth", block:"start" });
         });
       });
@@ -265,6 +349,8 @@
       if (error){ out.textContent = "Erro: " + error.message; return; }
       const row = Array.isArray(data) ? data[0] : data;
       out.textContent = (row?.message || "Confirmação concluída.") + (row?.loan_id ? ` (Empréstimo ID: ${row.loan_id})` : "") + (row?.due_date ? ` Devolução: ${row.due_date}.` : "");
+      document.getElementById("fulfillReservaId").value = "";
+      document.getElementById("fulfillBatchSize").innerHTML = buildBatchOptions(5, 1);
       await renderPendingReservas();
     });
 
@@ -296,13 +382,24 @@
       const out = document.getElementById("returnMsg");
       out.textContent = "";
       const loanId = parseInt((document.getElementById("returnLoanId").value||"").trim(),10);
+      const batchSize = parseInt((document.getElementById("returnBatchSize").value||"1"),10) || 1;
       if (!loanId){ out.textContent = "Informe o ID do empréstimo."; return; }
       out.textContent = "Registrando devolução...";
-      const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
+
+      let data, error;
+      ({ data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId, p_batch_size: batchSize }));
+
+      if (error && batchSize === 1 && /function|signature|parameter|argument/i.test(String(error.message || ""))){
+        ({ data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId }));
+      }
+
       if (error){ out.textContent = "Erro ao registrar devolução: " + error.message; return; }
       const row = Array.isArray(data) ? data[0] : data;
-      out.textContent = row?.message || "Devolução registrada.";
+      out.textContent = row?.message || (batchSize > 1 ? "Devolução parcial registrada." : "Devolução registrada.");
       document.getElementById("returnLoanId").value = "";
+      document.getElementById("returnBatchSize").innerHTML = buildBatchOptions(5, 1);
+      document.getElementById("returnBatchSize").value = "1";
+      document.getElementById("returnBatchHint").textContent = "Para devolução parcial, escolha só a quantidade efetivamente devolvida.";
     });
 
     await renderPendingReservas();
