@@ -70,7 +70,7 @@
 
     <div class="topActions">
       <button id="backBlog" class="secondary">Voltar ao blogue</button>
-      <a id="backCatalog" class="secondary" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Voltar ao catálogo</a>
+      <a id="backCatalog" class="secondary" href="https://cclamazonia-cmd.github.io/blmf-catalogo/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Voltar ao catálogo</a>
       <button id="goCriarConta" class="secondary">Criar conta</button>
       <button id="goRegimento" class="secondary">Regimento</button>
     </div>
@@ -90,10 +90,10 @@
     <section id="loginBox">
       <form id="loginForm">
         <label for="email">E-mail</label>
-        <input type="email" id="email" required />
+        <input type="email" id="email" autocomplete="username" required />
 
         <label for="password">Senha</label>
-        <input type="password" id="password" required />
+        <input type="password" id="password" autocomplete="current-password" required />
 
         <button type="submit">Entrar</button>
       </form>
@@ -150,8 +150,18 @@
   <script type="module">
     import { supabase } from "./js/auth.js";
 
-    const BLOG_URL = "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/";
-    const REGIMENTO_URL = 'https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/';
+    const ROUTES = {
+      BLOG: "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/",
+      REGIMENTO: "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/",
+      CATALOGO: "https://cclamazonia-cmd.github.io/blmf-catalogo/",
+      CRIAR: "https://cclamazonia-cmd.github.io/blmf-conta/criar-conta.html",
+      CADASTRO: "https://cclamazonia-cmd.github.io/blmf-conta/cadastro.html",
+      CONTA: "https://cclamazonia-cmd.github.io/blmf-conta/conta.html",
+      PAINEL: "https://cclamazonia-cmd.github.io/blmf-conta/painel.html",
+    };
+
+    const BLOG_URL = ROUTES.BLOG;
+    const REGIMENTO_URL = ROUTES.REGIMENTO;
 
     document.getElementById("regLink").href = REGIMENTO_URL;
 
@@ -161,7 +171,7 @@
     });
 
     document.getElementById("goCriarConta").addEventListener("click", () => {
-      window.location.href = "./criar-conta.html";
+      window.location.href = ROUTES.CRIAR;
     });
 document.getElementById("goRegimento").addEventListener("click", () => {
       window.location.href = REGIMENTO_URL;
@@ -242,7 +252,7 @@ async function afterLoginRedirect() {
   const next = getNextParam();
 
   if (!userId) {
-    window.location.href = "./cadastro.html";
+    window.location.href = ROUTES.CADASTRO;
     return;
   }
 
@@ -250,13 +260,13 @@ async function afterLoginRedirect() {
 
   // Protege o Painel
   if (next && /painel\.html/i.test(next) && !isLib) {
-    window.location.href = "./conta.html";
+    window.location.href = ROUTES.CONTA;
     return;
   }
 
   // Se for bibliotecário, vai pro Painel por padrão
   if (!next && isLib) {
-    window.location.href = "./painel.html";
+    window.location.href = ROUTES.PAINEL;
     return;
   }
 
@@ -264,13 +274,7 @@ async function afterLoginRedirect() {
   window.location.href = next || "./conta.html";
 }
 
-// Se o usuário já está logado e não estamos no modo recovery, redireciona
-try {
-  const { data: sess0 } = await supabase.auth.getSession();
-  if (sess0?.session?.user?.id && !isRecovery) {
-    await afterLoginRedirect();
-  }
-} catch {}
+// O acesso à conta só acontece quando o botão “Entrar” é acionado.
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const msg = document.getElementById("msg");
@@ -352,7 +356,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
       history.replaceState(null, "", window.location.pathname);
 
-      setTimeout(() => { window.location.href = "./cadastro.html"; }, 900);
+      setTimeout(() => { window.location.href = ROUTES.CADASTRO; }, 900);
     });
   </script>
 </body>
