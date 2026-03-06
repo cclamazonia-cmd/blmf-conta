@@ -445,11 +445,40 @@
     let currentActiveReservations = [];
     let currentActiveLoans = [];
 
-    function setStatus(id, msg, cls="") {
+    const statusTimers = new Map();
+
+    function clearStatus(id) {
       const el = $(id);
       if (!el) return;
+      const timer = statusTimers.get(id);
+      if (timer) {
+        clearTimeout(timer);
+        statusTimers.delete(id);
+      }
+      el.className = "status";
+      el.textContent = "";
+    }
+
+    function setStatus(id, msg, cls="", timeoutMs=10000) {
+      const el = $(id);
+      if (!el) return;
+      const timer = statusTimers.get(id);
+      if (timer) {
+        clearTimeout(timer);
+        statusTimers.delete(id);
+      }
       el.className = "status" + (cls ? " " + cls : "");
       el.textContent = msg || "";
+      if (msg) {
+        const newTimer = window.setTimeout(() => {
+          const sameEl = $(id);
+          if (!sameEl) return;
+          sameEl.className = "status";
+          sameEl.textContent = "";
+          statusTimers.delete(id);
+        }, timeoutMs);
+        statusTimers.set(id, newTimer);
+      }
     }
 
     function parseRefs(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
