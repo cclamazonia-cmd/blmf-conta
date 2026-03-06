@@ -207,6 +207,9 @@ input:focus, select:focus, textarea:focus{
 button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, .tab-btn:focus{
   border-color: rgba(225,29,47,.55) !important;
 }
+
+
+/* force white text on red action buttons */
 button[type="submit"],
 button[type="submit"]:hover,
 button[type="submit"]:focus,
@@ -215,12 +218,34 @@ button[type="submit"]:active,
 .secondary:hover,
 .secondary:focus,
 .secondary:active,
+.header-btn,
+.header-btn:link,
+.header-btn:visited,
+.header-btn:hover,
+.header-btn:focus,
+.header-btn:active,
 .logout-btn,
 .logout-btn:hover,
 .logout-btn:focus,
-.logout-btn:active{
+.logout-btn:active,
+.mini-btn.secondary,
+.mini-btn.secondary:hover,
+.mini-btn.secondary:focus,
+.mini-btn.secondary:active{
   color:#ffffff !important;
+  -webkit-text-fill-color:#ffffff !important;
 }
+button[type="submit"] *,
+.secondary *,
+.header-btn *,
+.logout-btn *,
+.mini-btn.secondary *{
+  color:#ffffff !important;
+  fill:#ffffff !important;
+  stroke:currentColor !important;
+  -webkit-text-fill-color:#ffffff !important;
+}
+
 </style>
 </head>
 
