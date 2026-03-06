@@ -1253,7 +1253,8 @@
         .insert(payload)
         .select('id,batch_id,due_date');
       if (error) throw error;
-      return { loanIds: (data || []).map((row) => Number(row.id)).filter(Boolean), batchId, dueDate };
+      const storedDueDate = (data || []).map((row) => row?.due_date).find(Boolean) || dueDate;
+      return { loanIds: (data || []).map((row) => Number(row.id)).filter(Boolean), batchId, dueDate: storedDueDate };
     }
 
     async function confirmReservationToLoan(reservaId){
