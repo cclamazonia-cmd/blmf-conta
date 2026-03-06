@@ -139,7 +139,29 @@
       border-color: rgba(225,29,47,.55) !important;
     }
 
-  </style>
+  
+/* red-only override */
+html{ accent-color:#c00000; }
+a:any-link{ color:inherit; }
+.card a:not(.secondary),
+.card a:not(.secondary):visited,
+.notice a,
+.notice a:visited,
+.small a,
+.small a:visited,
+.tab-panel a:not(.secondary),
+.tab-panel a:not(.secondary):visited{
+  color:#c00000 !important;
+}
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color: rgba(225,29,47,.8) !important;
+  box-shadow: 0 0 0 3px rgba(225,29,47,.2) !important;
+}
+button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, .tab-btn:focus{
+  border-color: rgba(225,29,47,.55) !important;
+}
+</style>
 </head>
 
 <body>
@@ -161,7 +183,7 @@
 
         <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
           <a class="secondary" href="https://cclamazonia-cmd.github.io/blmf-catalogo/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
-          <a class="secondary" href="https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
+          <a class="secondary" href="https://cclamazonia.noblogs.org" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
           <a id="goPainelBiblio" class="secondary" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
         </div>
         </div>
