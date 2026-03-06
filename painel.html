@@ -652,10 +652,32 @@
     }
 
     async function loadUsersByIds(userIds){
-      if (!userIds.length) return new Map();
-      const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", userIds);
-      if (error) throw error;
-      return new Map((data || []).map(x => [String(x.id), x]));
+      const ids = Array.from(new Set((userIds || []).map(v => String(v || "").trim()).filter(Boolean)));
+      if (!ids.length) return new Map();
+
+      const attempts = [
+        "id,full_name,email",
+        "id,name,email",
+        "id,nome,email",
+        "*"
+      ];
+
+      let lastError = null;
+      for (const selectExpr of attempts){
+        try {
+          const { data, error } = await supabase.from("profiles").select(selectExpr).in("id", ids);
+          if (error) {
+            lastError = error;
+            continue;
+          }
+          return new Map((data || []).map(x => [String(x.id), x]));
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      console.warn("Falha ao carregar perfis para as listas:", lastError);
+      return new Map(ids.map(id => [String(id), { id, email: "", full_name: "", name: "", nome: "" }]));
     }
 
     async function loadBooksByRefs(bibRefs){
@@ -673,7 +695,9 @@
 
     function renderWho(userMap, userId){
       const u = userMap.get(String(userId)) || {};
-      return `${safeHtml(u.full_name || "—")}<br><span class="mini subtle">${safeHtml(u.email || "—")}</span>`;
+      const name = u.full_name || u.name || u.nome || u.display_name || "—";
+      const email = u.email || "—";
+      return `${safeHtml(name)}<br><span class="mini subtle">${safeHtml(email)}</span>`;
     }
 
     function notBlank(v){ return v !== null && v !== undefined && String(v).trim() !== ""; }
@@ -1014,14 +1038,10 @@
     }
 
     function getSelectedReservaRows(){
-      const byKey = new Map(currentActiveReservations.map(row => [reservationKey(row), row]));
-      return Array.from(document.querySelectorAll("input[data-reserva-item]:checked")).map(el => {
-        const reserva_id = Number(el.getAttribute("data-reserva-id"));
-        const line_no = Number(el.getAttribute("data-line-no"));
-        const key = `${reserva_id}.${line_no}`;
-        const row = byKey.get(key);
-        return row ? { ...row, reserva_id, line_no } : { reserva_id, line_no };
-      });
+      return Array.from(document.querySelectorAll("input[data-reserva-item]:checked")).map(el => ({
+        reserva_id: Number(el.getAttribute("data-reserva-id")),
+        line_no: Number(el.getAttribute("data-line-no"))
+      }));
     }
 
     async function refreshAllActiveLists(options = {}){
@@ -1161,52 +1181,13 @@
       $("btnConfirmarSelecionados").disabled = true;
       try{
         const created = [];
-        const { data: authData } = await supabase.auth.getUser();
-        const librarianId = authData?.user?.id || null;
         for (const [reservaId, items] of groups.entries()){
           const lineNos = items.map(i => i.line_no);
-          try {
-            const { data, error } = await supabase.rpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
-              p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
-            });
-            if (error) throw error;
-            created.push(data);
-          } catch (legacyErr) {
-            const canFallback = items.every(i =>
-              ["reservas", "v_reservas_detalhes"].includes(String(i._source || "")) &&
-              i.user_id &&
-              String(i.bib_ref || "").trim()
-            );
-            if (!canFallback) throw legacyErr;
-
-            const userIds = Array.from(new Set(items.map(i => String(i.user_id || "")).filter(Boolean)));
-            if (userIds.length !== 1) throw legacyErr;
-
-            const bibRefs = Array.from(new Set(items.map(i => String(i.bib_ref || "").trim()).filter(Boolean)));
-            if (!bibRefs.length) throw legacyErr;
-
-            const { data: loanId, error: createError } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
-              p_user_id: userIds[0], p_bib_refs: bibRefs, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
-            });
-            if (createError) throw createError;
-
-            const reservaIds = Array.from(new Set(items.map(i => Number(i.reserva_id)).filter(n => Number.isFinite(n) && n > 0)));
-            const payload = {
-              status: "fulfilled",
-              fulfilled_at: new Date().toISOString(),
-              fulfilled_loan_id: loanId ?? null,
-              fulfilled_by: librarianId
-            };
-            const { error: updateError } = await supabase
-              .from("reservas")
-              .update(payload)
-              .in("id", reservaIds)
-              .is("fulfilled_at", null)
-              .is("cancelled_at", null);
-            if (updateError) throw updateError;
-
-            created.push(loanId);
-          }
+          const { data, error } = await supabase.rpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
+            p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
+          });
+          if (error) throw error;
+          created.push(data);
         }
         const activeAfter = await loadReservasAtivas({ quiet: true });
         await loadEmprestimosAbertos({ quiet: true });
@@ -1237,42 +1218,13 @@
       $("btnCancelarSelecionados").disabled = true;
       try{
         let total = 0;
-        const { data: authData } = await supabase.auth.getUser();
-        const librarianId = authData?.user?.id || null;
         for (const [reservaId, items] of groups.entries()){
           const lineNos = items.map(i => i.line_no);
-          try {
-            const { data, error } = await supabase.rpc("fn_v2_cancel_reserva_linhas_as_biblioteca", {
-              p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_notes: "Cancelamento registrado pela biblioteca no painel."
-            });
-            if (error) throw error;
-            total += Number(data || 0);
-          } catch (legacyErr) {
-            const canFallback = items.every(i =>
-              ["reservas", "v_reservas_detalhes"].includes(String(i._source || "")) &&
-              Number.isFinite(Number(i.reserva_id)) &&
-              Number(i.reserva_id) > 0
-            );
-            if (!canFallback) throw legacyErr;
-
-            const reservaIds = Array.from(new Set(items.map(i => Number(i.reserva_id)).filter(n => Number.isFinite(n) && n > 0)));
-            const payload = {
-              status: "cancelled",
-              cancelled_at: new Date().toISOString(),
-              cancelled_by: librarianId,
-              cancelled_by_role: "biblioteca",
-              cancelled_reason: "Cancelamento registrado pela biblioteca no painel."
-            };
-            const { error: updateError } = await supabase
-              .from("reservas")
-              .update(payload)
-              .in("id", reservaIds)
-              .is("fulfilled_at", null)
-              .is("cancelled_at", null);
-            if (updateError) throw updateError;
-
-            total += reservaIds.length;
-          }
+          const { data, error } = await supabase.rpc("fn_v2_cancel_reserva_linhas_as_biblioteca", {
+            p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_notes: "Cancelamento registrado pela biblioteca no painel."
+          });
+          if (error) throw error;
+          total += Number(data || 0);
         }
         const activeAfter = await loadReservasAtivas({ quiet: true });
         if (editingProfileId) await loadProfileReservations(editingProfileId);
