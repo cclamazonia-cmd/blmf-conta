@@ -444,6 +444,10 @@
     let editingKnownColumns = {};
     let currentActiveReservations = [];
     let currentActiveLoans = [];
+    let liveChannel = null;
+    let pollHandle = null;
+    let refreshInFlight = null;
+    let refreshQueued = false;
 
     const statusTimers = new Map();
 
@@ -535,12 +539,16 @@
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
+        .replace(/\"/g, "&quot;")
         .replace(/'/g, "&#39;");
     }
 
     function reservationKey(row){
       return `${Number(row.reserva_id)}.${Number(row.line_no)}`;
+    }
+
+    function loanKey(row){
+      return `${Number(row.emprestimo_id)}.${Number(row.line_no)}`;
     }
 
     function loanDaysByCount(n){
@@ -633,6 +641,7 @@
       $("chipEmail").textContent = "E-mail: " + (session.user.email || "—");
       $("chipFuncao").textContent = "Função: " + (data ? "bibliotecário(a/e) e leitor(a/e)" : "leitor(a/e)");
       $("btnModoLeitor").classList.toggle("hidden", !data);
+      $("helloLine").textContent = "Painel com recarga automática e leitura combinada das fontes de reservas e empréstimos.";
     }
 
     async function findUserByEmail(email){
@@ -649,9 +658,177 @@
       return new Map((data || []).map(x => [String(x.id), x]));
     }
 
+    async function loadBooksByRefs(bibRefs){
+      const refs = Array.from(new Set((bibRefs || []).map(v => String(v || "").trim()).filter(Boolean)));
+      const out = new Map();
+      if (!refs.length) return out;
+      for (let i = 0; i < refs.length; i += 200){
+        const chunk = refs.slice(i, i + 200);
+        const { data, error } = await supabase.from("books").select("*").in("bib_ref", chunk);
+        if (error) continue;
+        for (const row of (data || [])) out.set(String(row.bib_ref), row);
+      }
+      return out;
+    }
+
     function renderWho(userMap, userId){
       const u = userMap.get(String(userId)) || {};
       return `${safeHtml(u.full_name || "—")}<br><span class="mini subtle">${safeHtml(u.email || "—")}</span>`;
+    }
+
+    function notBlank(v){ return v !== null && v !== undefined && String(v).trim() !== ""; }
+
+    function coalesceInto(target, source){
+      for (const [k, v] of Object.entries(source || {})){
+        if (!notBlank(target[k]) && notBlank(v)) target[k] = v;
+      }
+      return target;
+    }
+
+    function rowRichness(row, keys){
+      return keys.reduce((acc, k) => acc + (notBlank(row[k]) ? 1 : 0), 0);
+    }
+
+    function sortRows(rows, primaryKey, secondaryKey){
+      return [...rows].sort((a,b) => {
+        const ap = Number(a[primaryKey] || 0);
+        const bp = Number(b[primaryKey] || 0);
+        if (ap !== bp) return ap - bp;
+        const as = Number(a[secondaryKey] || 0);
+        const bs = Number(b[secondaryKey] || 0);
+        return as - bs;
+      });
+    }
+
+    async function fetchRowsFromSource(sourceName, { userId = null, limit = 1500 } = {}){
+      try {
+        let query = supabase.from(sourceName).select("*").limit(limit);
+        if (userId !== null) query = query.eq("user_id", userId);
+        const { data, error } = await query;
+        if (error) return { sourceName, data: [], error };
+        return { sourceName, data: data || [], error: null };
+      } catch (error) {
+        return { sourceName, data: [], error };
+      }
+    }
+
+    function normalizeReservaRow(raw, sourceName){
+      const reservaId = Number(pick(raw, ["reserva_id", "id"], 0));
+      const lineNo = Number(pick(raw, ["line_no", "item_no", "linha", "line"], 1)) || 1;
+      const row = {
+        ...raw,
+        _source: sourceName,
+        reserva_id: reservaId,
+        line_no: lineNo,
+        sub_id: pick(raw, ["sub_id"], `${reservaId}.${lineNo}`),
+        user_id: pick(raw, ["user_id", "profile_id", "reader_id"], null),
+        titulo: pick(raw, ["titulo", "title", "book_title", "livro_titulo", "nome_livro"], null),
+        bib_ref: pick(raw, ["bib_ref", "book_bib_ref", "referencia", "referência"], null),
+        rotulo: pick(raw, ["rotulo", "tombo", "label", "exemplar_tombo"], null),
+        item_status: pick(raw, ["item_status", "status", "reserva_status"], null),
+        status: pick(raw, ["status", "reserva_status", "item_status"], null),
+        reserva_created_at: pick(raw, ["reserva_created_at", "reserva_em", "created_at", "inserted_at"], null),
+        expires_at: pick(raw, ["expires_at", "valid_until", "validade_em", "expira_em"], null),
+        converted_at: pick(raw, ["converted_at", "convertida_em"], null),
+        cancelled_at: pick(raw, ["cancelled_at", "canceled_at", "cancelada_em"], null),
+        loan_id: pick(raw, ["loan_id", "emprestimo_id"], null)
+      };
+      return row;
+    }
+
+    function normalizeLoanRow(raw, sourceName){
+      const loanId = Number(pick(raw, ["emprestimo_id", "loan_id", "id"], 0));
+      const lineNo = Number(pick(raw, ["line_no", "item_no", "linha", "line"], 1)) || 1;
+      const due = pick(raw, ["due_at", "due_date", "prazo_em", "prazo", "expected_return_at"], null);
+      const row = {
+        ...raw,
+        _source: sourceName,
+        emprestimo_id: loanId,
+        line_no: lineNo,
+        sub_id: pick(raw, ["sub_id"], `${loanId}.${lineNo}`),
+        user_id: pick(raw, ["user_id", "profile_id", "reader_id"], null),
+        titulo: pick(raw, ["titulo", "title", "book_title", "livro_titulo", "nome_livro"], null),
+        bib_ref: pick(raw, ["bib_ref", "book_bib_ref", "referencia", "referência"], null),
+        rotulo: pick(raw, ["rotulo", "tombo", "label", "exemplar_tombo"], null),
+        item_status: pick(raw, ["item_status", "status", "loan_status", "emprestimo_status"], null),
+        emprestimo_status: pick(raw, ["emprestimo_status", "loan_status", "status", "item_status"], null),
+        created_at: pick(raw, ["emprestimo_created_at", "loaned_at", "created_at", "inserted_at"], null),
+        due_at: due,
+        returned_at: pick(raw, ["returned_at", "returned_date", "devolvido_em"], null)
+      };
+      return row;
+    }
+
+    async function enrichReservaRows(rows){
+      const bookMap = await loadBooksByRefs(rows.map(r => r.bib_ref));
+      return rows.map(row => {
+        const book = bookMap.get(String(row.bib_ref || "")) || {};
+        return {
+          ...row,
+          titulo: row.titulo || pick(book, ["titulo", "title", "book_title"], null) || row.titulo,
+          rotulo: row.rotulo || pick(book, ["rotulo", "tombo", "label"], null) || row.rotulo
+        };
+      });
+    }
+
+    async function enrichLoanRows(rows){
+      const bookMap = await loadBooksByRefs(rows.map(r => r.bib_ref));
+      return rows.map(row => {
+        const book = bookMap.get(String(row.bib_ref || "")) || {};
+        return {
+          ...row,
+          titulo: row.titulo || pick(book, ["titulo", "title", "book_title"], null) || row.titulo,
+          rotulo: row.rotulo || pick(book, ["rotulo", "tombo", "label"], null) || row.rotulo
+        };
+      });
+    }
+
+    async function loadMergedReservaRows(userId = null){
+      const sources = ["v_reserva_itens_v2_ui", "v_reservas_detalhes", "reservas"];
+      const merged = new Map();
+      const sourceInfo = [];
+      for (const sourceName of sources){
+        const result = await fetchRowsFromSource(sourceName, { userId, limit: 2000 });
+        sourceInfo.push({ sourceName, count: result.data.length, error: result.error ? String(result.error.message || result.error) : null });
+        for (const raw of result.data){
+          const row = normalizeReservaRow(raw, sourceName);
+          const key = reservationKey(row);
+          const current = merged.get(key);
+          if (!current){
+            merged.set(key, row);
+          } else {
+            const richer = rowRichness(row, ["titulo", "bib_ref", "rotulo", "expires_at", "reserva_created_at", "status"]);
+            const currentRich = rowRichness(current, ["titulo", "bib_ref", "rotulo", "expires_at", "reserva_created_at", "status"]);
+            merged.set(key, richer >= currentRich ? coalesceInto(row, current) : coalesceInto(current, row));
+          }
+        }
+      }
+      const rows = await enrichReservaRows(sortRows(Array.from(merged.values()), "reserva_id", "line_no"));
+      return { rows, sourceInfo };
+    }
+
+    async function loadMergedLoanRows(userId = null){
+      const sources = ["v_emprestimo_itens_v2_ui", "v_loans_detalhes", "loans"];
+      const merged = new Map();
+      const sourceInfo = [];
+      for (const sourceName of sources){
+        const result = await fetchRowsFromSource(sourceName, { userId, limit: 2000 });
+        sourceInfo.push({ sourceName, count: result.data.length, error: result.error ? String(result.error.message || result.error) : null });
+        for (const raw of result.data){
+          const row = normalizeLoanRow(raw, sourceName);
+          const key = loanKey(row);
+          const current = merged.get(key);
+          if (!current){
+            merged.set(key, row);
+          } else {
+            const richer = rowRichness(row, ["titulo", "bib_ref", "rotulo", "due_at", "created_at", "emprestimo_status"]);
+            const currentRich = rowRichness(current, ["titulo", "bib_ref", "rotulo", "due_at", "created_at", "emprestimo_status"]);
+            merged.set(key, richer >= currentRich ? coalesceInto(row, current) : coalesceInto(current, row));
+          }
+        }
+      }
+      const rows = await enrichLoanRows(sortRows(Array.from(merged.values()), "emprestimo_id", "line_no"));
+      return { rows, sourceInfo };
     }
 
     function renderLoanBatchRows(rows, userMap){
@@ -685,17 +862,18 @@
       if (!options.quiet) setStatus("statusRes", "");
       const tbody = $("tbodyRes");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_reserva_itens_v2_ui").select("*").order("reserva_id", { ascending: true }).order("line_no", { ascending: true }).limit(1000);
-      if (error){
-        currentActiveReservations = [];
-        updateHeaderCounts();
-        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar reservas.</td></tr>`;
-        if (!options.quiet) setStatus("statusRes", error.message, "bad");
-        return [];
-      }
-      const active = (data || []).filter(reservationIsReallyActive);
+      const { rows, sourceInfo } = await loadMergedReservaRows(null);
+      const active = rows.filter(reservationIsReallyActive);
       currentActiveReservations = active;
       updateHeaderCounts();
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="8">Nenhuma fonte de reservas respondeu com dados.</td></tr>`;
+        if (!options.quiet){
+          const detail = sourceInfo.filter(x => x.error).map(x => `${x.sourceName}: ${x.error}`).join(" | ");
+          if (detail) setStatus("statusRes", detail, "warn");
+        }
+        return [];
+      }
       if (!active.length){
         tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`;
         return active;
@@ -722,18 +900,19 @@
       const tbodyBatches = $("tbodyLoanBatches");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
       tbodyBatches.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").order("emprestimo_id", { ascending: true }).order("line_no", { ascending: true }).limit(1000);
-      if (error){
-        currentActiveLoans = [];
-        updateHeaderCounts();
-        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar empréstimos.</td></tr>`;
-        tbodyBatches.innerHTML = `<tr><td colspan="8">Erro ao carregar lotes.</td></tr>`;
-        if (!options.quiet) setStatus("statusLoans", error.message, "bad");
-        return [];
-      }
-      const active = (data || []).filter(loanIsReallyActive);
+      const { rows, sourceInfo } = await loadMergedLoanRows(null);
+      const active = rows.filter(loanIsReallyActive);
       currentActiveLoans = active;
       updateHeaderCounts();
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="8">Nenhuma fonte de empréstimos respondeu com dados.</td></tr>`;
+        tbodyBatches.innerHTML = `<tr><td colspan="8">Nenhuma fonte de empréstimos respondeu com dados.</td></tr>`;
+        if (!options.quiet){
+          const detail = sourceInfo.filter(x => x.error).map(x => `${x.sourceName}: ${x.error}`).join(" | ");
+          if (detail) setStatus("statusLoans", detail, "warn");
+        }
+        return [];
+      }
       if (!active.length){
         tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos.</td></tr>`;
         tbodyBatches.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos por lote.</td></tr>`;
@@ -759,12 +938,8 @@
     async function loadProfileReservations(userId){
       const tbody = $("tbodyPerfilReservas");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_reserva_itens_v2_ui").select("*").eq("user_id", userId).order("reserva_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
-      if (error){
-        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar reservas.</td></tr>`;
-        return;
-      }
-      const active = (data || []).filter(reservationIsReallyActive);
+      const { rows } = await loadMergedReservaRows(userId);
+      const active = rows.filter(reservationIsReallyActive);
       if (!active.length){
         tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas para esse perfil.</td></tr>`;
         return;
@@ -786,12 +961,8 @@
     async function loadProfileLoans(userId){
       const tbody = $("tbodyPerfilEmprestimos");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("user_id", userId).order("emprestimo_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
-      if (error){
-        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar empréstimos.</td></tr>`;
-        return;
-      }
-      const active = (data || []).filter(loanIsReallyActive);
+      const { rows } = await loadMergedLoanRows(userId);
+      const active = rows.filter(loanIsReallyActive);
       if (!active.length){
         tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>`;
         return;
@@ -804,10 +975,42 @@
           <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
           <td class="mono">${safeHtml(r.rotulo || "—")}</td>
           <td>${safeHtml(r.item_status || r.emprestimo_status || "aberto")}</td>
-          <td>${formatDateTime(r.emprestimo_created_at || r.created_at)}</td>
+          <td>${formatDateTime(r.created_at)}</td>
           <td>${formatDateTime(r.due_at)}</td>
         </tr>
       `).join("");
+    }
+
+    function detectProfileColumns(data){
+      return {
+        surname: firstExistingKey(data, ["surname","sobrenome","last_name","lastname"]),
+        phone: firstExistingKey(data, ["phone","telefone"]),
+        country: firstExistingKey(data, ["country","pais","país"]),
+        address1: firstExistingKey(data, ["address_line1","endereco1","endereço1","address1","logradouro","rua"]),
+        address2: firstExistingKey(data, ["address_line2","endereco2","endereço2","address2","complemento","bairro"]),
+        postal_code: firstExistingKey(data, ["postal_code","cep","zip","zipcode"]),
+        city: firstExistingKey(data, ["city","cidade","municipio","município"]),
+        is_librarian: firstExistingKey(data, ["is_librarian","bibliotecario","is_bibliotecario"])
+      };
+    }
+
+    function applyProfileData(data){
+      editingKnownColumns = detectProfileColumns(data);
+      $("editSurname").value = editingKnownColumns.surname ? (data[editingKnownColumns.surname] || "") : "";
+      $("editPhone").value = editingKnownColumns.phone ? (data[editingKnownColumns.phone] || "") : "";
+      $("editCountry").value = editingKnownColumns.country ? (data[editingKnownColumns.country] || "") : "";
+      $("editAddress1").value = editingKnownColumns.address1 ? (data[editingKnownColumns.address1] || "") : "";
+      $("editAddress2").value = editingKnownColumns.address2 ? (data[editingKnownColumns.address2] || "") : "";
+      $("editPostalCode").value = editingKnownColumns.postal_code ? (data[editingKnownColumns.postal_code] || "") : "";
+      $("editCity").value = editingKnownColumns.city ? (data[editingKnownColumns.city] || "") : "";
+      $("editLibrarian").value = editingKnownColumns.is_librarian ? String(!!data[editingKnownColumns.is_librarian]) : "false";
+    }
+
+    async function refreshLoadedProfileData(){
+      if (!editingProfileId) return;
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", editingProfileId).maybeSingle();
+      if (error || !data?.id) return;
+      applyProfileData(data);
     }
 
     function getSelectedReservaRows(){
@@ -817,13 +1020,53 @@
       }));
     }
 
-    async function refreshAllActiveLists(){
-      await loadReservasAtivas({ quiet: true });
-      await loadEmprestimosAbertos({ quiet: true });
-      if (editingProfileId){
-        await loadProfileReservations(editingProfileId);
-        await loadProfileLoans(editingProfileId);
+    async function refreshAllActiveLists(options = {}){
+      if (refreshInFlight){
+        refreshQueued = true;
+        return refreshInFlight;
       }
+      refreshInFlight = (async () => {
+        await loadReservasAtivas({ quiet: !!options.quiet });
+        await loadEmprestimosAbertos({ quiet: !!options.quiet });
+        if (editingProfileId){
+          await refreshLoadedProfileData();
+          await loadProfileReservations(editingProfileId);
+          await loadProfileLoans(editingProfileId);
+        }
+      })();
+      try {
+        return await refreshInFlight;
+      } finally {
+        refreshInFlight = null;
+        if (refreshQueued){
+          refreshQueued = false;
+          void refreshAllActiveLists({ quiet: true });
+        }
+      }
+    }
+
+    function scheduleRefresh(){
+      void refreshAllActiveLists({ quiet: true });
+    }
+
+    async function setupLiveRefresh(){
+      try {
+        liveChannel = supabase
+          .channel(`painel-live-${Date.now()}`)
+          .on("postgres_changes", { event: "*", schema: "public", table: "reservas" }, scheduleRefresh)
+          .on("postgres_changes", { event: "*", schema: "public", table: "loans" }, scheduleRefresh)
+          .subscribe();
+      } catch (_) {}
+      if (pollHandle) clearInterval(pollHandle);
+      pollHandle = window.setInterval(() => {
+        if (!document.hidden) void refreshAllActiveLists({ quiet: true });
+      }, 30000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) void refreshAllActiveLists({ quiet: true });
+      });
+      window.addEventListener("focus", () => {
+        void refreshAllActiveLists({ quiet: true });
+      });
     }
 
     $("btnRegistrarSaida").addEventListener("click", async () => {
@@ -846,7 +1089,7 @@
         setStatus("statusSaida", `Empréstimo ${data} registrado com ${refs.length} livro(s).`, "ok");
         $("bibRefs").value = "";
         refreshLoanHint();
-        await refreshAllActiveLists();
+        await refreshAllActiveLists({ quiet: true });
       } catch (e) {
         setStatus("statusSaida", e.message || String(e), "bad");
       } finally {
@@ -866,7 +1109,7 @@
         });
         if (error) throw error;
         setStatus("statusDev", `Devolução total registrada. Itens processados: ${data}.`, "ok");
-        await refreshAllActiveLists();
+        await refreshAllActiveLists({ quiet: true });
       } catch (e) {
         setStatus("statusDev", e.message || String(e), "bad");
       } finally {
@@ -897,7 +1140,7 @@
           total += Number(data || 0);
         }
         setStatus("statusDev", `Devolução parcial registrada. Itens processados: ${total}.`, "ok");
-        await refreshAllActiveLists();
+        await refreshAllActiveLists({ quiet: true });
       } catch (e) {
         setStatus("statusDev", e.message || String(e), "bad");
       } finally {
@@ -990,26 +1233,7 @@
         if (!data?.id) return setStatus("statusPerfil", "Não encontrei esse e-mail no cadastro.", "warn");
 
         editingProfileId = data.id;
-        editingKnownColumns = {
-          surname: firstExistingKey(data, ["surname","sobrenome","last_name","lastname"]),
-          phone: firstExistingKey(data, ["phone","telefone"]),
-          country: firstExistingKey(data, ["country","pais","país"]),
-          address1: firstExistingKey(data, ["address_line1","endereco1","endereço1","address1","logradouro","rua"]),
-          address2: firstExistingKey(data, ["address_line2","endereco2","endereço2","address2","complemento","bairro"]),
-          postal_code: firstExistingKey(data, ["postal_code","cep","zip","zipcode"]),
-          city: firstExistingKey(data, ["city","cidade","municipio","município"]),
-          is_librarian: firstExistingKey(data, ["is_librarian","bibliotecario","is_bibliotecario"])
-        };
-
-        $("editSurname").value = editingKnownColumns.surname ? (data[editingKnownColumns.surname] || "") : "";
-        $("editPhone").value = editingKnownColumns.phone ? (data[editingKnownColumns.phone] || "") : "";
-        $("editCountry").value = editingKnownColumns.country ? (data[editingKnownColumns.country] || "") : "";
-        $("editAddress1").value = editingKnownColumns.address1 ? (data[editingKnownColumns.address1] || "") : "";
-        $("editAddress2").value = editingKnownColumns.address2 ? (data[editingKnownColumns.address2] || "") : "";
-        $("editPostalCode").value = editingKnownColumns.postal_code ? (data[editingKnownColumns.postal_code] || "") : "";
-        $("editCity").value = editingKnownColumns.city ? (data[editingKnownColumns.city] || "") : "";
-        $("editLibrarian").value = editingKnownColumns.is_librarian ? String(!!data[editingKnownColumns.is_librarian]) : "false";
-
+        applyProfileData(data);
         $("profileArea").classList.remove("hidden");
         showProfileTab("Dados");
         await loadProfileReservations(editingProfileId);
@@ -1062,10 +1286,11 @@
       await fillHeader(session);
       const ok = await requireBibliotecaOrRedirect();
       if (ok){
-        await loadReservasAtivas({ quiet: true });
-        await loadEmprestimosAbertos({ quiet: true });
+        await refreshAllActiveLists({ quiet: true });
+        await setupLiveRefresh();
       }
     }
+
   </script>
 </body>
 </html>
