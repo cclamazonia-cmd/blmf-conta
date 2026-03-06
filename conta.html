@@ -205,7 +205,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         </button>
         <button class="tab-btn" type="button" data-tab="curso" role="tab" aria-selected="false" aria-controls="tab-curso">
           Empréstimos em curso
-          <span class="hint">Visualização por lote e por livros, com prazos previstos e situação livro por livro.</span>
+          <span class="hint">Visualização por lote e por livro, com prazos previstos e situação detalhada.</span>
         </button>
         <button class="tab-btn" type="button" data-tab="historico" role="tab" aria-selected="false" aria-controls="tab-historico">
           Histórico
@@ -875,7 +875,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
             <td>${renewBtn}</td>
           </tr>`;
         }).join("");
-        sections.push(`<div class="panel-head"><h3 style="margin:0 0 6px;">Nova lógica</h3><p class="small" style="margin:0;">Visualização por lote e por livros, com prazos previstos e situação livro por livro.</p></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+        sections.push(`<div class="panel-head"><h3 style="margin:0 0 6px;">Empréstimos por lote</h3><p class="small" style="margin:0;">Visualização por lote e por livro, com prazos previstos e situação detalhada.</p></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
       }
 
       if (!oldQ.error && (oldQ.data || []).length) {
@@ -900,7 +900,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
             <td>${actionHtml}</td>
           </tr>`;
         }).join("");
-        sections.push(`<div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Lógica anterior</h3></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+        sections.push(`<div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Outros empréstimos</h3></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
       } else {
         const qOldBare = await supabase
           .from("loans")
@@ -916,7 +916,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
               <td>#${l.id}</td><td class="mono">—</td><td>${escapeHtml(title)}${author ? `<br><small>${escapeHtml(author)}</small>` : ""}</td><td class="mono">—</td><td class="mono">—</td><td>${escapeHtml(fmtDateOnly(l.checkout_date))}</td><td><b>${escapeHtml(fmtDateOnly(l.due_date))}</b></td><td>Em curso</td><td>${!userIsRestricted && !l.extended_once ? `<button type="button" class="secondary mini-btn" data-renew-old="${l.id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">${userIsRestricted ? 'Renovação bloqueada: cadastro restrito' : 'Renovação indisponível'}</span>`}</td>
             </tr>`;
           }).join("");
-          sections.push(`<div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Lógica anterior</h3></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+          sections.push(`<div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Outros empréstimos</h3></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
         }
       }
 
