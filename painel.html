@@ -333,9 +333,10 @@
                     <th>Saída</th>
                     <th>Prazo</th>
                     <th>Situação</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
-                <tbody id="tbodyBatches"><tr><td colspan="8">Carregando…</td></tr></tbody>
+                <tbody id="tbodyBatches"><tr><td colspan="9">Carregando…</td></tr></tbody>
               </table>
             </div>
             <div class="status" id="statusBatches"></div>
@@ -827,8 +828,9 @@
           bib_refs: items.map((x) => x.bib_ref),
           checkout_date: items[0]?.checkout_date || null,
           due_date: items[0]?.due_date || null,
-          status_text: items.some((x) => x.status_class === 'bad') ? 'Com atraso' : 'Em curso',
-          status_class: items.some((x) => x.status_class === 'bad') ? 'bad' : 'ok',
+          status_text: items.some((x) => x.status_class === 'bad') ? 'Com atraso' : (items.some((x) => x.extended_once) ? 'Renovado' : 'Em curso'),
+          status_class: items.some((x) => x.status_class === 'bad') ? 'bad' : (items.some((x) => x.extended_once) ? 'warn' : 'ok'),
+          can_renew: items.every((x) => !!x.can_renew),
           source: 'v2',
           loan_ids: items.map((x) => x.loan_id),
           emprestimo_id: Number(emprestimoId),
@@ -922,8 +924,9 @@
           bib_refs: refs,
           checkout_date: checkouts[0] || null,
           due_date: dueDates[dueDates.length - 1] || dueDates[0] || null,
-          status_text: isOverdue ? 'Com atraso' : 'Em curso',
-          status_class: isOverdue ? 'bad' : 'ok',
+          status_text: isOverdue ? 'Com atraso' : (items.some((x) => !!x.extended_once) ? 'Renovado' : 'Em curso'),
+          status_class: isOverdue ? 'bad' : (items.some((x) => !!x.extended_once) ? 'warn' : 'ok'),
+          can_renew: items.every((x) => !x.extended_once) && !isOverdue,
           source: 'old',
           loan_ids: items.map((x) => Number(x.id)),
         });
@@ -993,10 +996,17 @@
     function renderBatchTable(){
       const tbody = $('tbodyBatches');
       if (!activeBatches.length){
-        tbody.innerHTML = '<tr><td colspan="8">Sem lotes ativos.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9">Sem lotes ativos.</td></tr>';
         return;
       }
-      tbody.innerHTML = activeBatches.map((b) => `
+      tbody.innerHTML = activeBatches.map((b) => {
+        const renewBtn = b.source === 'v2'
+          ? `<button class="btn mini" type="button" data-renew-batch-v2="${esc(b.emprestimo_id)}" ${b.can_renew ? '' : 'disabled'}>Renovar lote</button>`
+          : `<button class="btn mini" type="button" data-renew-batch-old="${esc((b.loan_ids || []).join(','))}" ${b.can_renew ? '' : 'disabled'}>Renovar lote</button>`;
+        const returnBtn = b.source === 'v2'
+          ? `<button class="btn mini" type="button" data-return-batch-v2="${esc(b.emprestimo_id)}">Devolver lote</button>`
+          : `<button class="btn mini" type="button" data-return-batch-old="${esc((b.loan_ids || []).join(','))}">Devolver lote</button>`;
+        return `
         <tr>
           <td class="mono">#${esc(b.batch_label)}</td>
           <td>${esc(b.user_name)}${b.user_email && b.user_email !== '—' ? `<br><span class="mini subtle">${esc(b.user_email)}</span>` : ''}</td>
@@ -1006,7 +1016,9 @@
           <td>${esc(fmtDate(b.checkout_date))}</td>
           <td>${esc(fmtDate(b.due_date))}</td>
           <td><span class="pill ${esc(b.status_class)}">${esc(b.status_text)}</span></td>
-        </tr>`).join('');
+          <td><div class="actions" style="margin-top:0">${renewBtn}${returnBtn}</div></td>
+        </tr>`;
+      }).join('');
     }
 
 
@@ -1014,7 +1026,7 @@
       if (!silent) {
         $('tbodyRes').innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
         $('tbodyLoans').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
-        $('tbodyBatches').innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
+        $('tbodyBatches').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
       }
       const res = await Promise.allSettled([fetchActiveReservations(), fetchActiveLoans()]);
       if (res[0].status === 'fulfilled') {
@@ -1031,7 +1043,7 @@
         clearStatus('statusBatches');
       } else {
         $('tbodyLoans').innerHTML = '<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>';
-        $('tbodyBatches').innerHTML = '<tr><td colspan="8">Erro ao carregar lotes.</td></tr>';
+        $('tbodyBatches').innerHTML = '<tr><td colspan="9">Erro ao carregar lotes.</td></tr>';
         const msg = res[1].reason?.message || String(res[1].reason || 'Erro ao carregar empréstimos.');
         setStatus('statusLoans', msg, 'bad', false);
         setStatus('statusBatches', msg, 'bad', false);
@@ -1474,6 +1486,45 @@
     }
 
 
+    async function renewBatchOld(loanIds, targetStatusId='statusBatches'){
+      const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
+      if (!ids.length) return setStatus(targetStatusId, 'Nenhum empréstimo válido nesse lote.', 'warn');
+      try {
+        setStatus(targetStatusId, 'Processando renovação do lote...', 'warn');
+        let renewed = 0;
+        let lastDue = null;
+        for (const loanId of ids) {
+          let res = await supabase.rpc('renew_loan', { p_loan_id: loanId });
+          if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ''))) {
+            res = await supabase.rpc('extend_loan_once', { p_loan_id: loanId });
+          }
+          if (res.error) throw res.error;
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+          if (row?.ok === false) throw new Error(row?.message || 'Renovação recusada.');
+          renewed += 1;
+          lastDue = row?.due_date || row?.new_due_date || lastDue;
+        }
+        setStatus(targetStatusId, `Renovação do lote aplicada. Itens processados: ${renewed}.` + (lastDue ? ` Nova devolução: ${fmtDate(lastDue)}.` : ''), 'ok');
+        await refreshCollections({silent:true});
+      } catch (e) {
+        setStatus(targetStatusId, 'Erro ao renovar lote: ' + (e.message || String(e)), 'bad', false);
+      }
+    }
+
+    async function returnBatchOld(loanIds, targetStatusId='statusBatches'){
+      const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
+      if (!ids.length) return setStatus(targetStatusId, 'Nenhum empréstimo válido nesse lote.', 'warn');
+      try {
+        setStatus(targetStatusId, 'Processando devolução do lote...', 'warn');
+        const total = await markLoansReturned(ids, 'Devolução em lote registrada no painel.');
+        setStatus(targetStatusId, `Devolução do lote registrada. Itens processados: ${total}.`, 'ok');
+        await refreshCollections({silent:true});
+      } catch (e) {
+        setStatus(targetStatusId, 'Erro ao devolver lote: ' + (e.message || String(e)), 'bad', false);
+      }
+    }
+
+
     async function confirmReservations(reservationIds){
       const ids = Array.from(new Set((reservationIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
       if (!ids.length) return setStatus('statusRes', 'Selecione pelo menos 1 livro reservado.', 'warn');
@@ -1595,6 +1646,58 @@
 
     function bindDynamicActions(){
       document.body.addEventListener('click', async (ev) => {
+        const renewBatchV2Btn = ev.target.closest('[data-renew-batch-v2]');
+        if (renewBatchV2Btn) {
+          const emprestimoId = Number(renewBatchV2Btn.getAttribute('data-renew-batch-v2'));
+          if (!emprestimoId || renewBatchV2Btn.disabled) return;
+          renewBatchV2Btn.disabled = true;
+          await renewEmprestimoV2(emprestimoId, 'statusBatches');
+          renewBatchV2Btn.disabled = false;
+          return;
+        }
+
+        const renewBatchOldBtn = ev.target.closest('[data-renew-batch-old]');
+        if (renewBatchOldBtn) {
+          const loanIds = String(renewBatchOldBtn.getAttribute('data-renew-batch-old') || '').split(',').map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
+          if (!loanIds.length || renewBatchOldBtn.disabled) return;
+          renewBatchOldBtn.disabled = true;
+          await renewBatchOld(loanIds, 'statusBatches');
+          renewBatchOldBtn.disabled = false;
+          return;
+        }
+
+        const returnBatchV2Btn = ev.target.closest('[data-return-batch-v2]');
+        if (returnBatchV2Btn) {
+          const emprestimoId = Number(returnBatchV2Btn.getAttribute('data-return-batch-v2'));
+          if (!emprestimoId) return;
+          returnBatchV2Btn.disabled = true;
+          try {
+            const rpc = await supabase.rpc('fn_v2_return_emprestimo_total', {
+              p_emprestimo_id: emprestimoId,
+              p_notes: 'Devolução em lote registrada no painel.'
+            });
+            if (rpc.error) throw rpc.error;
+            const total = Number(rpc.data || 0) || 0;
+            setStatus('statusBatches', `Devolução do lote registrada. Itens processados: ${total}.`, 'ok');
+            await refreshCollections({silent:true});
+          } catch (e) {
+            setStatus('statusBatches', 'Erro ao devolver lote: ' + (e.message || String(e)), 'bad', false);
+          } finally {
+            returnBatchV2Btn.disabled = false;
+          }
+          return;
+        }
+
+        const returnBatchOldBtn = ev.target.closest('[data-return-batch-old]');
+        if (returnBatchOldBtn) {
+          const loanIds = String(returnBatchOldBtn.getAttribute('data-return-batch-old') || '').split(',').map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
+          if (!loanIds.length) return;
+          returnBatchOldBtn.disabled = true;
+          await returnBatchOld(loanIds, 'statusBatches');
+          returnBatchOldBtn.disabled = false;
+          return;
+        }
+
         const renewV2Btn = ev.target.closest('[data-renew-emp-v2]');
         if (renewV2Btn) {
           const emprestimoId = Number(renewV2Btn.getAttribute('data-renew-emp-v2'));
