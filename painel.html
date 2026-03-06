@@ -21,15 +21,15 @@
       --bad:#fb7185;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+    html,body{margin:0;padding:0;color:var(--text);font-family:Inter, Segoe UI, Arial, sans-serif;}
     body{
       background-image:
-        linear-gradient(rgba(0,0,0,.78), rgba(0,0,0,.78)),
+        linear-gradient(rgba(0,0,0,0.78), rgba(0,0,0,0.78)),
         url('https://cclamazonia.noblogs.org/files/2024/11/Arte-CCLA-paredao.jpg');
       background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat;
     }
-    a,a:visited{color:inherit;text-decoration:none}
-    .wrap{max-width:1440px;margin:0 auto;padding:24px}
+    a, a:visited{color:inherit;text-decoration:none}
+    .wrap{max-width:1360px;margin:0 auto;padding:24px}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
     .brand{display:flex;align-items:center;gap:12px}
     .logo{height:64px;width:auto;max-width:170px;object-fit:contain;display:block;flex-shrink:0;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
@@ -40,8 +40,7 @@
     }
     .btn.primary{border:none;background:linear-gradient(135deg,var(--red2),var(--red))}
     .btn:hover{border-color:rgba(255,255,255,.22)}
-    .btn:disabled{opacity:.58;cursor:default}
-    .btn.mini{padding:7px 10px;font-size:.85rem;border-radius:12px}
+    .btn:disabled{opacity:.6;cursor:default}
     .hero{
       border:1px solid rgba(255,255,255,.08);
       background:linear-gradient(135deg, rgba(179,0,24,.95), rgba(90,0,12,.96));
@@ -57,21 +56,20 @@
     .grid{display:grid;grid-template-columns:1fr;gap:14px}
     .card{border:1px solid rgba(255,255,255,.08);background:var(--panel);border-radius:22px;padding:16px;box-shadow:var(--shadow)}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    @media (max-width:980px){.row,.row3{grid-template-columns:1fr}}
+    @media (max-width:980px){.row{grid-template-columns:1fr}}
     label{display:block;font-size:.9rem;color:var(--muted);margin:0 0 6px}
     .input,.select,.textarea{
       width:100%;border:1px solid rgba(255,255,255,.10);background:rgba(12,12,12,.75);color:var(--text);
       border-radius:14px;padding:12px 12px;outline:none;font:inherit;
     }
     .textarea{min-height:96px;resize:vertical}
-    .input:focus,.select:focus,.textarea:focus,.btn:focus{border-color:rgba(225,29,47,.85);box-shadow:0 0 0 3px rgba(225,29,47,.18)}
+    .input:focus,.select:focus,.textarea:focus{border-color:rgba(225,29,47,.85);box-shadow:0 0 0 3px rgba(225,29,47,.18)}
     .hint{color:var(--muted);font-size:.9rem;margin-top:8px}
-    .status{margin-top:10px;font-size:.92rem;min-height:1.2em}
+    .status{margin-top:10px;font-size:.92rem}
     .status.ok{color:var(--ok)} .status.warn{color:var(--warn)} .status.bad{color:var(--bad)}
     .sep{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
-    .tableWrap{overflow:auto;max-height:58vh;border-radius:16px;border:1px solid rgba(255,255,255,.08)}
-    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1120px;background:rgba(10,10,10,.35)}
+    .tableWrap{overflow:auto;max-height:56vh;border-radius:16px;border:1px solid rgba(255,255,255,.08)}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1100px;background:rgba(10,10,10,.35)}
     thead th{
       position:sticky;top:0;z-index:2;text-align:left;padding:12px 14px;
       background:linear-gradient(180deg,#26060a,#160407);color:#fff;border-bottom:1px solid rgba(255,255,255,.08);
@@ -79,57 +77,33 @@
     }
     tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
     tbody tr:hover td{background:rgba(179,0,24,.08)}
-    tbody tr.is-selected td{background:rgba(179,0,24,.16)}
     .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
     .mini{font-size:.86rem;color:var(--muted)}
     .subtle{opacity:.92}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     .hidden{display:none !important}
-    .empty{padding:12px 14px;color:var(--muted)}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:.82rem;background:rgba(255,255,255,.04)}
-    .pill.ok{color:#b7ffcf}.pill.warn{color:#ffe6a0}.pill.bad{color:#ffc0cb}
-
-    /* main tabs */
-    .tabs-layout{display:flex;gap:14px;align-items:flex-start;margin-top:8px}
-    .tabs-nav{width:270px;display:flex;flex-direction:column;gap:8px;flex:0 0 auto}
-    .tab-btn{
-      width:100%;text-align:left;cursor:pointer;padding:10px 12px;border-radius:12px;
-      border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.22);color:#fff;
-      transition:transform .06s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
-      justify-content:flex-start;
+    .profile-layout{
+      display:grid;
+      grid-template-columns: 240px 1fr;
+      gap:14px;
+      margin-top:12px;
     }
-    .tab-btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.22)}
-    .tab-btn.active{background:rgba(200,0,0,.26);border-color:rgba(255,255,255,.28)}
-    .tab-btn .hint{display:block;margin-top:4px;color:#cfcfcf;font-size:.85rem;line-height:1.2}
-    .tabs-panels{flex:1 1 auto;min-width:0}
-    .tab-panel{display:none}
-    .tab-panel.active{display:block}
-    @media (max-width:980px){
-      .tabs-layout{flex-direction:column}
-      .tabs-nav{width:100%;flex-direction:row;overflow-x:auto;padding-bottom:2px}
-      .tab-btn{width:auto;white-space:nowrap;flex:0 0 auto}
-      .tab-btn .hint{display:none}
-    }
-
-    /* profile inner tabs */
-    .profile-layout{display:grid;grid-template-columns:240px 1fr;gap:14px;margin-top:12px}
     @media (max-width:980px){.profile-layout{grid-template-columns:1fr}}
-    .tabs-col{display:flex;flex-direction:column;gap:10px}
-    .profile-tab-btn{width:100%;justify-content:flex-start;text-align:left}
-    .profile-tab-btn.active{border:none;background:linear-gradient(135deg,var(--red2),var(--red))}
-    .profile-pane{display:none;min-width:0}
-    .profile-pane.active{display:block}
-    .tabs-panels{min-width:0}
-    .profile-layout > div:last-child{min-width:0}
-    .profile-pane .tableWrap{max-width:100%;overflow:auto}
-    .profile-pane table{min-width:980px}
-    @media (max-width:980px){.profile-pane table{min-width:900px}}
-
-    .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
-    .section-head h2,.section-head h3{margin:0}
-    .muted-box{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;background:rgba(255,255,255,.03)}
-    .stack{display:flex;flex-direction:column;gap:12px}
-    .clickable-row{cursor:pointer}
+    .tabs-col{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .tab-btn{
+      width:100%;
+      justify-content:flex-start;
+      text-align:left;
+    }
+    .tab-btn.active{
+      border:none;
+      background:linear-gradient(135deg,var(--red2),var(--red));
+    }
+    .tab-pane.hidden{display:none}
   </style>
 </head>
 <body>
@@ -152,351 +126,234 @@
       <div class="chips">
         <span class="chip" id="chipFuncao">Função: —</span>
         <span class="chip" id="chipEmail">E-mail: —</span>
-        <span class="chip" id="chipResCount">Reservas ativas: —</span>
-        <span class="chip" id="chipLoanCount">Empréstimos ativos: —</span>
-        <span class="chip" id="chipBatchCount">Lotes ativos: —</span>
       </div>
     </div>
 
-    <div class="tabs-layout">
-      <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
-        <button class="tab-btn active" type="button" data-tab="acoes" role="tab" aria-selected="true" aria-controls="tab-acoes">
-          Ações
-          <span class="hint">Registrar saída e devolução</span>
-        </button>
-        <button class="tab-btn" type="button" data-tab="reservas" role="tab" aria-selected="false" aria-controls="tab-reservas">
-          Reservas ativas
-          <span class="hint">Confirmar retirada ou cancelar</span>
-        </button>
-        <button class="tab-btn" type="button" data-tab="emprestimos-livro" role="tab" aria-selected="false" aria-controls="tab-emprestimos-livro">
-          Empréstimos por livro
-          <span class="hint">Sub-ID, renovação e devolução</span>
-        </button>
-        <button class="tab-btn" type="button" data-tab="emprestimos-lote" role="tab" aria-selected="false" aria-controls="tab-emprestimos-lote">
-          Empréstimos por lote
-          <span class="hint">Vista agrupada por lote</span>
-        </button>
-        <button class="tab-btn" type="button" data-tab="leitor" role="tab" aria-selected="false" aria-controls="tab-leitor">
-          Gerir leitor(a/e)
-          <span class="hint">Dados, reservas e empréstimos ativos</span>
-        </button>
-      </nav>
+    <div class="grid">
+      <div class="card">
+        <h2 style="margin:0 0 10px">Registrar saída (novo empréstimo)</h2>
+        <div class="row">
+          <div>
+            <label for="borrowerEmail">E-mail do(a/e) leitor(a/e)</label>
+            <input class="input" id="borrowerEmail" type="email" placeholder="leitor@exemplo.org">
+            <div class="hint">O e-mail precisa estar cadastrado e ativo.</div>
+          </div>
+          <div>
+            <label for="bibRefs">Referências (até 5, separadas por vírgula)</label>
+            <input class="input" id="bibRefs" type="text" placeholder="0000124, 0000138, 0000056">
+            <div class="hint" id="loanHint">Digite de 1 a 5 referências separadas por vírgula.</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="btnRegistrarSaida" type="button">Registrar saída</button>
+        </div>
+        <div class="status" id="statusSaida"></div>
+      </div>
 
-      <div class="tabs-panels">
-        <section id="tab-acoes" class="tab-panel active" data-tab="acoes" role="tabpanel">
-          <div class="grid">
-            <div class="card">
-              <div class="section-head">
-                <div>
-                  <h2>Registrar saída (novo empréstimo)</h2>
-                  <div class="mini">Livro por livro, como tu queres — até 5 referências por vez.</div>
-                </div>
-              </div>
+      <div class="card">
+        <h2 style="margin:0 0 10px">Registrar devolução</h2>
+        <div class="row">
+          <div>
+            <label for="loanId">Devolução total (por ID do empréstimo)</label>
+            <input class="input" id="loanId" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ex.: 154">
+            <div class="actions">
+              <button class="btn" id="btnDevolverId" type="button">Registrar devolução total</button>
+            </div>
+            <div class="hint">Unicamente se todos os livros do empréstimo forem devolvidos ao mesmo tempo.</div>
+          </div>
+          <div>
+            <label for="loanSubIds">Devolução parcial (por sub-IDs)</label>
+            <input class="input" id="loanSubIds" type="text" placeholder="154.1, 154.2">
+            <div class="actions">
+              <button class="btn" id="btnDevolverSubIds" type="button">Registrar devolução parcial</button>
+            </div>
+            <div class="hint">Use os sub-IDs exibidos abaixo. Exemplo: 154.2.</div>
+          </div>
+        </div>
+        <div class="status" id="statusDev"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px">Reservas ativas</h2>
+        <div class="mini">Seleciona exatamente os livros que a pessoa retirou ou que a biblioteca precisa cancelar. A conversão em empréstimo é feita livro por livro.</div>
+        <div class="sep"></div>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Selecionar</th>
+                <th>Sub-ID</th>
+                <th>Leitor(a/e)</th>
+                <th>Livro</th>
+                <th>Referência</th>
+                <th>Rótulo</th>
+                <th>Reserva</th>
+                <th>Validade</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyRes"><tr><td colspan="8">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="btnConfirmarSelecionados" type="button">Confirmar retirada (selecionados)</button>
+          <button class="btn" id="btnCancelarSelecionados" type="button">Cancelar (selecionados)</button>
+          <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
+        </div>
+        <div class="status" id="statusRes"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px">Empréstimos abertos</h2>
+        <div class="mini">Consulta rápida dos sub-IDs para devolução parcial.</div>
+        <div class="sep"></div>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sub-ID</th>
+                <th>Leitor(a/e)</th>
+                <th>Livro</th>
+                <th>Referência</th>
+                <th>Rótulo</th>
+                <th>Empréstimo</th>
+                <th>Prazo</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyLoans"><tr><td colspan="8">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btnRecarregarLoans" type="button">Recarregar</button>
+        </div>
+        <div class="status" id="statusLoans"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px">Gerir leitor(a/e)</h2>
+        <div class="row">
+          <div>
+            <label for="searchEmail">Buscar por e-mail</label>
+            <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org">
+            <div class="actions">
+              <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
+            </div>
+          </div>
+          <div class="mini" style="display:flex;align-items:flex-end">Depois de carregar o perfil, os separadores abaixo permitem gerir dados, reservas e empréstimos dessa pessoa.</div>
+        </div>
+
+        <div class="profile-layout hidden" id="profileArea">
+          <div class="tabs-col">
+            <button class="btn tab-btn active" id="tabBtnDados" type="button">Dados</button>
+            <button class="btn tab-btn" id="tabBtnReservas" type="button">Reservas</button>
+            <button class="btn tab-btn" id="tabBtnEmprestimos" type="button">Empréstimos</button>
+          </div>
+
+          <div>
+            <div class="tab-pane" id="paneDados">
               <div class="row">
                 <div>
-                  <label for="borrowerEmail">E-mail do(a/e) leitor(a/e)</label>
-                  <input class="input" id="borrowerEmail" type="email" placeholder="leitor@exemplo.org">
-                  <div class="hint">O e-mail precisa estar cadastrado e ativo.</div>
+                  <label for="editSurname">Sobrenome (patronímico)</label>
+                  <input class="input" id="editSurname" type="text">
                 </div>
                 <div>
-                  <label for="bibRefs">Referência(s) do(s) livro(s)</label>
-                  <input class="input" id="bibRefs" type="text" placeholder="0000124, 0000138, 0000056">
-                  <div class="hint" id="loanHint">Digite de 1 a 5 referências separadas por vírgula.</div>
+                  <label for="editPhone">Telefone</label>
+                  <input class="input" id="editPhone" type="text">
                 </div>
               </div>
+
+              <div class="row" style="margin-top:12px">
+                <div>
+                  <label for="editAddress1">Endereço 1</label>
+                  <input class="input" id="editAddress1" type="text" placeholder="Rua e número">
+                </div>
+                <div>
+                  <label for="editAddress2">Endereço 2</label>
+                  <input class="input" id="editAddress2" type="text" placeholder="Complemento, bairro, referência">
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:12px">
+                <div>
+                  <label for="editPostalCode">CEP</label>
+                  <input class="input" id="editPostalCode" type="text">
+                </div>
+                <div>
+                  <label for="editCity">Cidade</label>
+                  <input class="input" id="editCity" type="text">
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:12px">
+                <div>
+                  <label for="editCountry">País</label>
+                  <input class="input" id="editCountry" type="text">
+                </div>
+                <div>
+                  <label for="editLibrarian">Função bibliotecária</label>
+                  <select class="select" id="editLibrarian">
+                    <option value="false">Não</option>
+                    <option value="true">Sim</option>
+                  </select>
+                </div>
+              </div>
+
               <div class="actions">
-                <button class="btn primary" id="btnRegistrarSaida" type="button">Registrar saída</button>
+                <button class="btn primary" id="btnSalvarPerfil" type="button">Salvar alterações</button>
               </div>
-              <div class="status" id="statusSaida"></div>
             </div>
 
-            <div class="card">
-              <div class="section-head">
-                <div>
-                  <h2>Registrar devolução</h2>
-                  <div class="mini">Total por lote / ID ou parcial por sub-ID exibido na tabela.</div>
-                </div>
+            <div class="tab-pane hidden" id="paneReservas">
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Sub-ID</th>
+                      <th>Livro</th>
+                      <th>Referência</th>
+                      <th>Rótulo</th>
+                      <th>Status</th>
+                      <th>Criada em</th>
+                      <th>Validade</th>
+                      <th>Conversão / cancelamento</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyPerfilReservas"><tr><td colspan="9">Carregando…</td></tr></tbody>
+                </table>
               </div>
-              <div class="row">
-                <div>
-                  <label for="loanId">Devolução total (ID do lote ou ID do empréstimo)</label>
-                  <input class="input" id="loanId" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ex.: 154">
-                  <div class="actions">
-                    <button class="btn" id="btnDevolverId" type="button">Registrar devolução total</button>
-                  </div>
-                  <div class="hint">Se for um lote ativo, todos os livros do lote serão devolvidos juntos.</div>
-                </div>
-                <div>
-                  <label for="loanSubIds">Devolução parcial (por sub-IDs)</label>
-                  <input class="input" id="loanSubIds" type="text" placeholder="154.1, 154.2">
-                  <div class="actions">
-                    <button class="btn" id="btnDevolverSubIds" type="button">Registrar devolução parcial</button>
-                  </div>
-                  <div class="hint">Use os sub-IDs mostrados na vista “Empréstimos por livro”.</div>
-                </div>
-              </div>
-              <div class="status" id="statusDev"></div>
             </div>
+
+            <div class="tab-pane hidden" id="paneEmprestimos">
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Sub-ID</th>
+                      <th>Livro</th>
+                      <th>Referência</th>
+                      <th>Rótulo</th>
+                      <th>Status</th>
+                      <th>Saída em</th>
+                      <th>Prazo</th>
+                      <th>Devolução efetiva</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyPerfilEmprestimos"><tr><td colspan="9">Carregando…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="status" id="statusPerfil"></div>
           </div>
-        </section>
-
-        <section id="tab-reservas" class="tab-panel" data-tab="reservas" role="tabpanel">
-          <div class="card">
-            <div class="section-head">
-              <div>
-                <h2>Reservas ativas</h2>
-                <div class="mini">Apenas reservas realmente ativas. Tudo aqui vem da mesma base que abastece a ficha do leitor.</div>
-              </div>
-              <div class="actions" style="margin-top:0">
-                <button class="btn primary" id="btnConfirmarSelecionados" type="button">Confirmar retirada (selecionados)</button>
-                <button class="btn" id="btnCancelarSelecionados" type="button">Cancelar (selecionados)</button>
-                <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
-              </div>
-            </div>
-            <div class="sep"></div>
-            <div class="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Selecionar</th>
-                    <th>Sub-ID</th>
-                    <th>Leitor(a/e)</th>
-                    <th>Livro</th>
-                    <th>Referência</th>
-                    <th>Rótulo</th>
-                    <th>Reserva</th>
-                    <th>Validade</th>
-                  </tr>
-                </thead>
-                <tbody id="tbodyRes"><tr><td colspan="8">Carregando…</td></tr></tbody>
-              </table>
-            </div>
-            <div class="status" id="statusRes"></div>
-          </div>
-        </section>
-
-        <section id="tab-emprestimos-livro" class="tab-panel" data-tab="emprestimos-livro" role="tabpanel">
-          <div class="card">
-            <div class="section-head">
-              <div>
-                <h2>Empréstimos ativos por livro</h2>
-                <div class="mini">Só o que está realmente em curso. Com ações por livro.</div>
-              </div>
-              <div class="actions" style="margin-top:0">
-                <button class="btn" id="btnRecarregarLoans" type="button">Recarregar</button>
-              </div>
-            </div>
-            <div class="sep"></div>
-            <div class="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Sub-ID</th>
-                    <th>Lote</th>
-                    <th>Leitor(a/e)</th>
-                    <th>Livro</th>
-                    <th>Referência</th>
-                    <th>Saída</th>
-                    <th>Prazo</th>
-                    <th>Situação</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="tbodyLoans"><tr><td colspan="9">Carregando…</td></tr></tbody>
-              </table>
-            </div>
-            <div class="status" id="statusLoans"></div>
-          </div>
-        </section>
-
-        <section id="tab-emprestimos-lote" class="tab-panel" data-tab="emprestimos-lote" role="tabpanel">
-          <div class="card">
-            <div class="section-head">
-              <div>
-                <h2>Empréstimos ativos por lote</h2>
-                <div class="mini">Sem histórico. Apenas lotes ainda abertos.</div>
-              </div>
-              <div class="actions" style="margin-top:0">
-                <button class="btn" id="btnRecarregarLotes" type="button">Recarregar</button>
-              </div>
-            </div>
-            <div class="sep"></div>
-            <div class="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Lote</th>
-                    <th>Leitor(a/e)</th>
-                    <th>Quantidade</th>
-                    <th>Sub-IDs</th>
-                    <th>Referências</th>
-                    <th>Saída</th>
-                    <th>Prazo</th>
-                    <th>Situação</th>
-                  </tr>
-                </thead>
-                <tbody id="tbodyBatches"><tr><td colspan="8">Carregando…</td></tr></tbody>
-              </table>
-            </div>
-            <div class="status" id="statusBatches"></div>
-          </div>
-        </section>
-
-        <section id="tab-leitor" class="tab-panel" data-tab="leitor" role="tabpanel">
-          <div class="card">
-            <div class="section-head">
-              <div>
-                <h2>Gerir leitor(a/e)</h2>
-                <div class="mini">Busca por e-mail e gestão coerente com as vistas de massa.</div>
-              </div>
-            </div>
-
-            <div class="row" style="margin-top:12px">
-              <div>
-                <label for="searchEmail">Buscar por e-mail</label>
-                <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org">
-                <div class="actions">
-                  <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
-                </div>
-              </div>
-              <div class="muted-box mini" style="display:flex;align-items:flex-end">Depois de carregar o perfil, os separadores abaixo permitem gerir dados, reservas e empréstimos ativos dessa pessoa.</div>
-            </div>
-
-            <div class="profile-layout hidden" id="profileArea">
-              <div class="tabs-col">
-                <button class="btn profile-tab-btn active" id="profileTabBtnDados" type="button">Dados</button>
-                <button class="btn profile-tab-btn" id="profileTabBtnReservas" type="button">Reservas</button>
-                <button class="btn profile-tab-btn" id="profileTabBtnEmprestimos" type="button">Empréstimos</button>
-              </div>
-
-              <div>
-                <div class="profile-pane active" id="profilePaneDados">
-                  <div class="row3">
-                    <div>
-                      <label for="editDisplayName">Nome exibido</label>
-                      <input class="input" id="editDisplayName" type="text" disabled>
-                    </div>
-                    <div>
-                      <label for="editSurname">Sobrenome (patronímico)</label>
-                      <input class="input" id="editSurname" type="text">
-                    </div>
-                    <div>
-                      <label for="editPhone">Telefone</label>
-                      <input class="input" id="editPhone" type="text">
-                    </div>
-                  </div>
-
-                  <div class="row3" style="margin-top:12px">
-                    <div>
-                      <label for="editAddress1">Endereço 1</label>
-                      <input class="input" id="editAddress1" type="text" placeholder="Rua, avenida, travessa...">
-                    </div>
-                     <div>
-                      <label for="editAddress2">Endereço 2</label>
-                      <input class="input" id="editAddress2" type="text" placeholder="Complemento, bairro, referência">
-                    </div>
-                    <div>
-                    <label for="editAddressNumber">Nº casa/apt.</label>
-                    <input class="input" id="editAddressNumber" type="text" placeholder="Número, casa, apt.">
-                    </div>            
-                  </div>
-
-                  <div class="row3" style="margin-top:12px">
-                    <div>
-                      <label for="editPostalCode">CEP</label>
-                      <input class="input" id="editPostalCode" type="text">
-                    </div>
-                    <div>
-                      <label for="editCity">Cidade</label>
-                      <input class="input" id="editCity" type="text">
-                    </div>
-                    <div>
-                      <label for="editCountry">País</label>
-                      <input class="input" id="editCountry" type="text">
-                    </div>
-                  </div>
-
-                  <div class="row" style="margin-top:12px">
-                    <div>
-                      <label for="editLibrarian">Função bibliotecária</label>
-                      <select class="select" id="editLibrarian">
-                        <option value="false">Não</option>
-                        <option value="true">Sim</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label for="editRestricted">Cadastro restrito</label>
-                      <select class="select" id="editRestricted">
-                        <option value="false">Não</option>
-                        <option value="true">Sim</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style="margin-top:12px">
-                    <label for="editRestrictedReason">Motivo da restrição</label>
-                    <textarea class="textarea" id="editRestrictedReason" placeholder="Motivo visível no cadastro, se houver."></textarea>
-                  </div>
-
-                  <div class="actions">
-                    <button class="btn primary" id="btnSalvarPerfil" type="button">Salvar alterações</button>
-                    <button class="btn" id="btnRecarregarPerfil" type="button">Recarregar perfil</button>
-                  </div>
-                </div>
-
-                <div class="profile-pane" id="profilePaneReservas">
-                  <div class="tableWrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Reserva</th>
-                          <th>Sub-ID</th>
-                          <th>Livro</th>
-                          <th>Referência</th>
-                          <th>Validade</th>
-                          <th>Situação</th>
-                          <th>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody id="tbodyPerfilReservas"><tr><td colspan="7">Carregando…</td></tr></tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div class="profile-pane" id="profilePaneEmprestimos">
-                  <div class="tableWrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Sub-ID</th>
-                          <th>Lote</th>
-                          <th>Livro</th>
-                          <th>Referência</th>
-                          <th>Saída</th>
-                          <th>Prazo</th>
-                          <th>Situação</th>
-                          <th>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody id="tbodyPerfilEmprestimos"><tr><td colspan="8">Carregando…</td></tr></tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div class="status" id="statusPerfil"></div>
-              </div>
-            </div>
-          </div>
-        </section>
+        </div>
       </div>
     </div>
   </div>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-    const $ = (id) => document.getElementById(id);
-    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
     const GH_BASE = location.origin;
     const ROUTES = {
@@ -512,971 +369,439 @@
     const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzcHRmbW9renlrd3psc2hzbmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzcxNzcsImV4cCI6MjA4ODExMzE3N30.JkMLHPCV2AH5ELZV_1RfcoW250QEofLGvnDKSDpkcn0";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
-    const statusTimers = new Map();
-    let session = null;
-    let isLibrarian = false;
-    let activeReservations = [];
-    let activeLoans = [];
-    let activeBatches = [];
-    let selectedReservaIds = new Set();
+    function $(id){ return document.getElementById(id); }
+
     let editingProfileId = null;
-    let editingProfileRow = null;
     let editingKnownColumns = {};
-    let refreshTimer = null;
 
-    function clearStatus(id){
+    function setStatus(id, msg, cls="") {
       const el = $(id);
-      if (!el) return;
-      el.className = 'status';
-      el.textContent = '';
-      if (statusTimers.has(id)) {
-        clearTimeout(statusTimers.get(id));
-        statusTimers.delete(id);
-      }
+      el.className = "status" + (cls ? " " + cls : "");
+      el.textContent = msg || "";
     }
 
-    function setStatus(id, msg='', cls='', autoclear=true){
-      const el = $(id);
-      if (!el) return;
-      if (statusTimers.has(id)) {
-        clearTimeout(statusTimers.get(id));
-        statusTimers.delete(id);
-      }
-      el.className = 'status' + (cls ? ` ${cls}` : '');
-      el.textContent = msg || '';
-      if (msg && autoclear) {
-        const t = setTimeout(() => {
-          el.className = 'status';
-          el.textContent = '';
-          statusTimers.delete(id);
-        }, 10000);
-        statusTimers.set(id, t);
-      }
-    }
+    function parseRefs(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
+    function parseSubIds(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
 
-    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const fmtDate = (v) => {
-      if (!v) return '—';
-      const s = String(v).slice(0,10);
-      return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : String(v);
-    };
-    const fmtDateTime = (v) => {
-      if (!v) return '—';
-      return String(v).replace('T',' ').slice(0,16);
-    };
-    const todayISO = () => new Date().toISOString().slice(0,10);
-    const nowISO = () => new Date().toISOString();
-    function addDays(dateLike, days){
-      const base = new Date(dateLike || Date.now());
-      base.setDate(base.getDate() + Number(days || 0));
-      return base.toISOString().slice(0,10);
-    }
-    function parseRefs(raw){ return Array.from(new Set(String(raw || '').split(',').map(s => s.trim()).filter(Boolean))); }
-    function parseSubIds(raw){ return Array.from(new Set(String(raw || '').split(',').map(s => s.trim()).filter(Boolean))); }
     function groupBy(items, keyFn){
-      const m = new Map();
+      const map = new Map();
       for (const item of items){
         const key = keyFn(item);
-        if (!m.has(key)) m.set(key, []);
-        m.get(key).push(item);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
       }
-      return m;
+      return map;
     }
-    function loanDaysByCount(n){ if (n === 1) return 21; if (n >= 2 && n <= 3) return 30; if (n >= 4 && n <= 5) return 38; return null; }
+
+    function loanDaysByCount(n){
+      if (n === 1) return 21;
+      if (n >= 2 && n <= 3) return 30;
+      if (n >= 4 && n <= 5) return 38;
+      return null;
+    }
+
     function refreshLoanHint(){
       const refs = parseRefs($("bibRefs").value);
       const hint = $("loanHint");
-      if (!refs.length) { hint.textContent = 'Digite de 1 a 5 referências separadas por vírgula.'; return; }
-      if (refs.length > 5) { hint.textContent = 'Máximo: 5 referências.'; return; }
+      if (!refs.length){ hint.textContent = "Digite de 1 a 5 referências separadas por vírgula."; return; }
+      if (refs.length > 5){ hint.textContent = "Máximo: 5 referências."; return; }
       const days = loanDaysByCount(refs.length);
-      hint.textContent = `Quantidade: ${refs.length}. Prazo: ${days} dias. Devolver até: ${addDays(todayISO(), days)}.`;
+      const due = new Date();
+      due.setDate(due.getDate() + days);
+      hint.textContent = `Quantidade: ${refs.length}. Prazo: ${days} dias. Devolver até: ${due.getFullYear()}-${String(due.getMonth()+1).padStart(2,"0")}-${String(due.getDate()).padStart(2,"0")}.`;
     }
-    $("bibRefs").addEventListener('input', refreshLoanHint);
+    $("bibRefs").addEventListener("input", refreshLoanHint);
     refreshLoanHint();
 
-    function profileName(row){
-      const candidate = row?.full_name || row?.name || row?.nome || row?.display_name || row?.surname || row?.sobrenome || row?.email || '—';
-      return String(candidate);
-    }
     function firstExistingKey(obj, candidates){
       for (const k of candidates){
-        if (obj && Object.prototype.hasOwnProperty.call(obj, k)) return k;
+        if (Object.prototype.hasOwnProperty.call(obj, k)) return k;
       }
       return null;
     }
-    function setChip(id, value){ const el = $(id); if (el) el.textContent = value; }
 
-    function setupMainTabs(){
-      const btns = $$('.tab-btn[data-tab]');
-      const panels = $$('.tab-panel[data-tab]');
-      function activate(tab){
-        btns.forEach((btn) => {
-          const active = btn.dataset.tab === tab;
-          btn.classList.toggle('active', active);
-          btn.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-        panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.tab === tab));
+    function showTab(name){
+      const names = ["Dados","Reservas","Emprestimos"];
+      for (const n of names){
+        $("tabBtn"+n).classList.toggle("active", n === name);
       }
-      btns.forEach((btn) => btn.addEventListener('click', () => activate(btn.dataset.tab)));
-      activate('acoes');
+      $("paneDados").classList.toggle("hidden", name !== "Dados");
+      $("paneReservas").classList.toggle("hidden", name !== "Reservas");
+      $("paneEmprestimos").classList.toggle("hidden", name !== "Emprestimos");
     }
-
-    function setupProfileTabs(){
-      const map = {
-        Dados: { btn: $('profileTabBtnDados'), pane: $('profilePaneDados') },
-        Reservas: { btn: $('profileTabBtnReservas'), pane: $('profilePaneReservas') },
-        Emprestimos: { btn: $('profileTabBtnEmprestimos'), pane: $('profilePaneEmprestimos') },
-      };
-      function activate(name){
-        Object.entries(map).forEach(([key, cfg]) => {
-          const active = key === name;
-          cfg.btn.classList.toggle('active', active);
-          cfg.pane.classList.toggle('active', active);
-        });
-      }
-      map.Dados.btn.addEventListener('click', () => activate('Dados'));
-      map.Reservas.btn.addEventListener('click', () => activate('Reservas'));
-      map.Emprestimos.btn.addEventListener('click', () => activate('Emprestimos'));
-      activate('Dados');
-      return activate;
-    }
-    const activateProfileTab = setupProfileTabs();
-    setupMainTabs();
+    $("tabBtnDados").addEventListener("click", () => showTab("Dados"));
+    $("tabBtnReservas").addEventListener("click", () => showTab("Reservas"));
+    $("tabBtnEmprestimos").addEventListener("click", () => showTab("Emprestimos"));
 
     async function requireSession(){
-      const { data: { session: sess } } = await supabase.auth.getSession();
-      if (!sess){ location.assign(ROUTES.CADASTRO); return null; }
-      return sess;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session){ location.assign(ROUTES.CADASTRO); return null; }
+      return session;
     }
+
     async function requireBibliotecaOrRedirect(){
-      const { data, error } = await supabase.rpc('fn_v2_is_biblioteca');
-      if (error){ setStatus('statusLoans', 'Não consegui verificar o acesso da biblioteca: ' + error.message, 'bad', false); return false; }
+      const { data, error } = await supabase.rpc("fn_v2_is_biblioteca");
+      if (error){ setStatus("statusLoans", "Não consegui verificar o acesso da biblioteca: " + error.message, "bad"); return false; }
       if (!data){ location.assign(ROUTES.CONTA); return false; }
       return true;
     }
-    async function fillHeader(){
-      setChip('chipEmail', 'E-mail: ' + (session?.user?.email || '—'));
-      setChip('chipFuncao', 'Função: bibliotecário(a/e) e leitor(a/e)');
-      $('helloLine').textContent = '';
-      $('btnModoLeitor').classList.toggle('hidden', !isLibrarian);
-    }
 
-    async function loadProfilesByIds(userIds){
-      const ids = Array.from(new Set((userIds || []).map((v) => String(v || '').trim()).filter(Boolean)));
-      if (!ids.length) return new Map();
-      const { data, error } = await supabase.from('profiles').select('*').in('id', ids);
-      if (error) throw error;
-      return new Map((data || []).map((row) => [String(row.id), row]));
-    }
-
-    async function loadBooksByBibRefs(refs){
-      const clean = Array.from(new Set((refs || []).map((r) => String(r || '').trim()).filter(Boolean)));
-      if (!clean.length) return new Map();
-      const { data, error } = await supabase.from('books').select('id,bib_ref,titulo,autor,editora,ano,loanable').in('bib_ref', clean);
-      if (error) throw error;
-      return new Map((data || []).map((row) => [String(row.bib_ref), row]));
-    }
-
-    function extractBook(row){
-      const b = Array.isArray(row?.books) ? row.books[0] : row?.books;
-      return b || null;
-    }
-
-    async function fetchActiveReservations(){
-      const { data, error } = await supabase
-        .from('reservas')
-        .select('id,bib_ref,user_id,created_at,status,fulfilled_at,fulfilled_loan_id,fulfilled_by,cancelled_at,cancelled_by,reserva_em,cancelled_by_role,cancelled_reason')
-        .eq('status', 'pending')
-        .is('fulfilled_at', null)
-        .is('cancelled_at', null)
-        .order('reserva_em', { ascending:false })
-        .order('created_at', { ascending:false })
-        .limit(500);
-      if (error) throw error;
-      const rows = data || [];
-      const booksMap = await loadBooksByBibRefs(rows.map((r) => r.bib_ref));
-      const profilesMap = await loadProfilesByIds(rows.map((r) => r.user_id));
-      activeReservations = rows.map((r) => {
-        const book = booksMap.get(String(r.bib_ref)) || {};
-        const user = profilesMap.get(String(r.user_id)) || {};
-        const created = r.reserva_em || r.created_at;
-        return {
-          id: Number(r.id),
-          reserva_id: Number(r.id),
-          sub_id: `${r.id}.1`,
-          line_no: 1,
-          source: 'reservas',
-          user_id: r.user_id,
-          user_name: profileName(user),
-          user_email: user.email || '—',
-          bib_ref: r.bib_ref,
-          titulo: book.titulo || `Referência ${r.bib_ref}`,
-          autor: book.autor || '',
-          rotulo: '—',
-          reserva_em: created,
-          validade: addDays(created || Date.now(), 14),
-          raw: r,
-        };
-      });
-      selectedReservaIds = new Set([...selectedReservaIds].filter((id) => activeReservations.some((r) => r.id === id)));
-    }
-
-    async function fetchActiveLoans(){
-      let data = null;
-      let error = null;
-      const q = await supabase
-        .from('loans')
-        .select('id,user_id,book_id,checkout_date,due_date,returned_date,created_at,batch_id,batch_size,extended_once,extended_at,reminder_sent_at,books(id,bib_ref,titulo,autor)')
-        .is('returned_date', null)
-        .order('created_at', { ascending:false })
-        .limit(800);
-      data = q.data; error = q.error;
-      if (error) throw error;
-
-      const rows = data || [];
-      const profilesMap = await loadProfilesByIds(rows.map((r) => r.user_id));
-      const groups = new Map();
-      for (const row of rows){
-        const batchKey = row.batch_id || `single-${row.id}`;
-        if (!groups.has(batchKey)) groups.set(batchKey, []);
-        groups.get(batchKey).push(row);
-      }
-
-      activeLoans = [];
-      activeBatches = [];
-
-      for (const [batchKey, items] of groups.entries()){
-        items.sort((a,b) => Number(a.id) - Number(b.id));
-        const lotLabel = String(Math.min(...items.map((x) => Number(x.id))));
-        const user = profilesMap.get(String(items[0]?.user_id || '')) || {};
-        const dueDates = items.map((x) => x.due_date).filter(Boolean).sort();
-        const checkouts = items.map((x) => x.checkout_date).filter(Boolean).sort();
-        const subIds = [];
-        const refs = [];
-        const statuses = [];
-
-        items.forEach((row, idx) => {
-          const book = extractBook(row) || {};
-          const due = row.due_date ? new Date(String(row.due_date) + 'T00:00:00') : null;
-          const today = new Date(todayISO() + 'T00:00:00');
-          const overdueDays = due ? Math.floor((today - due) / 86400000) : 0;
-          const statusText = overdueDays > 0 ? `Atrasado (${overdueDays} dia(s))` : (row.extended_once ? 'Renovado' : 'Em curso');
-          const statusClass = overdueDays > 0 ? 'bad' : (row.extended_once ? 'warn' : 'ok');
-          const subId = `${lotLabel}.${idx + 1}`;
-          subIds.push(subId);
-          if (book.bib_ref) refs.push(book.bib_ref);
-          statuses.push(statusText);
-          activeLoans.push({
-            id: Number(row.id),
-            loan_id: Number(row.id),
-            batch_key: batchKey,
-            batch_label: lotLabel,
-            sub_id: subId,
-            line_no: idx + 1,
-            user_id: row.user_id,
-            user_name: profileName(user),
-            user_email: user.email || '—',
-            titulo: book.titulo || 'Livro',
-            autor: book.autor || '',
-            bib_ref: book.bib_ref || '—',
-            checkout_date: row.checkout_date,
-            due_date: row.due_date,
-            returned_date: row.returned_date,
-            extended_once: !!row.extended_once,
-            can_renew: !row.extended_once && overdueDays <= 0,
-            status_text: statusText,
-            status_class: statusClass,
-            raw: row,
-          });
-        });
-
-        const isOverdue = items.some((row) => {
-          const due = row.due_date ? new Date(String(row.due_date) + 'T00:00:00') : null;
-          return due && due < new Date(todayISO() + 'T00:00:00');
-        });
-
-        activeBatches.push({
-          batch_key: batchKey,
-          batch_label: lotLabel,
-          user_id: items[0]?.user_id || null,
-          user_name: profileName(user),
-          user_email: user.email || '—',
-          quantity: items.length,
-          sub_ids: subIds,
-          bib_refs: refs,
-          checkout_date: checkouts[0] || null,
-          due_date: dueDates[dueDates.length - 1] || dueDates[0] || null,
-          status_text: isOverdue ? 'Com atraso' : 'Em curso',
-          status_class: isOverdue ? 'bad' : 'ok',
-          loan_ids: items.map((x) => Number(x.id)),
-        });
-      }
-
-      activeLoans.sort((a,b) => String(a.due_date || '').localeCompare(String(b.due_date || '')) || String(a.sub_id).localeCompare(String(b.sub_id)));
-      activeBatches.sort((a,b) => Number(a.batch_label) - Number(b.batch_label));
-    }
-
-    function renderReservationTable(){
-      const tbody = $('tbodyRes');
-      if (!activeReservations.length){
-        tbody.innerHTML = '<tr><td colspan="8">Sem reservas ativas.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = activeReservations.map((r) => {
-        const checked = selectedReservaIds.has(r.id) ? 'checked' : '';
-        return `
-          <tr class="clickable-row ${checked ? 'is-selected' : ''}" data-reserva-row="${r.id}">
-            <td><input type="checkbox" data-reserva-check="${r.id}" ${checked}></td>
-            <td class="mono">${esc(r.sub_id)}</td>
-            <td>${esc(r.user_name)}<br><span class="mini subtle">${esc(r.user_email)}</span></td>
-            <td>${esc(r.titulo)}${r.autor ? `<br><span class="mini subtle">${esc(r.autor)}</span>` : ''}</td>
-            <td class="mono">${esc(r.bib_ref)}</td>
-            <td class="mono">${esc(r.rotulo)}</td>
-            <td>#${esc(r.reserva_id)}</td>
-            <td>${esc(fmtDate(r.validade))}</td>
-          </tr>`;
-      }).join('');
-    }
-
-    function renderLoansTable(){
-      const tbody = $('tbodyLoans');
-      if (!activeLoans.length){
-        tbody.innerHTML = '<tr><td colspan="9">Sem empréstimos ativos.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = activeLoans.map((l) => `
-        <tr>
-          <td class="mono">${esc(l.sub_id)}</td>
-          <td class="mono">#${esc(l.batch_label)}</td>
-          <td>${esc(l.user_name)}<br><span class="mini subtle">${esc(l.user_email)}</span></td>
-          <td>${esc(l.titulo)}${l.autor ? `<br><span class="mini subtle">${esc(l.autor)}</span>` : ''}</td>
-          <td class="mono">${esc(l.bib_ref)}</td>
-          <td>${esc(fmtDate(l.checkout_date))}</td>
-          <td>${esc(fmtDate(l.due_date))}</td>
-          <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span></td>
-          <td>
-            <div class="actions" style="margin-top:0">
-              <button class="btn mini" type="button" data-renew-loan="${l.loan_id}" ${l.can_renew ? '' : 'disabled'}>Renovar</button>
-              <button class="btn mini" type="button" data-return-loan="${l.loan_id}">Devolver</button>
-            </div>
-          </td>
-        </tr>`).join('');
-    }
-
-    function renderBatchTable(){
-      const tbody = $('tbodyBatches');
-      if (!activeBatches.length){
-        tbody.innerHTML = '<tr><td colspan="8">Sem lotes ativos.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = activeBatches.map((b) => `
-        <tr>
-          <td class="mono">#${esc(b.batch_label)}</td>
-          <td>${esc(b.user_name)}<br><span class="mini subtle">${esc(b.user_email)}</span></td>
-          <td>${esc(b.quantity)}</td>
-          <td class="mono">${esc(b.sub_ids.join(', '))}</td>
-          <td class="mono">${esc(b.bib_refs.join(', '))}</td>
-          <td>${esc(fmtDate(b.checkout_date))}</td>
-          <td>${esc(fmtDate(b.due_date))}</td>
-          <td><span class="pill ${esc(b.status_class)}">${esc(b.status_text)}</span></td>
-        </tr>`).join('');
-    }
-
-    function renderCounts(){
-      setChip('chipResCount', `Reservas ativas: ${activeReservations.length}`);
-      setChip('chipLoanCount', `Empréstimos ativos: ${activeLoans.length}`);
-      setChip('chipBatchCount', `Lotes ativos: ${activeBatches.length}`);
-    }
-
-    async function refreshCollections({silent=false}={}){
-      if (!silent) {
-        $('tbodyRes').innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
-        $('tbodyLoans').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
-        $('tbodyBatches').innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
-      }
-      const res = await Promise.allSettled([fetchActiveReservations(), fetchActiveLoans()]);
-      if (res[0].status === 'fulfilled') {
-        renderReservationTable();
-        clearStatus('statusRes');
-      } else {
-        $('tbodyRes').innerHTML = '<tr><td colspan="8">Erro ao carregar reservas.</td></tr>';
-        setStatus('statusRes', res[0].reason?.message || String(res[0].reason || 'Erro ao carregar reservas.'), 'bad', false);
-      }
-      if (res[1].status === 'fulfilled') {
-        renderLoansTable();
-        renderBatchTable();
-        clearStatus('statusLoans');
-        clearStatus('statusBatches');
-      } else {
-        $('tbodyLoans').innerHTML = '<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>';
-        $('tbodyBatches').innerHTML = '<tr><td colspan="8">Erro ao carregar lotes.</td></tr>';
-        const msg = res[1].reason?.message || String(res[1].reason || 'Erro ao carregar empréstimos.');
-        setStatus('statusLoans', msg, 'bad', false);
-        setStatus('statusBatches', msg, 'bad', false);
-      }
-      renderCounts();
-      renderProfileLists();
-    }
-
-    function findProfileReservations(userId){
-      return activeReservations.filter((r) => String(r.user_id) === String(userId));
-    }
-    function findProfileLoans(userId){
-      return activeLoans.filter((l) => String(l.user_id) === String(userId));
-    }
-
-    function renderProfileLists(){
-      const tbodyRes = $('tbodyPerfilReservas');
-      const tbodyLoans = $('tbodyPerfilEmprestimos');
-      if (!editingProfileId){
-        tbodyRes.innerHTML = '<tr><td colspan="7">Busque um perfil primeiro.</td></tr>';
-        tbodyLoans.innerHTML = '<tr><td colspan="8">Busque um perfil primeiro.</td></tr>';
-        return;
-      }
-      const myRes = findProfileReservations(editingProfileId);
-      if (!myRes.length){
-        tbodyRes.innerHTML = '<tr><td colspan="7">Sem reservas ativas para esse perfil.</td></tr>';
-      } else {
-        tbodyRes.innerHTML = myRes.map((r) => `
-          <tr>
-            <td>#${esc(r.reserva_id)}</td>
-            <td class="mono">${esc(r.sub_id)}</td>
-            <td>${esc(r.titulo)}${r.autor ? `<br><span class="mini subtle">${esc(r.autor)}</span>` : ''}</td>
-            <td class="mono">${esc(r.bib_ref)}</td>
-            <td>${esc(fmtDate(r.validade))}</td>
-            <td><span class="pill ok">Ativa</span></td>
-            <td>
-              <div class="actions" style="margin-top:0">
-                <button class="btn mini" type="button" data-profile-confirm-reserva="${r.id}">Confirmar retirada</button>
-                <button class="btn mini" type="button" data-profile-cancel-reserva="${r.id}">Cancelar</button>
-              </div>
-            </td>
-          </tr>`).join('');
-      }
-      const myLoans = findProfileLoans(editingProfileId);
-      if (!myLoans.length){
-        tbodyLoans.innerHTML = '<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>';
-      } else {
-        tbodyLoans.innerHTML = myLoans.map((l) => `
-          <tr>
-            <td class="mono">${esc(l.sub_id)}</td>
-            <td class="mono">#${esc(l.batch_label)}</td>
-            <td>${esc(l.titulo)}${l.autor ? `<br><span class="mini subtle">${esc(l.autor)}</span>` : ''}</td>
-            <td class="mono">${esc(l.bib_ref)}</td>
-            <td>${esc(fmtDate(l.checkout_date))}</td>
-            <td>${esc(fmtDate(l.due_date))}</td>
-            <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span></td>
-            <td>
-              <div class="actions" style="margin-top:0">
-                <button class="btn mini" type="button" data-renew-loan="${l.loan_id}" ${l.can_renew ? '' : 'disabled'}>Renovar</button>
-                <button class="btn mini" type="button" data-return-loan="${l.loan_id}">Devolver</button>
-              </div>
-            </td>
-          </tr>`).join('');
-      }
-    }
-
-    async function loadProfileByEmail(email){
-      const { data, error } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
-      if (error) throw error;
-      if (!data?.id) throw new Error('Não encontrei esse e-mail no cadastro.');
-      editingProfileId = data.id;
-      editingProfileRow = data;
-      editingKnownColumns = {
-        display_name: firstExistingKey(data, ['full_name','name','nome','display_name']),
-        surname: firstExistingKey(data, ['surname','sobrenome','last_name','lastname']),
-        phone: firstExistingKey(data, ['phone','telefone']),
-        country: firstExistingKey(data, ['country','pais','país']),
-        address1: firstExistingKey(data, ['address_line1','endereco1','endereço1','address1','logradouro','rua']),
-        address_number: firstExistingKey(data, ['address_number','numero','número','num','house_number','street_number','address_no','address_num','apt','apartment','unit']),
-        address2: firstExistingKey(data, ['address_line2','endereco2','endereço2','address2','complemento','bairro']),
-        postal_code: firstExistingKey(data, ['postal_code','cep','zip','zipcode']),
-        city: firstExistingKey(data, ['city','cidade','municipio','município']),
-        is_librarian: firstExistingKey(data, ['is_librarian','bibliotecario','is_bibliotecario']),
-        is_restricted: firstExistingKey(data, ['is_restricted','restricted']),
-        restricted_reason: firstExistingKey(data, ['restricted_reason','motivo_restricao','motivo_restrição']),
-      };
-      $('editDisplayName').value = editingKnownColumns.display_name ? (data[editingKnownColumns.display_name] || '') : profileName(data);
-      $('editSurname').value = editingKnownColumns.surname ? (data[editingKnownColumns.surname] || '') : '';
-      $('editPhone').value = editingKnownColumns.phone ? (data[editingKnownColumns.phone] || '') : '';
-      $('editCountry').value = editingKnownColumns.country ? (data[editingKnownColumns.country] || '') : '';
-      $('editAddress1').value = editingKnownColumns.address1 ? (data[editingKnownColumns.address1] || '') : '';
-      $('editAddressNumber').value = editingKnownColumns.address_number ? (data[editingKnownColumns.address_number] || '') : '';
-      $('editAddress2').value = editingKnownColumns.address2 ? (data[editingKnownColumns.address2] || '') : '';
-      $('editPostalCode').value = editingKnownColumns.postal_code ? (data[editingKnownColumns.postal_code] || '') : '';
-      $('editCity').value = editingKnownColumns.city ? (data[editingKnownColumns.city] || '') : '';
-      $('editLibrarian').value = editingKnownColumns.is_librarian ? String(!!data[editingKnownColumns.is_librarian]) : 'false';
-      $('editRestricted').value = editingKnownColumns.is_restricted ? String(!!data[editingKnownColumns.is_restricted]) : 'false';
-      $('editRestrictedReason').value = editingKnownColumns.restricted_reason ? (data[editingKnownColumns.restricted_reason] || '') : '';
-      $('profileArea').classList.remove('hidden');
-      activateProfileTab('Dados');
-      renderProfileLists();
-    }
-
-    async function saveProfile(){
-      if (!editingProfileId) return setStatus('statusPerfil', 'Busque um perfil primeiro.', 'warn');
-      const payload = {};
-      if (editingKnownColumns.surname) payload[editingKnownColumns.surname] = $('editSurname').value.trim();
-      if (editingKnownColumns.phone) payload[editingKnownColumns.phone] = $('editPhone').value.trim();
-      if (editingKnownColumns.country) payload[editingKnownColumns.country] = $('editCountry').value.trim();
-      if (editingKnownColumns.address1) payload[editingKnownColumns.address1] = $('editAddress1').value.trim();
-      if (editingKnownColumns.address_number) payload[editingKnownColumns.address_number] = $('editAddressNumber').value.trim();
-      if (editingKnownColumns.address2) payload[editingKnownColumns.address2] = $('editAddress2').value.trim();
-      if (editingKnownColumns.postal_code) payload[editingKnownColumns.postal_code] = $('editPostalCode').value.trim();
-      if (editingKnownColumns.city) payload[editingKnownColumns.city] = $('editCity').value.trim();
-      if (editingKnownColumns.is_librarian) payload[editingKnownColumns.is_librarian] = $('editLibrarian').value === 'true';
-      if (editingKnownColumns.is_restricted) payload[editingKnownColumns.is_restricted] = $('editRestricted').value === 'true';
-      if (editingKnownColumns.restricted_reason) payload[editingKnownColumns.restricted_reason] = $('editRestrictedReason').value.trim();
-      if (!Object.keys(payload).length) return setStatus('statusPerfil', 'Nenhum campo compatível foi encontrado para atualização.', 'warn');
-      const { error } = await supabase.from('profiles').update(payload).eq('id', editingProfileId);
-      if (error) throw error;
-      setStatus('statusPerfil', 'Alterações salvas.', 'ok');
+    async function fillHeader(session){
+      const { data } = await supabase.rpc("fn_v2_is_biblioteca");
+      $("chipEmail").textContent = "E-mail: " + (session.user.email || "—");
+      $("chipFuncao").textContent = "Função: " + (data ? "bibliotecário(a/e) e leitor(a/e)" : "leitor(a/e)");
+      $("helloLine").textContent = "";
+      $("btnModoLeitor").classList.toggle("hidden", !data);
     }
 
     async function findUserByEmail(email){
-      const { data, error } = await supabase.from('profiles').select('id,email').eq('email', email).maybeSingle();
+      const { data, error } = await supabase.from("profiles").select("id,email").eq("email", email).maybeSingle();
       if (error) throw error;
-      if (!data?.id) throw new Error('E-mail não encontrado no cadastro.');
+      if (!data?.id) throw new Error("E-mail não encontrado no cadastro.");
       return data;
     }
 
+    $("btnRegistrarSaida").addEventListener("click", async () => {
+      setStatus("statusSaida", "");
+      const email = $("borrowerEmail").value.trim().toLowerCase();
+      const refs = parseRefs($("bibRefs").value);
+      if (!email) return setStatus("statusSaida", "Informe o e-mail do(a/e) leitor(a/e).", "warn");
+      if (!refs.length) return setStatus("statusSaida", "Informe pelo menos 1 referência.", "warn");
+      if (refs.length > 5) return setStatus("statusSaida", "Máximo: 5 referências.", "warn");
+      const bad = refs.find(r => !/^\d{7}$/.test(r));
+      if (bad) return setStatus("statusSaida", `Referência inválida: ${bad}. Use 7 dígitos.`, "warn");
 
-    function isMissingFunctionError(error){
-      const msg = String(error?.message || error || '');
-      return /function|does not exist|not exist|não existe|Could not find the function/i.test(msg);
-    }
-
-    async function loadBooksForLoanBibRefs(refs){
-      const clean = Array.from(new Set((refs || []).map((r) => String(r || '').trim()).filter(Boolean)));
-      if (!clean.length) throw new Error('Nenhum livro informado para o empréstimo.');
-      const { data, error } = await supabase
-        .from('books')
-        .select('id,bib_ref,titulo,loanable')
-        .in('bib_ref', clean);
-      if (error) throw error;
-      const rows = data || [];
-      const byRef = new Map(rows.map((row) => [String(row.bib_ref), row]));
-      const missing = clean.filter((ref) => !byRef.has(ref));
-      if (missing.length) throw new Error('Livros não encontrados para empréstimo: ' + missing.join(', '));
-      const unloanable = clean.filter((ref) => byRef.get(ref)?.loanable !== true);
-      if (unloanable.length) throw new Error('Livros indisponíveis para empréstimo: ' + unloanable.join(', '));
-      return clean.map((ref) => byRef.get(ref));
-    }
-
-    async function ensureBooksCurrentlyAvailable(bookIds, bibRefs){
-      const ids = Array.from(new Set((bookIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
-      if (!ids.length) return;
-      const { data, error } = await supabase
-        .from('loans')
-        .select('id,book_id,user_id')
-        .in('book_id', ids)
-        .is('returned_date', null);
-      if (error) throw error;
-      const openByBook = new Set((data || []).map((row) => Number(row.book_id)));
-      const unavailable = [];
-      ids.forEach((bookId, idx) => {
-        if (openByBook.has(bookId)) unavailable.push(bibRefs[idx]);
-      });
-      if (unavailable.length) throw new Error('Livros indisponíveis para empréstimo: ' + unavailable.join(', '));
-    }
-
-    async function countOpenLoansForUser(userId){
-      const { count, error } = await supabase
-        .from('loans')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .is('returned_date', null);
-      if (error) throw error;
-      return Number(count || 0);
-    }
-
-    async function insertCurrentLoansForUser(userId, bibRefs, note='Saída registrada no painel.', dueAt=null){
-      const books = await loadBooksForLoanBibRefs(bibRefs);
-      const cleanRefs = books.map((b) => String(b.bib_ref));
-      await ensureBooksCurrentlyAvailable(books.map((b) => b.id), cleanRefs);
-      const openCount = await countOpenLoansForUser(userId);
-      if (openCount + books.length > 5) {
-        throw new Error('Limite de empréstimos ativos = 5: devolva algo antes de registrar nova saída.');
-      }
-      const dueDate = dueAt || addDays(todayISO(), loanDaysByCount(books.length));
-      const batchId = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
-        ? globalThis.crypto.randomUUID()
-        : `batch-${Date.now()}-${Math.random().toString(36).slice(2,10)}`;
-      const payload = books.map((book) => ({
-        user_id: userId,
-        book_id: book.id,
-        checkout_date: todayISO(),
-        due_date: dueDate,
-        batch_id: batchId,
-        batch_size: books.length,
-        extended_once: false
-      }));
-      const { data, error } = await supabase
-        .from('loans')
-        .insert(payload)
-        .select('id,batch_id,due_date');
-      if (error) throw error;
-      return { loanIds: (data || []).map((row) => Number(row.id)).filter(Boolean), batchId, dueDate };
-    }
-
-    async function confirmReservationToLoan(reservaId){
-      const rpcRes = await supabase.rpc('fn_confirm_reserva_to_loan', { p_reserva_id: reservaId, p_due_at: null });
-      if (!rpcRes.error) {
-        return Number(Array.isArray(rpcRes.data) ? rpcRes.data[0] : rpcRes.data);
-      }
-      if (!isMissingFunctionError(rpcRes.error)) throw rpcRes.error;
-
-      const { data: reserva, error: reservaError } = await supabase
-        .from('reservas')
-        .select('id,bib_ref,user_id,status,fulfilled_at,cancelled_at')
-        .eq('id', reservaId)
-        .maybeSingle();
-      if (reservaError) throw reservaError;
-      if (!reserva?.id) throw new Error(`Reserva ${reservaId} não encontrada.`);
-      if (reserva.status !== 'pending' || reserva.fulfilled_at || reserva.cancelled_at) {
-        throw new Error(`Reserva ${reservaId} não está pendente.`);
-      }
-
-      const result = await insertCurrentLoansForUser(reserva.user_id, [reserva.bib_ref], 'Retirada presencial confirmada no painel.', null);
-      const createdLoanId = Number(result.loanIds?.[0] || 0);
-      if (!createdLoanId) throw new Error(`Não consegui criar o empréstimo para a reserva ${reservaId}.`);
-
-      const { data: updatedRows, error: updateError } = await supabase
-        .from('reservas')
-        .update({
-          status: 'fulfilled',
-          fulfilled_at: nowISO(),
-          fulfilled_loan_id: createdLoanId,
-          fulfilled_by: session?.user?.id || null
-        })
-        .eq('id', reservaId)
-        .eq('status', 'pending')
-        .select('id');
-      if (updateError) {
-        await supabase.from('loans').update({ returned_date: todayISO() }).eq('id', createdLoanId).is('returned_date', null);
-        throw updateError;
-      }
-      if (!(updatedRows || []).length) {
-        await supabase.from('loans').update({ returned_date: todayISO() }).eq('id', createdLoanId).is('returned_date', null);
-        throw new Error(`A reserva ${reservaId} mudou de estado antes da confirmação.`);
-      }
-      return createdLoanId;
-    }
-
-    async function registerLoan(){
-      clearStatus('statusSaida');
-      const email = $('borrowerEmail').value.trim().toLowerCase();
-      const refs = parseRefs($('bibRefs').value);
-      if (!email) return setStatus('statusSaida', 'Informe o e-mail do(a/e) leitor(a/e).', 'warn');
-      if (!refs.length) return setStatus('statusSaida', 'Informe pelo menos 1 referência.', 'warn');
-      if (refs.length > 5) return setStatus('statusSaida', 'Máximo: 5 referências.', 'warn');
-      const bad = refs.find((r) => !/^\d{7}$/.test(r));
-      if (bad) return setStatus('statusSaida', `Referência inválida: ${bad}. Use 7 dígitos.`, 'warn');
-      $('btnRegistrarSaida').disabled = true;
-      try {
+      $("btnRegistrarSaida").disabled = true;
+      try{
         const borrower = await findUserByEmail(email);
-        const result = await insertCurrentLoansForUser(borrower.id, refs, 'Saída registrada no painel.', null);
-        const lotLabel = result.loanIds.length ? Math.min(...result.loanIds) : '—';
-        setStatus('statusSaida', `Saída registrada. Lote: ${lotLabel}. Prazo: ${fmtDate(result.dueDate)}.`, 'ok');
-        $('bibRefs').value = '';
-        refreshLoanHint();
-        await refreshCollections({silent:true});
-      } catch (e) {
-        setStatus('statusSaida', e.message || String(e), 'bad', false);
-      } finally {
-        $('btnRegistrarSaida').disabled = false;
-      }
-    }
-
-    async function markLoansReturned(loanIds, note='Devolução registrada no painel.'){
-      const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
-      if (!ids.length) return 0;
-
-      const rpc = await supabase.rpc('fn_return_loans_by_ids', {
-        p_loan_ids: ids,
-        p_notes: note
-      });
-      if (!rpc.error) return Number(rpc.data || 0) || 0;
-
-      const msg = String(rpc.error?.message || '');
-      if (!/function|not exist|não existe/i.test(msg)) throw rpc.error;
-
-      const { data, error } = await supabase
-        .from('loans')
-        .update({ returned_date: todayISO() })
-        .in('id', ids)
-        .is('returned_date', null)
-        .select('id');
-      if (error) throw error;
-      return (data || []).length;
-    }
-
-    async function returnTotalById(){
-      clearStatus('statusDev');
-      const raw = ($('loanId').value || '').trim();
-      const id = Number(raw);
-      if (!Number.isFinite(id) || id <= 0) return setStatus('statusDev', 'Informe um ID válido.', 'warn');
-      $('btnDevolverId').disabled = true;
-      try {
-        const batch = activeBatches.find((b) => Number(b.batch_label) === id);
-        const single = activeLoans.find((l) => Number(l.loan_id) === id);
-        let count = 0;
-        if (batch) {
-          count = await markLoansReturned(batch.loan_ids);
-        } else if (single) {
-          count = await markLoansReturned([single.loan_id]);
-        } else {
-          const rpc = await supabase.rpc('fn_v2_return_emprestimo_total', { p_emprestimo_id: id, p_notes: 'Devolução total registrada no painel.' });
-          if (rpc.error) throw rpc.error;
-          count = Number(rpc.data || 0) || 0;
-        }
-        setStatus('statusDev', `Devolução total registrada. Itens processados: ${count}.`, 'ok');
-        await refreshCollections({silent:true});
-      } catch (e) {
-        setStatus('statusDev', e.message || String(e), 'bad', false);
-      } finally {
-        $('btnDevolverId').disabled = false;
-      }
-    }
-
-    async function returnPartialBySubIds(){
-      clearStatus('statusDev');
-      const subIds = parseSubIds($('loanSubIds').value);
-      if (!subIds.length) return setStatus('statusDev', 'Informe pelo menos 1 sub-ID.', 'warn');
-      $('btnDevolverSubIds').disabled = true;
-      try {
-        const found = [];
-        const missing = [];
-        subIds.forEach((sub) => {
-          const row = activeLoans.find((l) => l.sub_id === sub);
-          if (row) found.push(row.loan_id); else missing.push(sub);
+        const { data, error } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
+          p_user_id: borrower.id, p_bib_refs: refs, p_due_at: null, p_notes: "Saída registrada no painel."
         });
-        if (missing.length) {
-          const parsed = missing.map((s) => {
-            const m = s.match(/^(\d+)\.(\d+)$/);
-            return m ? { emprestimo_id:Number(m[1]), line_no:Number(m[2]) } : null;
-          });
-          if (parsed.some((x) => !x)) throw new Error('Formato inválido. Use, por exemplo: 154.2');
-          const groups = groupBy(parsed.filter(Boolean), (x) => x.emprestimo_id);
-          let rpcCount = 0;
-          if (found.length) rpcCount += await markLoansReturned(found);
-          for (const [emprestimoId, items] of groups.entries()) {
-            const lineNos = items.map((i) => i.line_no);
-            const rpc = await supabase.rpc('fn_v2_return_emprestimo_linhas', { p_emprestimo_id:Number(emprestimoId), p_line_nos:lineNos, p_notes:'Devolução parcial registrada no painel.' });
-            if (rpc.error) throw rpc.error;
-            rpcCount += Number(rpc.data || 0) || 0;
-          }
-          setStatus('statusDev', `Devolução parcial registrada. Itens processados: ${rpcCount}.`, 'ok');
-        } else {
-          const total = await markLoansReturned(found);
-          setStatus('statusDev', `Devolução parcial registrada. Itens processados: ${total}.`, 'ok');
-        }
-        await refreshCollections({silent:true});
-      } catch (e) {
-        setStatus('statusDev', e.message || String(e), 'bad', false);
-      } finally {
-        $('btnDevolverSubIds').disabled = false;
-      }
-    }
-
-    async function renewLoan(loanId, targetStatusId='statusLoans'){
-      try {
-        setStatus(targetStatusId, 'Processando renovação...', 'warn');
-        let res = await supabase.rpc('renew_loan', { p_loan_id: loanId });
-        if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ''))) {
-          res = await supabase.rpc('extend_loan_once', { p_loan_id: loanId });
-        }
-        if (res.error) throw res.error;
-        const row = Array.isArray(res.data) ? res.data[0] : res.data;
-        const newDue = row?.due_date || row?.new_due_date;
-        const message = row?.message || (newDue ? 'Renovação aplicada.' : 'Renovação concluída.');
-        setStatus(targetStatusId, message + (newDue ? ` Nova devolução: ${fmtDate(newDue)}.` : ''), 'ok');
-        await refreshCollections({silent:true});
-      } catch (e) {
-        setStatus(targetStatusId, 'Erro ao renovar: ' + (e.message || String(e)), 'bad', false);
-      }
-    }
-
-    async function confirmReservations(reservationIds){
-      const ids = Array.from(new Set((reservationIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
-      if (!ids.length) return setStatus('statusRes', 'Selecione pelo menos 1 livro reservado.', 'warn');
-      const rows = activeReservations.filter((r) => ids.includes(r.id));
-      if (!rows.length) return setStatus('statusRes', 'As reservas selecionadas já não estão ativas.', 'warn');
-      $('btnConfirmarSelecionados').disabled = true;
-      try {
-        const created = [];
-        for (const row of rows) {
-          const loanId = await confirmReservationToLoan(row.id);
-          created.push(loanId);
-        }
-        selectedReservaIds = new Set();
-        setStatus('statusRes', `Retirada confirmada. Empréstimo(s) criado(s): ${created.join(', ')}.`, 'ok');
-        await refreshCollections({silent:true});
-      } catch (e) {
-        setStatus('statusRes', e.message || String(e), 'bad', false);
-      } finally {
-        $('btnConfirmarSelecionados').disabled = false;
-      }
-    }
-
-    async function cancelReservations(reservationIds){
-      const ids = Array.from(new Set((reservationIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
-      if (!ids.length) return setStatus('statusRes', 'Selecione pelo menos 1 livro reservado.', 'warn');
-      $('btnCancelarSelecionados').disabled = true;
-      try {
-        const payload = {
-          status: 'cancelled',
-          cancelled_at: nowISO(),
-          cancelled_by: session.user.id,
-          cancelled_by_role: 'biblioteca',
-          cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
-        };
-        const { error } = await supabase.from('reservas').update(payload).in('id', ids).eq('status', 'pending');
         if (error) throw error;
-        selectedReservaIds = new Set([...selectedReservaIds].filter((id) => !ids.includes(id)));
-        setStatus('statusRes', `Livro(s) cancelado(s): ${ids.length}.`, 'ok');
-        await refreshCollections({silent:true});
+        setStatus("statusSaida", `Empréstimo ${data} registrado com ${refs.length} livro(s).`, "ok");
+        $("bibRefs").value = "";
+        refreshLoanHint();
+        await loadEmprestimosAbertos();
       } catch (e) {
-        setStatus('statusRes', e.message || String(e), 'bad', false);
+        setStatus("statusSaida", e.message || String(e), "bad");
       } finally {
-        $('btnCancelarSelecionados').disabled = false;
+        $("btnRegistrarSaida").disabled = false;
       }
-    }
+    });
 
-    function bindReservationSelection(){
-      $('tbodyRes').addEventListener('click', (ev) => {
-        const check = ev.target.closest('[data-reserva-check]');
-        if (check) {
-          const id = Number(check.getAttribute('data-reserva-check'));
-          if (check.checked) selectedReservaIds.add(id); else selectedReservaIds.delete(id);
-          renderReservationTable();
-          return;
-        }
-        const row = ev.target.closest('[data-reserva-row]');
-        if (!row) return;
-        const id = Number(row.getAttribute('data-reserva-row'));
-        if (!Number.isFinite(id)) return;
-        if (selectedReservaIds.has(id)) selectedReservaIds.delete(id); else selectedReservaIds.add(id);
-        renderReservationTable();
-      });
-    }
+    $("btnDevolverId").addEventListener("click", async () => {
+      setStatus("statusDev", "");
+      const id = Number(($("loanId").value || "").trim());
+      if (!Number.isFinite(id) || id <= 0) return setStatus("statusDev", "Informe um ID válido.", "warn");
 
-    function bindDynamicActions(){
-      document.body.addEventListener('click', async (ev) => {
-        const renewBtn = ev.target.closest('[data-renew-loan]');
-        if (renewBtn) {
-          const loanId = Number(renewBtn.getAttribute('data-renew-loan'));
-          if (!loanId || renewBtn.disabled) return;
-          renewBtn.disabled = true;
-          const target = renewBtn.closest('#profilePaneEmprestimos') ? 'statusPerfil' : 'statusLoans';
-          await renewLoan(loanId, target);
-          renewBtn.disabled = false;
-          return;
-        }
-        const returnBtn = ev.target.closest('[data-return-loan]');
-        if (returnBtn) {
-          const loanId = Number(returnBtn.getAttribute('data-return-loan'));
-          if (!loanId) return;
-          returnBtn.disabled = true;
-          try {
-            const total = await markLoansReturned([loanId]);
-            const target = returnBtn.closest('#profilePaneEmprestimos') ? 'statusPerfil' : 'statusLoans';
-            setStatus(target, `Devolução registrada. Itens processados: ${total}.`, 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            const target = returnBtn.closest('#profilePaneEmprestimos') ? 'statusPerfil' : 'statusLoans';
-            setStatus(target, e.message || String(e), 'bad', false);
-          } finally {
-            returnBtn.disabled = false;
-          }
-          return;
-        }
-        const confirmProfile = ev.target.closest('[data-profile-confirm-reserva]');
-        if (confirmProfile) {
-          const id = Number(confirmProfile.getAttribute('data-profile-confirm-reserva'));
-          if (!id) return;
-          confirmProfile.disabled = true;
-          await confirmReservations([id]);
-          renderProfileLists();
-          confirmProfile.disabled = false;
-          return;
-        }
-        const cancelProfile = ev.target.closest('[data-profile-cancel-reserva]');
-        if (cancelProfile) {
-          const id = Number(cancelProfile.getAttribute('data-profile-cancel-reserva'));
-          if (!id) return;
-          cancelProfile.disabled = true;
-          await cancelReservations([id]);
-          renderProfileLists();
-          cancelProfile.disabled = false;
-        }
-      });
-    }
-
-    $('btnRegistrarSaida').addEventListener('click', registerLoan);
-    $('btnDevolverId').addEventListener('click', returnTotalById);
-    $('btnDevolverSubIds').addEventListener('click', returnPartialBySubIds);
-    $('btnConfirmarSelecionados').addEventListener('click', () => confirmReservations([...selectedReservaIds]));
-    $('btnCancelarSelecionados').addEventListener('click', () => cancelReservations([...selectedReservaIds]));
-    $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
-    $('btnRecarregarLoans').addEventListener('click', () => refreshCollections());
-    $('btnRecarregarLotes').addEventListener('click', () => refreshCollections());
-    $('btnBuscarPerfil').addEventListener('click', async () => {
-      clearStatus('statusPerfil');
-      const email = $('searchEmail').value.trim().toLowerCase();
-      if (!email) return setStatus('statusPerfil', 'Informe um e-mail.', 'warn');
-      $('btnBuscarPerfil').disabled = true;
-      try {
-        await loadProfileByEmail(email);
-        setStatus('statusPerfil', 'Perfil carregado.', 'ok');
+      $("btnDevolverId").disabled = true;
+      try{
+        const { data, error } = await supabase.rpc("fn_v2_return_emprestimo_total", {
+          p_emprestimo_id: id, p_notes: "Devolução total registrada no painel."
+        });
+        if (error) throw error;
+        setStatus("statusDev", `Devolução total registrada. Itens processados: ${data}.`, "ok");
+        await loadEmprestimosAbertos();
       } catch (e) {
-        setStatus('statusPerfil', e.message || String(e), 'bad', false);
+        setStatus("statusDev", e.message || String(e), "bad");
       } finally {
-        $('btnBuscarPerfil').disabled = false;
+        $("btnDevolverId").disabled = false;
       }
     });
-    $('btnSalvarPerfil').addEventListener('click', async () => {
-      $('btnSalvarPerfil').disabled = true;
-      try { await saveProfile(); }
-      catch (e) { setStatus('statusPerfil', e.message || String(e), 'bad', false); }
-      finally { $('btnSalvarPerfil').disabled = false; }
-    });
-    $('btnRecarregarPerfil').addEventListener('click', async () => {
-      if (!editingProfileRow?.email) return setStatus('statusPerfil', 'Busque um perfil primeiro.', 'warn');
-      try {
-        await loadProfileByEmail(editingProfileRow.email);
-        await refreshCollections({silent:true});
-        setStatus('statusPerfil', 'Perfil recarregado.', 'ok');
+
+    $("btnDevolverSubIds").addEventListener("click", async () => {
+      setStatus("statusDev", "");
+      const subIds = parseSubIds($("loanSubIds").value);
+      if (!subIds.length) return setStatus("statusDev", "Informe pelo menos 1 sub-ID.", "warn");
+      const parsed = subIds.map(s => {
+        const m = s.match(/^(\d+)\.(\d+)$/);
+        return m ? { emprestimo_id:Number(m[1]), line_no:Number(m[2]) } : null;
+      });
+      if (parsed.some(x => !x)) return setStatus("statusDev", "Formato inválido. Use, por exemplo: 154.2", "warn");
+      const groups = groupBy(parsed, x => x.emprestimo_id);
+
+      $("btnDevolverSubIds").disabled = true;
+      try{
+        let total = 0;
+        for (const [emprestimoId, items] of groups.entries()){
+          const lineNos = items.map(i => i.line_no);
+          const { data, error } = await supabase.rpc("fn_v2_return_emprestimo_linhas", {
+            p_emprestimo_id: Number(emprestimoId), p_line_nos: lineNos, p_notes: "Devolução parcial registrada no painel."
+          });
+          if (error) throw error;
+          total += Number(data || 0);
+        }
+        setStatus("statusDev", `Devolução parcial registrada. Itens processados: ${total}.`, "ok");
+        await loadEmprestimosAbertos();
       } catch (e) {
-        setStatus('statusPerfil', e.message || String(e), 'bad', false);
+        setStatus("statusDev", e.message || String(e), "bad");
+      } finally {
+        $("btnDevolverSubIds").disabled = false;
       }
     });
-    $('btnSair').addEventListener('click', async () => {
-      $('btnSair').disabled = true;
-      try { await supabase.auth.signOut(); location.assign(ROUTES.CADASTRO); }
-      finally { $('btnSair').disabled = false; }
-    });
 
-    bindReservationSelection();
-    bindDynamicActions();
-
-    function setupRefreshHooks(){
-      if (refreshTimer) clearInterval(refreshTimer);
-      refreshTimer = setInterval(() => refreshCollections({silent:true}), 30000);
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshCollections({silent:true}); });
-      window.addEventListener('focus', () => refreshCollections({silent:true}));
+    function getSelectedReservaRows(){
+      return Array.from(document.querySelectorAll("input[data-reserva-item]:checked")).map(el => ({
+        reserva_id: Number(el.getAttribute("data-reserva-id")),
+        line_no: Number(el.getAttribute("data-line-no"))
+      }));
     }
 
-    session = await requireSession();
+    $("btnConfirmarSelecionados").addEventListener("click", async () => {
+      setStatus("statusRes", "");
+      const rows = getSelectedReservaRows();
+      if (!rows.length) return setStatus("statusRes", "Selecione pelo menos 1 livro reservado.", "warn");
+      const groups = groupBy(rows, x => x.reserva_id);
+
+      $("btnConfirmarSelecionados").disabled = true;
+      try{
+        const created = [];
+        for (const [reservaId, items] of groups.entries()){
+          const lineNos = items.map(i => i.line_no);
+          const { data, error } = await supabase.rpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
+            p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
+          });
+          if (error) throw error;
+          created.push(data);
+        }
+        setStatus("statusRes", `Retirada confirmada. Empréstimo(s) criado(s): ${created.join(", ")}.`, "ok");
+        await loadReservasAtivas();
+        await loadEmprestimosAbertos();
+      } catch (e) {
+        setStatus("statusRes", e.message || String(e), "bad");
+      } finally {
+        $("btnConfirmarSelecionados").disabled = false;
+      }
+    });
+
+    $("btnCancelarSelecionados").addEventListener("click", async () => {
+      setStatus("statusRes", "");
+      const rows = getSelectedReservaRows();
+      if (!rows.length) return setStatus("statusRes", "Selecione pelo menos 1 livro reservado.", "warn");
+      const groups = groupBy(rows, x => x.reserva_id);
+
+      $("btnCancelarSelecionados").disabled = true;
+      try{
+        let total = 0;
+        for (const [reservaId, items] of groups.entries()){
+          const lineNos = items.map(i => i.line_no);
+          const { data, error } = await supabase.rpc("fn_v2_cancel_reserva_linhas_as_biblioteca", {
+            p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_notes: "Cancelamento registrado pela biblioteca no painel."
+          });
+          if (error) throw error;
+          total += Number(data || 0);
+        }
+        setStatus("statusRes", `Livro(s) cancelado(s): ${total}.`, "ok");
+        await loadReservasAtivas();
+      } catch (e) {
+        setStatus("statusRes", e.message || String(e), "bad");
+      } finally {
+        $("btnCancelarSelecionados").disabled = false;
+      }
+    });
+
+    async function loadUsersByIds(userIds){
+      if (!userIds.length) return new Map();
+      const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", userIds);
+      if (error) throw error;
+      return new Map((data || []).map(x => [String(x.id), x]));
+    }
+
+    async function loadReservasAtivas(){
+      setStatus("statusRes", "");
+      const tbody = $("tbodyRes");
+      tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
+      const { data, error } = await supabase.from("v_reserva_itens_v2_ui").select("*").eq("item_status", "ativa").order("reserva_id", { ascending: true }).order("line_no", { ascending: true }).limit(500);
+      if (error){ tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar reservas.</td></tr>`; return setStatus("statusRes", error.message, "bad"); }
+      if (!data?.length){ tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`; return; }
+
+      const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
+      tbody.innerHTML = data.map(r => {
+        const u = userMap.get(String(r.user_id)) || {};
+        const who = `${u.full_name || "—"}<br><span class="mini subtle">${u.email || "—"}</span>`;
+        const expires = r.expires_at ? String(r.expires_at).slice(0,10) : "—";
+        return `<tr>
+          <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${r.reserva_id}" data-line-no="${r.line_no}"></td>
+          <td class="mono">${r.sub_id}</td>
+          <td>${who}</td>
+          <td>${r.titulo || "—"}</td>
+          <td class="mono">${r.bib_ref || "—"}</td>
+          <td class="mono">${r.rotulo || "—"}</td>
+          <td>#${r.reserva_id}</td>
+          <td>${expires}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadEmprestimosAbertos(){
+      setStatus("statusLoans", "");
+      const tbody = $("tbodyLoans");
+      tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
+      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("item_status", "aberto").order("emprestimo_id", { ascending: true }).order("line_no", { ascending: true }).limit(500);
+      if (error){ tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar empréstimos.</td></tr>`; return setStatus("statusLoans", error.message, "bad"); }
+      if (!data?.length){ tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos abertos.</td></tr>`; return; }
+
+      const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
+      tbody.innerHTML = data.map(r => {
+        const u = userMap.get(String(r.user_id)) || {};
+        const who = `${u.full_name || "—"}<br><span class="mini subtle">${u.email || "—"}</span>`;
+        return `<tr>
+          <td class="mono">${r.sub_id}</td>
+          <td>${who}</td>
+          <td>${r.titulo || "—"}</td>
+          <td class="mono">${r.bib_ref || "—"}</td>
+          <td class="mono">${r.rotulo || "—"}</td>
+          <td>#${r.emprestimo_id}</td>
+          <td>${r.due_at || "—"}</td>
+          <td>${r.emprestimo_status || "—"}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadProfileReservations(userId){
+      const tbody = $("tbodyPerfilReservas");
+      tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
+      const { data, error } = await supabase.from("v_reserva_itens_v2_ui").select("*").eq("user_id", userId).order("reserva_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
+      if (error){
+        tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar reservas.</td></tr>`;
+        return;
+      }
+      if (!data?.length){
+        tbody.innerHTML = `<tr><td colspan="9">Sem reservas para esse perfil.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(r => {
+        const endAction = r.converted_at ? String(r.converted_at).slice(0,19).replace("T"," ") : (r.cancelled_at ? String(r.cancelled_at).slice(0,19).replace("T"," ") : "—");
+        return `<tr>
+          <td>#${r.reserva_id}</td>
+          <td class="mono">${r.sub_id}</td>
+          <td>${r.titulo || "—"}</td>
+          <td class="mono">${r.bib_ref || "—"}</td>
+          <td class="mono">${r.rotulo || "—"}</td>
+          <td>${r.item_status || "—"}</td>
+          <td>${r.reserva_created_at ? String(r.reserva_created_at).slice(0,19).replace("T"," ") : "—"}</td>
+          <td>${r.expires_at ? String(r.expires_at).slice(0,19).replace("T"," ") : "—"}</td>
+          <td>${endAction}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadProfileLoans(userId){
+      const tbody = $("tbodyPerfilEmprestimos");
+      tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
+      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("user_id", userId).order("emprestimo_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
+      if (error){
+        tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`;
+        return;
+      }
+      if (!data?.length){
+        tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos para esse perfil.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(r => `<tr>
+        <td>#${r.emprestimo_id}</td>
+        <td class="mono">${r.sub_id}</td>
+        <td>${r.titulo || "—"}</td>
+        <td class="mono">${r.bib_ref || "—"}</td>
+        <td class="mono">${r.rotulo || "—"}</td>
+        <td>${r.item_status || "—"}</td>
+        <td>${r.emprestimo_created_at ? String(r.emprestimo_created_at).slice(0,19).replace("T"," ") : "—"}</td>
+        <td>${r.due_at || "—"}</td>
+        <td>${r.returned_at ? String(r.returned_at).slice(0,19).replace("T"," ") : "—"}</td>
+      </tr>`).join("");
+    }
+
+    $("btnRecarregarRes").addEventListener("click", loadReservasAtivas);
+    $("btnRecarregarLoans").addEventListener("click", loadEmprestimosAbertos);
+
+    $("btnBuscarPerfil").addEventListener("click", async () => {
+      setStatus("statusPerfil", "");
+      const email = $("searchEmail").value.trim().toLowerCase();
+      if (!email) return setStatus("statusPerfil", "Informe um e-mail.", "warn");
+
+      $("btnBuscarPerfil").disabled = true;
+      try{
+        const { data, error } = await supabase.from("profiles").select("*").eq("email", email).maybeSingle();
+        if (error) throw error;
+        if (!data?.id) return setStatus("statusPerfil", "Não encontrei esse e-mail no cadastro.", "warn");
+
+        editingProfileId = data.id;
+        editingKnownColumns = {
+          surname: firstExistingKey(data, ["surname","sobrenome","last_name","lastname"]),
+          phone: firstExistingKey(data, ["phone","telefone"]),
+          country: firstExistingKey(data, ["country","pais","país"]),
+          address1: firstExistingKey(data, ["address_line1","endereco1","endereço1","address1","logradouro","rua"]),
+          address2: firstExistingKey(data, ["address_line2","endereco2","endereço2","address2","complemento","bairro"]),
+          postal_code: firstExistingKey(data, ["postal_code","cep","zip","zipcode"]),
+          city: firstExistingKey(data, ["city","cidade","municipio","município"]),
+          is_librarian: firstExistingKey(data, ["is_librarian","bibliotecario","is_bibliotecario"])
+        };
+
+        $("editSurname").value = editingKnownColumns.surname ? (data[editingKnownColumns.surname] || "") : "";
+        $("editPhone").value = editingKnownColumns.phone ? (data[editingKnownColumns.phone] || "") : "";
+        $("editCountry").value = editingKnownColumns.country ? (data[editingKnownColumns.country] || "") : "";
+        $("editAddress1").value = editingKnownColumns.address1 ? (data[editingKnownColumns.address1] || "") : "";
+        $("editAddress2").value = editingKnownColumns.address2 ? (data[editingKnownColumns.address2] || "") : "";
+        $("editPostalCode").value = editingKnownColumns.postal_code ? (data[editingKnownColumns.postal_code] || "") : "";
+        $("editCity").value = editingKnownColumns.city ? (data[editingKnownColumns.city] || "") : "";
+        $("editLibrarian").value = editingKnownColumns.is_librarian ? String(!!data[editingKnownColumns.is_librarian]) : "false";
+
+        $("profileArea").classList.remove("hidden");
+        showTab("Dados");
+        await loadProfileReservations(editingProfileId);
+        await loadProfileLoans(editingProfileId);
+        setStatus("statusPerfil", "Perfil carregado.", "ok");
+      } catch (e) {
+        setStatus("statusPerfil", e.message || String(e), "bad");
+      } finally {
+        $("btnBuscarPerfil").disabled = false;
+      }
+    });
+
+    $("btnSalvarPerfil").addEventListener("click", async () => {
+      setStatus("statusPerfil", "");
+      if (!editingProfileId) return setStatus("statusPerfil", "Busque um perfil primeiro.", "warn");
+
+      const payload = {};
+      if (editingKnownColumns.surname) payload[editingKnownColumns.surname] = $("editSurname").value.trim();
+      if (editingKnownColumns.phone) payload[editingKnownColumns.phone] = $("editPhone").value.trim();
+      if (editingKnownColumns.country) payload[editingKnownColumns.country] = $("editCountry").value.trim();
+      if (editingKnownColumns.address1) payload[editingKnownColumns.address1] = $("editAddress1").value.trim();
+      if (editingKnownColumns.address2) payload[editingKnownColumns.address2] = $("editAddress2").value.trim();
+      if (editingKnownColumns.postal_code) payload[editingKnownColumns.postal_code] = $("editPostalCode").value.trim();
+      if (editingKnownColumns.city) payload[editingKnownColumns.city] = $("editCity").value.trim();
+      if (editingKnownColumns.is_librarian) payload[editingKnownColumns.is_librarian] = ($("editLibrarian").value === "true");
+
+      if (!Object.keys(payload).length) return setStatus("statusPerfil", "Nenhum campo compatível foi encontrado para atualização.", "warn");
+
+      $("btnSalvarPerfil").disabled = true;
+      try{
+        const { error } = await supabase.from("profiles").update(payload).eq("id", editingProfileId);
+        if (error) throw error;
+        setStatus("statusPerfil", "Alterações salvas.", "ok");
+      } catch (e) {
+        setStatus("statusPerfil", e.message || String(e), "bad");
+      } finally {
+        $("btnSalvarPerfil").disabled = false;
+      }
+    });
+
+    $("btnSair").addEventListener("click", async () => {
+      $("btnSair").disabled = true;
+      try{ await supabase.auth.signOut(); location.assign(ROUTES.CADASTRO); }
+      finally { $("btnSair").disabled = false; }
+    });
+
+    const session = await requireSession();
     if (session){
-      isLibrarian = await requireBibliotecaOrRedirect();
-      if (isLibrarian){
-        await fillHeader();
-        await refreshCollections();
-        setupRefreshHooks();
+      await fillHeader(session);
+      const ok = await requireBibliotecaOrRedirect();
+      if (ok){
+        await loadReservasAtivas();
+        await loadEmprestimosAbertos();
       }
     }
   </script>
