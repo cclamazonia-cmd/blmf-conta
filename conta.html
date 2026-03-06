@@ -122,6 +122,79 @@
     .table-scroll{ width:100%; overflow-x:auto; }
 
   </style>
+
+  <style>
+    :root{
+      --accent-red:#c40000;
+      --accent-red-dark:#8f0000;
+      --accent-red-soft:rgba(200,0,0,.18);
+      --accent-red-soft-2:rgba(200,0,0,.26);
+      --accent-red-border:rgba(255,80,80,.38);
+    }
+
+    a{ color:#ffb3b3 !important; }
+    a:hover{ color:#ffd1d1 !important; }
+
+    button,
+    .btn,
+    .primary,
+    .secondary,
+    input[type="button"],
+    input[type="submit"]{
+      border-color:var(--accent-red-border) !important;
+    }
+
+    .primary,
+    button:not(.secondary):not(.tab-btn),
+    .btn:not(.secondary):not(.tab-btn),
+    input[type="submit"]{
+      background:linear-gradient(180deg,var(--accent-red),var(--accent-red-dark)) !important;
+      color:#fff !important;
+      border-color:rgba(255,255,255,.16) !important;
+      box-shadow:none !important;
+    }
+
+    .secondary,
+    a.secondary,
+    button.secondary{
+      background:rgba(200,0,0,.14) !important;
+      color:#fff !important;
+      border:1px solid var(--accent-red-border) !important;
+    }
+
+    .secondary:hover,
+    a.secondary:hover,
+    button.secondary:hover,
+    .primary:hover,
+    button:not(.secondary):not(.tab-btn):hover,
+    .btn:not(.secondary):not(.tab-btn):hover{
+      filter:brightness(1.05) !important;
+    }
+
+    .tab-btn.active{
+      background:var(--accent-red-soft-2) !important;
+      border-color:var(--accent-red-border) !important;
+    }
+
+    .notice,
+    #restrictedNotice{
+      background:var(--accent-red-soft-2) !important;
+      border-color:var(--accent-red-border) !important;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus,
+    button:focus,
+    a:focus{
+      outline:2px solid rgba(255,80,80,.55) !important;
+      outline-offset:2px !important;
+      box-shadow:0 0 0 3px rgba(200,0,0,.18) !important;
+    }
+
+    .status-ok, .ok, .success{ color:#ffb3b3 !important; }
+    .status-badge, .badge, .chip, .pill{ border-color:var(--accent-red-border) !important; }
+  </style>
 </head>
 
 <body>
