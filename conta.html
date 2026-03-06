@@ -205,7 +205,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         </button>
         <button class="tab-btn" type="button" data-tab="curso" role="tab" aria-selected="false" aria-controls="tab-curso">
           Empréstimos em curso
-          <span class="hint">Visualização por lote e por livro, com prazos previstos e situação detalhada.</span>
+          <span class="hint">Visualização por lote e por livro, com prazos previstos e situação detalhada. Cada empréstimo só pode ser renovado uma única vez.</span>
         </button>
         <button class="tab-btn" type="button" data-tab="historico" role="tab" aria-selected="false" aria-controls="tab-historico">
           Histórico
@@ -878,7 +878,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
 
       if (!v2.error && (v2.data || []).length) {
         const rows = v2.data.map((r) => {
-          const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+          const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
           return `<tr>
             <td>#${r.emprestimo_id}</td>
             <td class="mono">${escapeHtml(r.sub_id)}</td>
@@ -891,7 +891,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
             <td>${renewBtn}</td>
           </tr>`;
         }).join("");
-        sections.push(`<div class="panel-head"><h3 style="margin:0 0 6px;">Empréstimos por lote</h3><p class="small" style="margin:0;">Visualização por lote e por livro, com prazos previstos e situação detalhada.</p></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+        sections.push(`<div class="panel-head"><h3 style="margin:0 0 6px;">Empréstimos por lote</h3><p class="small" style="margin:0;">Visualização por lote e por livro, com prazos previstos e situação detalhada. Cada empréstimo só pode ser renovado uma única vez.</p></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
       }
 
       if (!oldQ.error && (oldQ.data || []).length) {
@@ -934,15 +934,22 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         btn.addEventListener("click", async () => {
           const loanId = Number(btn.getAttribute("data-renew-v2"));
           if (!loanId) return;
+          const proceed = window.confirm("Atenção: cada empréstimo só pode ser renovado uma única vez. Deseja continuar?");
+          if (!proceed) return;
           btn.disabled = true;
           if (loanMsg) loanMsg.textContent = "Processando renovação...";
           const res = await tryRenewV2(loanId);
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
           if (res.error) {
             loanMsg.textContent = "Erro ao renovar: " + res.error.message;
             btn.disabled = false;
             return;
           }
-          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+          if (row?.ok === false) {
+            loanMsg.textContent = "Erro ao renovar: " + (row?.message || "Renovação indisponível.");
+            btn.disabled = false;
+            return;
+          }
           const newDue = row?.due_at || row?.due_date || row?.new_due_date;
           const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
           loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
@@ -955,15 +962,22 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         btn.addEventListener("click", async () => {
           const loanId = Number(btn.getAttribute("data-renew-old"));
           if (!loanId) return;
+          const proceed = window.confirm("Atenção: cada empréstimo só pode ser renovado uma única vez. Deseja continuar?");
+          if (!proceed) return;
           btn.disabled = true;
           if (loanMsg) loanMsg.textContent = "Processando renovação...";
           const res = await tryRenewOld(loanId);
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
           if (res.error) {
             loanMsg.textContent = "Erro ao renovar: " + res.error.message;
             btn.disabled = false;
             return;
           }
-          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+          if (row?.ok === false) {
+            loanMsg.textContent = "Erro ao renovar: " + (row?.message || "Renovação indisponível.");
+            btn.disabled = false;
+            return;
+          }
           const newDue = row?.due_date || row?.new_due_date;
           const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
           loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
