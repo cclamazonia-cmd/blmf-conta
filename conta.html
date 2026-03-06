@@ -186,7 +186,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
 
         <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
           <a class="secondary" href="https://cclamazonia-cmd.github.io/blmf-catalogo/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
-                 <a id="goPainelBiblio" class="secondary" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none; text-decoration:none; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
+                 <a id="goPainelBiblio" class="secondary" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
           <a class="secondary" href="https://cclamazonia.noblogs.org" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
            </div>
         </div>
@@ -385,13 +385,12 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
           </form>
           <p id="reserveMsg" class="msg" aria-live="polite"></p>
 
-          <hr />
-          <div class="panel-head">
+          <div class="panel-head" style="margin-top:18px;">
             <h3 style="margin:0 0 6px;">Reservas ativas</h3>
-            <p class="small" style="margin:0;">Visualização por lote e por livro. Você pode cancelar cada linha separadamente.</p>
+            <p class="small" style="margin:0;">Aqui aparecem apenas as reservas ainda ativas, livro por livro.</p>
           </div>
+          <div id="activeReservations"><p>Carregando...</p></div>
           <p id="activeReserveMsg" class="msg" aria-live="polite"></p>
-          <div id="activeReservations"></div>
         </section>
 
         <!-- EM CURSO -->
@@ -506,14 +505,8 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         const active = btn.dataset.tab === key;
         btn.classList.toggle("active", active);
         btn.setAttribute("aria-selected", active ? "true" : "false");
-        btn.setAttribute("tabindex", active ? "0" : "-1");
       });
-      tabPanels.forEach((panel) => {
-        const active = panel.dataset.tab === key;
-        panel.classList.toggle("active", active);
-        panel.hidden = !active;
-        panel.setAttribute("aria-hidden", active ? "false" : "true");
-      });
+      tabPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.tab === key));
       if (pushHash) location.hash = "#" + key;
     }
 
@@ -1070,15 +1063,16 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
       }
 
       const resV2 = await createReservaV2(refs);
-      if (resV2.error) {
-        reserveMsg.textContent = "Erro ao reservar: " + resV2.error.message;
+      if (!resV2.error) {
+        reserveMsg.textContent = `Reserva registrada com sucesso para ${refs.length} livro(s).`;
+        $("bibRef").value = "";
+        await renderActiveReservations();
+        await renderHistory();
         return;
       }
 
-      reserveMsg.textContent = `Reserva registrada com sucesso para ${refs.length} livro(s).`;
-      $("bibRef").value = "";
-      await renderActiveReservations();
-      await renderHistory();
+      reserveMsg.textContent = "Erro ao reservar: " + resV2.error.message;
+      return;
     });
 
     await loadProfile();
