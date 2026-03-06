@@ -413,7 +413,18 @@
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     }
 
-    function parseRefs(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
+    function normalizeBibRef(input){
+      const raw = String(input || "").trim();
+      if (!raw) return "";
+      const direct = raw
+        .replace(/^biblivre[-:\s]*/i, "")
+        .replace(/^bib[_\s-]*ref\s*:?\s*/i, "")
+        .trim();
+      const m = direct.match(/(\d{3,})/);
+      return m ? m[1] : direct;
+    }
+
+    function parseRefs(raw){ return Array.from(new Set((raw || "").split(",").map(normalizeBibRef).filter(Boolean))); }
     function parseSubIds(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
 
     function groupBy(items, keyFn){
@@ -693,18 +704,27 @@
     }
 
     function displayUser(u){
+      const firstLast = [u?.first_name, u?.last_name].filter(Boolean).join(" ").trim();
       return {
-        name: u?.full_name || u?.name || u?.nome || u?.surname || "—",
+        name: u?.full_name || u?.name || u?.nome || firstLast || u?.surname || "—",
         email: u?.email || "—"
       };
     }
 
     async function loadBookMapByBibRefs(bibRefs){
-      const refs = Array.from(new Set((bibRefs || []).map(x => String(x || '').trim()).filter(Boolean)));
+      const refs = Array.from(new Set((bibRefs || []).map(x => normalizeBibRef(x)).filter(Boolean)));
       if (!refs.length) return new Map();
       const { data, error } = await supabase.from("books").select("*").in("bib_ref", refs);
       if (error || !Array.isArray(data)) return new Map();
       return new Map(data.map(b => [String(b.bib_ref), b]));
+    }
+
+    async function loadBookMapByIds(bookIds){
+      const ids = Array.from(new Set((bookIds || []).map(x => Number(x)).filter(Boolean)));
+      if (!ids.length) return new Map();
+      const { data, error } = await supabase.from("books").select("*").in("id", ids);
+      if (error || !Array.isArray(data)) return new Map();
+      return new Map(data.map(b => [Number(b.id), b]));
     }
 
     function displayBook(b){
@@ -718,27 +738,21 @@
       const merged = new Map();
       let lastError = null;
 
-      let qView = supabase.from("v_reserva_itens_v2_ui").select("*").eq("item_status", "ativa").order("reserva_id", { ascending:true }).order("line_no", { ascending:true }).limit(500);
-      if (userId) qView = qView.eq("user_id", userId);
-      const viewRes = await qView;
-      if (!viewRes.error && Array.isArray(viewRes.data)) {
-        for (const r of viewRes.data) {
-          const key = `${r.reserva_id}::${r.line_no || 1}::${r.bib_ref || ''}`;
-          merged.set(key, { ...r, source:"view" });
-        }
-      } else {
-        lastError = viewRes.error;
-      }
-
-      let qDirect = supabase.from("reservas").select("*").eq("status", "pending").is("fulfilled_at", null).is("cancelled_at", null).order("id", { ascending:true }).limit(500);
+      let qDirect = supabase.from("reservas")
+        .select("id, bib_ref, user_id, created_at, status, fulfilled_at, fulfilled_loan_id, fulfilled_by, cancelled_at, cancelled_by, reserva_em")
+        .eq("status", "pending")
+        .is("fulfilled_at", null)
+        .is("cancelled_at", null)
+        .order("created_at", { ascending:true })
+        .limit(500);
       if (userId) qDirect = qDirect.eq("user_id", userId);
       const directRes = await qDirect;
       if (!directRes.error && Array.isArray(directRes.data) && directRes.data.length) {
         const bookMap = await loadBookMapByBibRefs(directRes.data.map(r => r.bib_ref));
         for (const r of directRes.data) {
-          const key = `${r.id}::1::${r.bib_ref || ''}`;
-          if (merged.has(key)) continue;
-          const book = displayBook(bookMap.get(String(r.bib_ref)) || null);
+          const bibRef = normalizeBibRef(r.bib_ref);
+          const key = `${r.id}::1::${bibRef || ''}`;
+          const book = displayBook(bookMap.get(String(bibRef)) || null);
           merged.set(key, {
             source: "direct",
             reserva_id: r.id,
@@ -746,7 +760,7 @@
             sub_id: `${r.id}.1`,
             user_id: r.user_id,
             titulo: book.titulo,
-            bib_ref: r.bib_ref,
+            bib_ref: bibRef,
             rotulo: book.rotulo,
             reserva_created_at: r.reserva_em || r.created_at,
             expires_at: null,
@@ -754,8 +768,27 @@
             raw: r
           });
         }
-      } else if (directRes.error && !viewRes.data?.length) {
+      } else if (directRes.error) {
         lastError = directRes.error;
+      }
+
+      let qView = supabase.from("v_reserva_itens_v2_ui")
+        .select("*")
+        .eq("item_status", "ativa")
+        .order("reserva_id", { ascending:true })
+        .order("line_no", { ascending:true })
+        .limit(500);
+      if (userId) qView = qView.eq("user_id", userId);
+      const viewRes = await qView;
+      if (!viewRes.error && Array.isArray(viewRes.data)) {
+        for (const r of viewRes.data) {
+          const bibRef = normalizeBibRef(r.bib_ref);
+          const key = `${r.reserva_id}::${r.line_no || 1}::${bibRef || ''}`;
+          if (merged.has(key)) continue;
+          merged.set(key, { ...r, bib_ref: bibRef, source:"view" });
+        }
+      } else if (!merged.size) {
+        lastError = viewRes.error;
       }
 
       if (!merged.size && lastError) throw lastError;
@@ -784,20 +817,46 @@
       const groups = groupBy(rows, x => String(x.user_id || ""));
       const created = [];
       for (const [userId, items] of groups.entries()) {
-        const bibRefs = Array.from(new Set(items.map(x => x.bib_ref).filter(Boolean)));
-        if (!userId || !bibRefs.length) throw new Error("Dados insuficientes para confirmar a retirada desta reserva.");
-        const { data: loanId, error } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
-          p_user_id: userId, p_bib_refs: bibRefs, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
-        });
-        if (error) throw error;
-        const reservaIds = items.map(x => Number(x.reserva_id));
-        const patch = {
+        const bibRefs = Array.from(new Set(items.map(x => normalizeBibRef(x.bib_ref)).filter(Boolean)));
+        const reservaIds = Array.from(new Set(items.map(x => Number(x.reserva_id)).filter(Boolean)));
+        if (!userId || !bibRefs.length || !reservaIds.length) throw new Error("Dados insuficientes para confirmar a retirada desta reserva.");
+
+        const holdAt = new Date().toISOString();
+        const holdPatch = {
           status: "fulfilled",
-          fulfilled_at: new Date().toISOString(),
-          fulfilled_loan_id: loanId,
+          fulfilled_at: holdAt,
+          fulfilled_loan_id: null,
           fulfilled_by: currentSession?.user?.id || null
         };
-        const { error: upErr } = await supabase.from("reservas").update(patch).in("id", reservaIds);
+        const { error: holdErr } = await supabase
+          .from("reservas")
+          .update(holdPatch)
+          .in("id", reservaIds)
+          .eq("status", "pending")
+          .is("cancelled_at", null);
+        if (holdErr) throw holdErr;
+
+        let loanId = null;
+        try {
+          const rpc = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
+            p_user_id: userId,
+            p_bib_refs: bibRefs,
+            p_due_at: null,
+            p_notes: "Retirada presencial confirmada no painel."
+          });
+          if (rpc.error) throw rpc.error;
+          loanId = rpc.data;
+        } catch (error) {
+          await supabase.from("reservas").update({
+            status: "pending",
+            fulfilled_at: null,
+            fulfilled_loan_id: null,
+            fulfilled_by: null
+          }).in("id", reservaIds);
+          throw error;
+        }
+
+        const { error: upErr } = await supabase.from("reservas").update({ fulfilled_loan_id: loanId }).in("id", reservaIds);
         if (upErr) throw upErr;
         created.push(loanId);
       }
@@ -820,6 +879,18 @@
     }
 
     async function extendLoan(loanId){
+      let rpc = await supabase.rpc("renew_loan", { p_loan_id: loanId });
+      if (rpc.error && /function|does not exist|não existe|not exist/i.test(String(rpc.error.message || ""))) {
+        rpc = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
+      }
+      if (!rpc.error) {
+        const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+        return row?.due_date || row?.new_due_date || row?.nova_data || row?.due_at || null;
+      }
+      if (rpc.error && !/function|does not exist|não existe|not exist/i.test(String(rpc.error.message || ""))) {
+        throw rpc.error;
+      }
+
       const { data: loan, error } = await supabase.from("loans").select("id,due_date,returned_date,extended_once").eq("id", loanId).maybeSingle();
       if (error) throw error;
       if (!loan?.id) throw new Error(`Empréstimo ${loanId} não encontrado.`);
@@ -833,6 +904,74 @@
       }).eq("id", loanId).is("returned_date", null).eq("extended_once", false);
       if (upErr) throw upErr;
       return newDue;
+    }
+
+
+    function displayLoanStatus(r){
+      if (r?.emprestimo_status) return r.emprestimo_status;
+      if (r?.returned_at || r?.returned_date) return "encerrado";
+      if (r?.extended_once) return "renovado";
+      return "aberto";
+    }
+
+    async function loadActiveLoanRows(userId = null){
+      const merged = new Map();
+      let lastError = null;
+
+      let qView = supabase.from("v_emprestimo_itens_v2_ui")
+        .select("*")
+        .eq("item_status", "aberto")
+        .order("emprestimo_id", { ascending: true })
+        .order("line_no", { ascending: true })
+        .limit(500);
+      if (userId) qView = qView.eq("user_id", userId);
+      const viewRes = await qView;
+      if (!viewRes.error && Array.isArray(viewRes.data)) {
+        for (const r of viewRes.data) {
+          const bibRef = normalizeBibRef(r.bib_ref);
+          const key = `${r.emprestimo_id}::${r.line_no || 1}::${bibRef || ''}`;
+          merged.set(key, { ...r, bib_ref: bibRef, source: "view" });
+        }
+      } else {
+        lastError = viewRes.error;
+      }
+
+      let qDirect = supabase.from("loans")
+        .select("id,user_id,book_id,checkout_date,due_date,returned_date,created_at,batch_id,batch_size,extended_once,extended_at,books(id,bib_ref,titulo,autor,rotulo,tombo)")
+        .is("returned_date", null)
+        .order("id", { ascending: true })
+        .limit(500);
+      if (userId) qDirect = qDirect.eq("user_id", userId);
+      const directRes = await qDirect;
+      if (!directRes.error && Array.isArray(directRes.data) && directRes.data.length) {
+        for (const l of directRes.data) {
+          const book = displayBook(l.books || null);
+          const bibRef = normalizeBibRef(l.books?.bib_ref || "");
+          const key = `${l.id}::1::${bibRef || l.book_id || ''}`;
+          if (merged.has(key)) continue;
+          merged.set(key, {
+            source: "direct",
+            emprestimo_id: l.id,
+            line_no: 1,
+            sub_id: `${l.id}.1`,
+            user_id: l.user_id,
+            titulo: book.titulo,
+            bib_ref: bibRef,
+            rotulo: book.rotulo,
+            due_at: l.due_date,
+            emprestimo_status: l.extended_once ? "renovado" : "aberto",
+            emprestimo_created_at: l.created_at || l.checkout_date,
+            returned_at: l.returned_date,
+            extended_once: !!l.extended_once,
+            raw: l
+          });
+        }
+      } else if (directRes.error && !merged.size) {
+        lastError = directRes.error;
+      }
+
+      if (!merged.size && lastError) throw lastError;
+      return Array.from(merged.values()).sort((a,b) => Number(a.emprestimo_id) - Number(b.emprestimo_id) || Number(a.line_no||1) - Number(b.line_no||1));
     }
 
     async function loadReservasAtivas(){
@@ -868,26 +1007,30 @@
       setStatus("statusLoans", "");
       const tbody = $("tbodyLoans");
       tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("item_status", "aberto").order("emprestimo_id", { ascending: true }).order("line_no", { ascending: true }).limit(500);
-      if (error){ tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`; return setStatus("statusLoans", error.message, "bad"); }
-      if (!data?.length){ tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos abertos.</td></tr>`; return; }
+      try {
+        const data = await loadActiveLoanRows();
+        if (!data.length){ tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos abertos.</td></tr>`; return; }
 
-      const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
-      tbody.innerHTML = data.map(r => {
-        const du = displayUser(userMap.get(String(r.user_id)) || null);
-        const who = `${du.name}<br><span class="mini subtle">${du.email}</span>`;
-        return `<tr>
-          <td class="mono">${r.sub_id}</td>
-          <td>${who}</td>
-          <td>${r.titulo || "—"}</td>
-          <td class="mono">${r.bib_ref || "—"}</td>
-          <td class="mono">${r.rotulo || "—"}</td>
-          <td>#${r.emprestimo_id}</td>
-          <td>${r.due_at || "—"}</td>
-          <td>${r.emprestimo_status || "—"}</td>
-          <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
-        </tr>`;
-      }).join("");
+        const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
+        tbody.innerHTML = data.map(r => {
+          const du = displayUser(userMap.get(String(r.user_id)) || null);
+          const who = `${du.name}<br><span class="mini subtle">${du.email}</span>`;
+          return `<tr>
+            <td class="mono">${r.sub_id || `${r.emprestimo_id}.${r.line_no || 1}`}</td>
+            <td>${who}</td>
+            <td>${r.titulo || "—"}</td>
+            <td class="mono">${r.bib_ref || "—"}</td>
+            <td class="mono">${r.rotulo || "—"}</td>
+            <td>#${r.emprestimo_id}</td>
+            <td>${r.due_at || "—"}</td>
+            <td>${displayLoanStatus(r)}</td>
+            <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
+          </tr>`;
+        }).join("");
+      } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`;
+        setStatus("statusLoans", error.message || String(error), "bad");
+      }
     }
 
     async function loadProfileReservations(userId){
@@ -918,27 +1061,27 @@
     async function loadProfileLoans(userId){
       const tbody = $("tbodyPerfilEmprestimos");
       tbody.innerHTML = `<tr><td colspan="10">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("user_id", userId).eq("item_status", "aberto").order("emprestimo_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
-      if (error){
+      try {
+        const data = await loadActiveLoanRows(userId);
+        if (!data.length){
+          tbody.innerHTML = `<tr><td colspan="10">Sem empréstimos ativos para esse perfil.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = data.map(r => `<tr>
+          <td>#${r.emprestimo_id}</td>
+          <td class="mono">${r.sub_id || `${r.emprestimo_id}.${r.line_no || 1}`}</td>
+          <td>${r.titulo || "—"}</td>
+          <td class="mono">${r.bib_ref || "—"}</td>
+          <td class="mono">${r.rotulo || "—"}</td>
+          <td>${displayLoanStatus(r)}</td>
+          <td>${formatDateTime(r.emprestimo_created_at)}</td>
+          <td>${r.due_at || "—"}</td>
+          <td>${r.returned_at ? formatDateTime(r.returned_at) : "—"}</td>
+          <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
+        </tr>`).join("");
+      } catch (error) {
         tbody.innerHTML = `<tr><td colspan="10">Erro ao carregar empréstimos.</td></tr>`;
-        return;
       }
-      if (!data?.length){
-        tbody.innerHTML = `<tr><td colspan="10">Sem empréstimos ativos para esse perfil.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = data.map(r => `<tr>
-        <td>#${r.emprestimo_id}</td>
-        <td class="mono">${r.sub_id}</td>
-        <td>${r.titulo || "—"}</td>
-        <td class="mono">${r.bib_ref || "—"}</td>
-        <td class="mono">${r.rotulo || "—"}</td>
-        <td>${r.item_status || "—"}</td>
-        <td>${formatDateTime(r.emprestimo_created_at)}</td>
-        <td>${r.due_at || "—"}</td>
-        <td>${r.returned_at ? formatDateTime(r.returned_at) : "—"}</td>
-        <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
-      </tr>`).join("");
     }
 
     $("btnRecarregarRes").addEventListener("click", loadReservasAtivas);
