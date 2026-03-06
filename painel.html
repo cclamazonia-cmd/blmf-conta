@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BLMF — Painel</title>
+  <link rel="stylesheet" href="./css/app.css" />
   <link rel="icon" type="image/png" href="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png">
   <link rel="shortcut icon" href="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png">
   <link rel="apple-touch-icon" href="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png">
@@ -29,7 +30,7 @@
       background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat;
     }
     a, a:visited{color:inherit;text-decoration:none}
-    .wrap{max-width:1360px;margin:0 auto;padding:24px}
+    .wrap{max-width:1420px;margin:0 auto;padding:24px}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
     .brand{display:flex;align-items:center;gap:12px}
     .logo{height:64px;width:auto;max-width:170px;object-fit:contain;display:block;flex-shrink:0;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
@@ -37,10 +38,12 @@
       border:1px solid var(--line);background:rgba(18,18,18,.92);color:var(--text);
       border-radius:14px;padding:10px 12px;cursor:pointer;box-shadow:var(--shadow);
       font-weight:900;font-size:.95rem;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+      min-height:42px;
     }
     .btn.primary{border:none;background:linear-gradient(135deg,var(--red2),var(--red))}
     .btn:hover{border-color:rgba(255,255,255,.22)}
     .btn:disabled{opacity:.6;cursor:default}
+    .btn.small{padding:7px 10px;font-size:.86rem;min-height:34px;border-radius:12px}
     .hero{
       border:1px solid rgba(255,255,255,.08);
       background:linear-gradient(135deg, rgba(179,0,24,.95), rgba(90,0,12,.96));
@@ -53,46 +56,19 @@
       display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.10);
       background:rgba(18,18,18,.65);padding:7px 10px;border-radius:999px;font-size:.9rem;color:rgba(255,255,255,.86)
     }
-    .grid{display:grid;grid-template-columns:1fr;gap:14px}
-    .card{border:1px solid rgba(255,255,255,.08);background:var(--panel);border-radius:22px;padding:16px;box-shadow:var(--shadow)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width:980px){.row{grid-template-columns:1fr}}
-    label{display:block;font-size:.9rem;color:var(--muted);margin:0 0 6px}
-    .input,.select,.textarea{
-      width:100%;border:1px solid rgba(255,255,255,.10);background:rgba(12,12,12,.75);color:var(--text);
-      border-radius:14px;padding:12px 12px;outline:none;font:inherit;
-    }
-    .textarea{min-height:96px;resize:vertical}
-    .input:focus,.select:focus,.textarea:focus{border-color:rgba(225,29,47,.85);box-shadow:0 0 0 3px rgba(225,29,47,.18)}
-    .hint{color:var(--muted);font-size:.9rem;margin-top:8px}
-    .status{margin-top:10px;font-size:.92rem}
-    .status.ok{color:var(--ok)} .status.warn{color:var(--warn)} .status.bad{color:var(--bad)}
-    .sep{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
-    .tableWrap{overflow:auto;max-height:56vh;border-radius:16px;border:1px solid rgba(255,255,255,.08)}
-    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1100px;background:rgba(10,10,10,.35)}
-    thead th{
-      position:sticky;top:0;z-index:2;text-align:left;padding:12px 14px;
-      background:linear-gradient(180deg,#26060a,#160407);color:#fff;border-bottom:1px solid rgba(255,255,255,.08);
-      font-size:.86rem;text-transform:uppercase;letter-spacing:.05em
-    }
-    tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
-    tbody tr:hover td{background:rgba(179,0,24,.08)}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    .mini{font-size:.86rem;color:var(--muted)}
-    .subtle{opacity:.92}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-    .hidden{display:none !important}
-    .profile-layout{
+    .main-layout{
       display:grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: 250px 1fr;
       gap:14px;
-      margin-top:12px;
+      align-items:start;
     }
-    @media (max-width:980px){.profile-layout{grid-template-columns:1fr}}
-    .tabs-col{
+    @media (max-width:980px){.main-layout{grid-template-columns:1fr}}
+    .side-tabs{
       display:flex;
       flex-direction:column;
       gap:10px;
+      position:sticky;
+      top:16px;
     }
     .tab-btn{
       width:100%;
@@ -103,7 +79,62 @@
       border:none;
       background:linear-gradient(135deg,var(--red2),var(--red));
     }
-    .tab-pane.hidden{display:none}
+    .pane.hidden{display:none !important}
+    .stack{display:grid;grid-template-columns:1fr;gap:14px}
+    .stack.two{grid-template-columns:1fr 1fr}
+    @media (max-width:1080px){.stack.two{grid-template-columns:1fr}}
+    .card{border:1px solid rgba(255,255,255,.08);background:var(--panel);border-radius:22px;padding:16px;box-shadow:var(--shadow)}
+    .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+    .panel-head h2{margin:0}
+    .panel-head p{margin:0;color:var(--muted)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:980px){.row{grid-template-columns:1fr}}
+    label{display:block;font-size:.9rem;color:var(--muted);margin:0 0 6px}
+    .input,.select,.textarea{
+      width:100%;border:1px solid rgba(255,255,255,.10);background:rgba(12,12,12,.75);color:var(--text);
+      border-radius:14px;padding:12px 12px;outline:none;font:inherit;
+    }
+    .textarea{min-height:96px;resize:vertical}
+    .input:focus,.select:focus,.textarea:focus{border-color:rgba(225,29,47,.85);box-shadow:0 0 0 3px rgba(225,29,47,.18)}
+    .hint{color:var(--muted);font-size:.9rem;margin-top:8px}
+    .mini{font-size:.86rem;color:var(--muted)}
+    .subtle{opacity:.92}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .status{margin-top:10px;font-size:.92rem}
+    .status.ok{color:var(--ok)}
+    .status.warn{color:var(--warn)}
+    .status.bad{color:var(--bad)}
+    .hidden{display:none !important}
+    .sep{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
+    .tableWrap{overflow:auto;max-height:60vh;border-radius:16px;border:1px solid rgba(255,255,255,.08)}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1100px;background:rgba(10,10,10,.35)}
+    thead th{
+      position:sticky;top:0;z-index:2;text-align:left;padding:12px 14px;
+      background:linear-gradient(180deg,#26060a,#160407);color:#fff;border-bottom:1px solid rgba(255,255,255,.08);
+      font-size:.86rem;text-transform:uppercase;letter-spacing:.05em
+    }
+    tbody td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+    tbody tr:hover td{background:rgba(179,0,24,.08)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .action-col{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .list-stack{display:flex;flex-direction:column;gap:4px}
+    .lot-box{display:flex;flex-direction:column;gap:6px}
+    .lot-items{display:grid;grid-template-columns:1fr;gap:6px}
+    .tag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:rgba(179,0,24,.18);border:1px solid rgba(255,255,255,.08);font-size:.82rem}
+    .profile-layout{
+      display:grid;
+      grid-template-columns: 220px 1fr;
+      gap:14px;
+      margin-top:12px;
+    }
+    @media (max-width:980px){.profile-layout{grid-template-columns:1fr}}
+    .tabs-col{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .tab-pane.hidden{display:none !important}
+    .check-inline{display:flex;align-items:center;justify-content:center}
   </style>
 </head>
 <body>
@@ -113,329 +144,432 @@
         <img class="logo" src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png" alt="BLMF">
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a class="btn" id="btnBlog" href="#">Voltar ao blogue</a>
-        <a class="btn" id="btnCatalogo" href="#">Voltar ao catálogo</a>
-        <a class="btn hidden" id="btnModoLeitor" href="#">Ir para modo leitor</a>
+        <a class="btn" id="btnBlog" href="https://cclamazonia.noblogs.org/">Voltar ao blogue</a>
+        <a class="btn" id="btnCatalogo" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
+        <a class="btn hidden" id="btnModoLeitor" href="https://cclamazonia-cmd.github.io/blmf-conta/conta.html">Modo leitor</a>
         <button class="btn primary" id="btnSair" type="button">Sair</button>
       </div>
     </div>
 
     <div class="hero">
       <h1>Painel (gestão da biblioteca)</h1>
-      <p id="helloLine"></p>
+      <p id="helloLine">Ações e listas sincronizadas: o que muda nas listas gerais aparece também no perfil do(a/e) leitor(a/e), e vice-versa.</p>
       <div class="chips">
         <span class="chip" id="chipFuncao">Função: —</span>
         <span class="chip" id="chipEmail">E-mail: —</span>
+        <span class="chip" id="chipResCount">Reservas ativas: —</span>
+        <span class="chip" id="chipLoanCount">Empréstimos abertos: —</span>
       </div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <h2 style="margin:0 0 10px">Registrar saída (novo empréstimo)</h2>
-        <div class="row">
-          <div>
-            <label for="borrowerEmail">E-mail do(a/e) leitor(a/e)</label>
-            <input class="input" id="borrowerEmail" type="email" placeholder="leitor@exemplo.org">
-            <div class="hint">O e-mail precisa estar cadastrado e ativo.</div>
-          </div>
-          <div>
-            <label for="bibRefs">Referências (até 5, separadas por vírgula)</label>
-            <input class="input" id="bibRefs" type="text" placeholder="0000124, 0000138, 0000056">
-            <div class="hint" id="loanHint">Digite de 1 a 5 referências separadas por vírgula.</div>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn primary" id="btnRegistrarSaida" type="button">Registrar saída</button>
-        </div>
-        <div class="status" id="statusSaida"></div>
+    <div class="main-layout">
+      <div class="side-tabs">
+        <button class="btn tab-btn active" id="mainTabBtnAcoes" type="button">Ações</button>
+        <button class="btn tab-btn" id="mainTabBtnReservas" type="button">Reservas ativas</button>
+        <button class="btn tab-btn" id="mainTabBtnEmprestimosSub" type="button">Empréstimos por livro</button>
+        <button class="btn tab-btn" id="mainTabBtnEmprestimosLote" type="button">Empréstimos por lote</button>
+        <button class="btn tab-btn" id="mainTabBtnPerfil" type="button">Gerir leitor(a/e)</button>
       </div>
 
-      <div class="card">
-        <h2 style="margin:0 0 10px">Registrar devolução</h2>
-        <div class="row">
-          <div>
-            <label for="loanId">Devolução total (por ID do empréstimo)</label>
-            <input class="input" id="loanId" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ex.: 154">
-            <div class="actions">
-              <button class="btn" id="btnDevolverId" type="button">Registrar devolução total</button>
-            </div>
-            <div class="hint">Unicamente se todos os livros do empréstimo forem devolvidos ao mesmo tempo.</div>
-          </div>
-          <div>
-            <label for="loanSubIds">Devolução parcial (por sub-IDs)</label>
-            <input class="input" id="loanSubIds" type="text" placeholder="154.1, 154.2">
-            <div class="actions">
-              <button class="btn" id="btnDevolverSubIds" type="button">Registrar devolução parcial</button>
-            </div>
-            <div class="hint">Use os sub-IDs exibidos abaixo. Exemplo: 154.2.</div>
-          </div>
-        </div>
-        <div class="status" id="statusDev"></div>
-      </div>
-
-      <div class="card">
-        <h2 style="margin:0 0 10px">Reservas ativas</h2>
-        <div class="mini">Listagem automática das reservas pedidas, com ações diretas por item.</div>
-        <div class="sep"></div>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Data</th>
-                <th>Livro</th>
-                <th>Leitor(a/e)</th>
-                <th>Referência</th>
-                <th>Rótulo</th>
-                <th>Status</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyRes"><tr><td colspan="8">Carregando…</td></tr></tbody>
-          </table>
-        </div>
-        <div class="actions">
-          <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
-        </div>
-        <div class="status" id="statusRes"></div>
-      </div>
-
-      <div class="card">
-        <h2 style="margin:0 0 10px">Empréstimos abertos</h2>
-        <div class="mini">Consulta rápida dos sub-IDs para devolução parcial.</div>
-        <div class="sep"></div>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Sub-ID</th>
-                <th>Leitor(a/e)</th>
-                <th>Livro</th>
-                <th>Referência</th>
-                <th>Rótulo</th>
-                <th>Empréstimo</th>
-                <th>Prazo</th>
-                <th>Situação</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyLoans"><tr><td colspan="8">Carregando…</td></tr></tbody>
-          </table>
-        </div>
-        <div class="actions">
-          <button class="btn" id="btnRecarregarLoans" type="button">Recarregar</button>
-        </div>
-        <div class="status" id="statusLoans"></div>
-      </div>
-
-      <div class="card">
-        <h2 style="margin:0 0 10px">Gerir leitor(a/e)</h2>
-        <div class="row">
-          <div>
-            <label for="searchEmail">Buscar por e-mail</label>
-            <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org">
-            <div class="actions">
-              <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
-            </div>
-          </div>
-          <div class="mini" style="display:flex;align-items:flex-end">Depois de carregar o perfil, os separadores abaixo permitem gerir dados, reservas e empréstimos dessa pessoa.</div>
-        </div>
-
-        <div class="profile-layout hidden" id="profileArea">
-          <div class="tabs-col">
-            <button class="btn tab-btn active" id="tabBtnDados" type="button">Dados</button>
-            <button class="btn tab-btn" id="tabBtnReservas" type="button">Reservas</button>
-            <button class="btn tab-btn" id="tabBtnEmprestimos" type="button">Empréstimos</button>
-          </div>
-
-          <div>
-            <div class="tab-pane" id="paneDados">
+      <div>
+        <div class="pane" id="mainPaneAcoes">
+          <div class="stack two">
+            <div class="card">
+              <div class="panel-head">
+                <div>
+                  <h2>Confirmar retirada</h2>
+                  <p>Transforma uma reserva em empréstimo.</p>
+                </div>
+              </div>
               <div class="row">
                 <div>
-                  <label for="editSurname">Sobrenome (patronímico)</label>
-                  <input class="input" id="editSurname" type="text">
+                  <label for="fulfillReservaId">ID da reserva</label>
+                  <input class="input" id="fulfillReservaId" type="number" inputmode="numeric" placeholder="Ex.: 154">
                 </div>
                 <div>
-                  <label for="editPhone">Telefone</label>
-                  <input class="input" id="editPhone" type="text">
-                </div>
-              </div>
-
-              <div class="row" style="margin-top:12px">
-                <div>
-                  <label for="editAddress1">Endereço 1</label>
-                  <input class="input" id="editAddress1" type="text" placeholder="Rua e número">
-                </div>
-                <div>
-                  <label for="editAddress2">Endereço 2</label>
-                  <input class="input" id="editAddress2" type="text" placeholder="Complemento, bairro, referência">
-                </div>
-              </div>
-
-              <div class="row" style="margin-top:12px">
-                <div>
-                  <label for="editPostalCode">CEP</label>
-                  <input class="input" id="editPostalCode" type="text">
-                </div>
-                <div>
-                  <label for="editCity">Cidade</label>
-                  <input class="input" id="editCity" type="text">
-                </div>
-              </div>
-
-              <div class="row" style="margin-top:12px">
-                <div>
-                  <label for="editCountry">País</label>
-                  <input class="input" id="editCountry" type="text">
-                </div>
-                <div>
-                  <label for="editLibrarian">Função bibliotecária</label>
-                  <select class="select" id="editLibrarian">
-                    <option value="false">Não</option>
-                    <option value="true">Sim</option>
+                  <label for="fulfillBatchSize">Quantidade no lote</label>
+                  <select class="select" id="fulfillBatchSize">
+                    <option value="1">1 livro</option>
+                    <option value="2">2 livros</option>
+                    <option value="3">3 livros</option>
+                    <option value="4">4 livros</option>
+                    <option value="5">5 livros</option>
                   </select>
                 </div>
               </div>
-
               <div class="actions">
-                <button class="btn primary" id="btnSalvarPerfil" type="button">Salvar alterações</button>
+                <button class="btn primary" id="btnFulfillReserva" type="button">Confirmar retirada</button>
               </div>
+              <div class="status" id="statusFulfill"></div>
             </div>
 
-            <div class="tab-pane hidden" id="paneReservas">
-              <div class="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Sub-ID</th>
-                      <th>Livro</th>
-                      <th>Referência</th>
-                      <th>Rótulo</th>
-                      <th>Status</th>
-                      <th>Criada em</th>
-                      <th>Validade</th>
-                      <th>Ação / fim</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbodyPerfilReservas"><tr><td colspan="9">Carregando…</td></tr></tbody>
-                </table>
+            <div class="card">
+              <div class="panel-head">
+                <div>
+                  <h2>Registrar saída</h2>
+                  <p>Manter livro por livro, com lote definido pela quantidade total retirada.</p>
+                </div>
               </div>
+              <div class="row">
+                <div>
+                  <label for="checkoutUserEmail">E-mail do(a/e) leitor(a/e)</label>
+                  <input class="input" id="checkoutUserEmail" type="email" placeholder="leitor@exemplo.org">
+                </div>
+                <div>
+                  <label for="checkoutBibRef">Referência BibLivre (bib_ref)</label>
+                  <input class="input mono" id="checkoutBibRef" type="text" placeholder="0000084">
+                </div>
+              </div>
+              <div class="row" style="margin-top:12px">
+                <div>
+                  <label for="checkoutBatchSize">Quantidade no lote</label>
+                  <select class="select" id="checkoutBatchSize">
+                    <option value="1">1 livro</option>
+                    <option value="2">2 livros</option>
+                    <option value="3">3 livros</option>
+                    <option value="4">4 livros</option>
+                    <option value="5">5 livros</option>
+                  </select>
+                </div>
+                <div class="hint" style="display:flex;align-items:flex-end">Saída direta sem passar por reserva.</div>
+              </div>
+              <div class="actions">
+                <button class="btn primary" id="btnRegistrarSaida" type="button">Registrar saída</button>
+              </div>
+              <div class="status" id="statusSaida"></div>
+            </div>
+          </div>
+
+          <div class="stack two" style="margin-top:14px">
+            <div class="card">
+              <div class="panel-head">
+                <div>
+                  <h2>Registrar devolução total</h2>
+                  <p>Use apenas se todos os livros do lote forem devolvidos ao mesmo tempo.</p>
+                </div>
+              </div>
+              <div>
+                <label for="returnLoanId">ID do empréstimo (lote)</label>
+                <input class="input" id="returnLoanId" type="number" inputmode="numeric" placeholder="Ex.: 154">
+              </div>
+              <div class="actions">
+                <button class="btn" id="btnDevolverId" type="button">Registrar devolução total</button>
+              </div>
+              <div class="status" id="statusDevTotal"></div>
             </div>
 
-            <div class="tab-pane hidden" id="paneEmprestimos">
-              <div class="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Sub-ID</th>
-                      <th>Livro</th>
-                      <th>Referência</th>
-                      <th>Rótulo</th>
-                      <th>Status</th>
-                      <th>Saída em</th>
-                      <th>Prazo</th>
-                      <th>Devolução efetiva</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbodyPerfilEmprestimos"><tr><td colspan="9">Carregando…</td></tr></tbody>
-                </table>
+            <div class="card">
+              <div class="panel-head">
+                <div>
+                  <h2>Registrar devolução parcial</h2>
+                  <p>Sub-IDs separados por vírgula. Exemplo: 154.1, 154.2</p>
+                </div>
               </div>
+              <div>
+                <label for="returnSubIds">Sub-IDs</label>
+                <input class="input" id="returnSubIds" type="text" placeholder="154.1, 154.2">
+              </div>
+              <div class="actions">
+                <button class="btn" id="btnDevolverSubIds" type="button">Registrar devolução parcial</button>
+              </div>
+              <div class="status" id="statusDevParcial"></div>
             </div>
-
-            <div class="status" id="statusPerfil"></div>
           </div>
         </div>
+
+        <div class="pane hidden" id="mainPaneReservas">
+          <div class="card">
+            <div class="panel-head">
+              <div>
+                <h2>Reservas ativas</h2>
+                <p>Ações em massa e por linha. Qualquer mudança aqui reaparece automaticamente no perfil do(a/e) leitor(a/e).</p>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn primary" id="btnConfirmarSelecionadas" type="button">Confirmar retirada (selecionadas)</button>
+              <button class="btn" id="btnCancelarSelecionadas" type="button">Cancelar (selecionadas)</button>
+              <button class="btn" id="btnRecarregarReservas" type="button">Recarregar</button>
+            </div>
+            <div class="sep"></div>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Seleção</th>
+                    <th>Sub-ID</th>
+                    <th>Leitor(a/e)</th>
+                    <th>Livro</th>
+                    <th>Referência</th>
+                    <th>Tombo</th>
+                    <th>Criada em</th>
+                    <th>Retirar até</th>
+                    <th>Lote</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyResMass"><tr><td colspan="10">Carregando…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="status" id="statusResMass"></div>
+          </div>
+        </div>
+
+        <div class="pane hidden" id="mainPaneEmprestimosSub">
+          <div class="card">
+            <div class="panel-head">
+              <div>
+                <h2>Empréstimos abertos por livro (sub-ID)</h2>
+                <p>Vista item por item, útil para devoluções parciais.</p>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnRecarregarLoansSub" type="button">Recarregar</button>
+            </div>
+            <div class="sep"></div>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sub-ID</th>
+                    <th>Leitor(a/e)</th>
+                    <th>Livro</th>
+                    <th>Referência</th>
+                    <th>Tombo</th>
+                    <th>Lote</th>
+                    <th>Saída em</th>
+                    <th>Prazo</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyLoansSub"><tr><td colspan="10">Carregando…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="status" id="statusLoansSub"></div>
+          </div>
+        </div>
+
+        <div class="pane hidden" id="mainPaneEmprestimosLote">
+          <div class="card">
+            <div class="panel-head">
+              <div>
+                <h2>Empréstimos abertos por lote (ID)</h2>
+                <p>Vista agrupada por empréstimo, com devolução total do lote.</p>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnRecarregarLoansLot" type="button">Recarregar</button>
+            </div>
+            <div class="sep"></div>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID do lote</th>
+                    <th>Leitor(a/e)</th>
+                    <th>Itens abertos</th>
+                    <th>Livros / sub-IDs</th>
+                    <th>Saída em</th>
+                    <th>Prazo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyLoansLot"><tr><td colspan="7">Carregando…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="status" id="statusLoansLot"></div>
+          </div>
+        </div>
+
+        <div class="pane hidden" id="mainPanePerfil">
+          <div class="card">
+            <div class="panel-head">
+              <div>
+                <h2>Gerir leitor(a/e)</h2>
+                <p>Procure um perfil e use os separadores laterais para dados, reservas e empréstimos.</p>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="searchEmail">Buscar por e-mail</label>
+                <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org">
+                <div class="actions">
+                  <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
+                </div>
+              </div>
+              <div class="mini" style="display:flex;align-items:flex-end">As listas do perfil são recarregadas automaticamente depois de cada ação feita nas vistas gerais.</div>
+            </div>
+
+            <div class="profile-layout hidden" id="profileArea">
+              <div class="tabs-col">
+                <button class="btn tab-btn active" id="profileTabBtnDados" type="button">Dados</button>
+                <button class="btn tab-btn" id="profileTabBtnReservas" type="button">Reservas</button>
+                <button class="btn tab-btn" id="profileTabBtnEmprestimos" type="button">Empréstimos</button>
+                <button class="btn tab-btn" id="profileTabBtnLotes" type="button">Lotes</button>
+              </div>
+
+              <div>
+                <div class="tab-pane" id="profilePaneDados">
+                  <div class="row">
+                    <div>
+                      <label for="editSurname">Sobrenome (patronímico)</label>
+                      <input class="input" id="editSurname" type="text">
+                    </div>
+                    <div>
+                      <label for="editPhone">Telefone</label>
+                      <input class="input" id="editPhone" type="text">
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-top:12px">
+                    <div>
+                      <label for="editAddress1">Endereço 1</label>
+                      <input class="input" id="editAddress1" type="text" placeholder="Rua e número">
+                    </div>
+                    <div>
+                      <label for="editAddress2">Endereço 2</label>
+                      <input class="input" id="editAddress2" type="text" placeholder="Complemento, bairro, referência">
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-top:12px">
+                    <div>
+                      <label for="editPostalCode">CEP</label>
+                      <input class="input" id="editPostalCode" type="text">
+                    </div>
+                    <div>
+                      <label for="editCity">Cidade</label>
+                      <input class="input" id="editCity" type="text">
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-top:12px">
+                    <div>
+                      <label for="editCountry">País</label>
+                      <input class="input" id="editCountry" type="text">
+                    </div>
+                    <div>
+                      <label for="editLibrarian">Função bibliotecária</label>
+                      <select class="select" id="editLibrarian">
+                        <option value="false">Não</option>
+                        <option value="true">Sim</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="actions">
+                    <button class="btn primary" id="btnSalvarPerfil" type="button">Salvar alterações</button>
+                  </div>
+                </div>
+
+                <div class="tab-pane hidden" id="profilePaneReservas">
+                  <div class="tableWrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Sub-ID</th>
+                          <th>Livro</th>
+                          <th>Referência</th>
+                          <th>Tombo</th>
+                          <th>Status</th>
+                          <th>Criada em</th>
+                          <th>Fim / ação</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbodyPerfilReservas"><tr><td colspan="8">Carregando…</td></tr></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="tab-pane hidden" id="profilePaneEmprestimos">
+                  <div class="tableWrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Sub-ID</th>
+                          <th>Livro</th>
+                          <th>Referência</th>
+                          <th>Tombo</th>
+                          <th>Status</th>
+                          <th>Saída em</th>
+                          <th>Prazo</th>
+                          <th>Devolução / ação</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbodyPerfilEmprestimos"><tr><td colspan="9">Carregando…</td></tr></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="tab-pane hidden" id="profilePaneLotes">
+                  <div class="tableWrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>ID do lote</th>
+                          <th>Itens</th>
+                          <th>Saída em</th>
+                          <th>Prazo</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tbodyPerfilLotes"><tr><td colspan="5">Carregando…</td></tr></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="status" id="statusPerfil"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
-    <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+  <script type="module">
+    import { supabase, signOut } from "./js/auth.js";
 
-    const GH_BASE = location.origin;
     const ROUTES = {
       BLOG_HOME: "https://cclamazonia.noblogs.org/",
-      CATALOGO: `${GH_BASE}/blmf-catalogo/`,
-      CADASTRO: `${GH_BASE}/blmf-conta/cadastro.html`,
-      CONTA: `${GH_BASE}/blmf-conta/conta.html`,
+      CATALOGO: "https://cclamazonia-cmd.github.io/blmf-catalogo/",
+      CADASTRO: "https://cclamazonia-cmd.github.io/blmf-conta/cadastro.html",
+      CONTA: "https://cclamazonia-cmd.github.io/blmf-conta/conta.html",
+      PAINEL: "https://cclamazonia-cmd.github.io/blmf-conta/painel.html"
     };
+
+    const RESERVA_SOURCES = ["v_reserva_itens_v2_ui", "v_reservas_detalhes", "reservas"];
+    const LOAN_SOURCES = ["v_emprestimo_itens_v2_ui", "v_loans_detalhes", "v_emprestimos_detalhes", "emprestimo_itens", "loans"];
+
+    const $ = (id) => document.getElementById(id);
+
+    let editingProfileId = null;
+    let editingKnownColumns = {};
+    const cachedUsers = new Map();
+    const cachedBooksById = new Map();
+    const cachedBooksByBib = new Map();
+
+    const reservaRowRegistry = new Map();
+    const loanRowRegistry = new Map();
+    const loanLotRegistry = new Map();
+    const profileReservaRowRegistry = new Map();
+    const profileLoanRowRegistry = new Map();
+    const profileLoanLotRegistry = new Map();
+
     $("btnBlog").href = ROUTES.BLOG_HOME;
     $("btnCatalogo").href = ROUTES.CATALOGO;
     $("btnModoLeitor").href = ROUTES.CONTA;
+    $("btnSair").addEventListener("click", signOut);
 
-    const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzcHRmbW9renlrd3psc2hzbmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzcxNzcsImV4cCI6MjA4ODExMzE3N30.JkMLHPCV2AH5ELZV_1RfcoW250QEofLGvnDKSDpkcn0";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    });
-
-    const RESERVA_SOURCES = ["v_reserva_itens_v2_ui", "v_reservas_detalhes", "reservas"];
-    const LOAN_SOURCES = ["v_emprestimo_itens_v2_ui", "v_emprestimos_detalhes", "v_emprestimos_ui", "emprestimo_itens"];
-
-    function $(id){ return document.getElementById(id); }
-
-    let editingProfileId = null;
-    let editingProfileEmail = "";
-    let editingKnownColumns = {};
-    const cachedUsers = new Map();
-    const reservaRowRegistry = new Map();
-    const perfilReservaRowRegistry = new Map();
-
-    function setStatus(id, msg, cls="") {
+    function setStatus(id, msg, cls = "") {
       const el = $(id);
       if (!el) return;
       el.className = "status" + (cls ? " " + cls : "");
       el.textContent = msg || "";
-    }
-
-    function parseRefs(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
-    function parseSubIds(raw){ return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean))); }
-
-    function groupBy(items, keyFn){
-      const map = new Map();
-      for (const item of items){
-        const key = keyFn(item);
-        if (!map.has(key)) map.set(key, []);
-        map.get(key).push(item);
-      }
-      return map;
-    }
-
-    function loanDaysByCount(n){
-      if (n === 1) return 21;
-      if (n >= 2 && n <= 3) return 30;
-      if (n >= 4 && n <= 5) return 38;
-      return null;
-    }
-
-    function refreshLoanHint(){
-      const refs = parseRefs($("bibRefs").value);
-      const hint = $("loanHint");
-      if (!refs.length){ hint.textContent = "Digite de 1 a 5 referências separadas por vírgula."; return; }
-      if (refs.length > 5){ hint.textContent = "Máximo: 5 referências."; return; }
-      const days = loanDaysByCount(refs.length);
-      const due = new Date();
-      due.setDate(due.getDate() + days);
-      hint.textContent = `Quantidade: ${refs.length}. Prazo: ${days} dias. Devolver até: ${due.getFullYear()}-${String(due.getMonth()+1).padStart(2,"0")}-${String(due.getDate()).padStart(2,"0")}.`;
-    }
-    $("bibRefs").addEventListener("input", refreshLoanHint);
-    refreshLoanHint();
-
-    function firstExistingKey(obj, candidates){
-      if (!obj) return null;
-      for (const k of candidates){
-        if (Object.prototype.hasOwnProperty.call(obj, k)) return k;
-      }
-      return null;
-    }
-
-    function pick(obj, candidates, fallback = null){
-      if (!obj) return fallback;
-      for (const key of candidates){
-        if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") return obj[key];
-      }
-      return fallback;
     }
 
     function esc(value){
@@ -462,98 +596,119 @@
     function fmtDate(value){
       if (!value) return "—";
       const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return esc(String(value)).slice(0,10) || "—";
+      if (Number.isNaN(d.getTime())) return String(value).slice(0,10) || "—";
       const y = d.getFullYear();
       const m = String(d.getMonth()+1).padStart(2,"0");
       const day = String(d.getDate()).padStart(2,"0");
       return `${y}-${m}-${day}`;
     }
 
-    function lowerText(value){ return String(value || "").trim().toLowerCase(); }
-
-    function isReservaFinalStatus(status){
-      const s = lowerText(status);
-      return ["fulfilled","convertida","converted","concluida","concluída","cancelled","canceled","cancelada","cancelado"].includes(s);
+    function plusDays(isoLike, days){
+      if (!isoLike) return null;
+      const d = new Date(isoLike);
+      if (Number.isNaN(d.getTime())) return null;
+      d.setDate(d.getDate() + days);
+      return d.toISOString();
     }
 
-    function isReservaAtivaStatus(status){
+    function lowerText(value){ return String(value || "").trim().toLowerCase(); }
+
+    function isReservaActiveStatus(status){
       const s = lowerText(status);
       if (!s) return true;
-      if (isReservaFinalStatus(s)) return false;
-      return ["pending","pendente","ativa","active","reservada","solicitada","requested"].includes(s) || !isReservaFinalStatus(s);
+      return [
+        "pending","pendente","ativa","active","reservada","solicitada","requested","ready_for_pickup"
+      ].includes(s);
     }
 
     function isLoanOpenStatus(status){
       const s = lowerText(status);
       if (!s) return true;
-      return ["aberto","open","ativo","ativa","borrowed","emprestado","pending_return"].includes(s) || !["returned","devolvido","fechado","closed","cancelled","cancelado","cancelada"].includes(s);
+      return ![
+        "returned","devolvido","devolvida","closed","fechado","fechada","cancelled","cancelada","cancelado"
+      ].includes(s);
+    }
+
+    function firstExistingKey(obj, candidates){
+      if (!obj) return null;
+      for (const k of candidates){
+        if (Object.prototype.hasOwnProperty.call(obj, k)) return k;
+      }
+      return null;
+    }
+
+    function pick(obj, candidates, fallback = null){
+      if (!obj) return fallback;
+      for (const key of candidates){
+        if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") return obj[key];
+      }
+      return fallback;
     }
 
     function makeReservaKey(row){
-      return `${row.reservaId || "?"}:${row.lineNo || 0}:${row.bibRef || ""}`;
+      return `${row.reservaId || "?"}:${row.lineNo || 1}:${row.bibRef || ""}`;
     }
 
     function makeLoanKey(row){
-      return `${row.emprestimoId || "?"}:${row.lineNo || 0}:${row.bibRef || ""}`;
+      return `${row.emprestimoId || "?"}:${row.lineNo || 1}:${row.bibRef || ""}`;
+    }
+
+    function parseSubIds(raw){
+      return Array.from(new Set(String(raw || "").split(",").map(s => s.trim()).filter(Boolean)));
     }
 
     function normalizeReservaRow(raw){
       const reservaId = Number(pick(raw, ["reserva_id", "id"], 0)) || 0;
-      const lineNoRaw = pick(raw, ["line_no", "item_no", "linha_no"], null);
-      const lineNo = lineNoRaw == null || lineNoRaw === "" ? null : Number(lineNoRaw);
-      const userId = pick(raw, ["user_id", "profile_id", "reader_id"], null);
-      const status = pick(raw, ["item_status", "status"], "");
-      const titulo = pick(raw, ["titulo", "title", "book_title", "livro_titulo"], "—");
-      const bibRef = pick(raw, ["bib_ref", "reference", "ref"], "—");
-      const rotulo = pick(raw, ["rotulo", "tombo", "label", "exemplar_tombo", "lote"], "—");
+      const lineNoRaw = pick(raw, ["line_no", "item_no", "linha_no"], 1);
+      const lineNo = lineNoRaw == null || lineNoRaw === "" ? 1 : Number(lineNoRaw) || 1;
       const createdAt = pick(raw, ["reserva_created_at", "reserva_em", "created_at"], null);
-      const expiresAt = pick(raw, ["expires_at", "valid_until", "validade"], null);
-      const convertedAt = pick(raw, ["converted_at", "fulfilled_at"], null);
-      const cancelledAt = pick(raw, ["cancelled_at"], null);
-      const subId = pick(raw, ["sub_id"], lineNo ? `${reservaId}.${lineNo}` : `#${reservaId}`);
+      const status = pick(raw, ["item_status", "status"], "");
       return {
         source: raw.__source || "",
         raw,
         reservaId,
         lineNo,
-        subId,
-        userId,
+        subId: pick(raw, ["sub_id"], `${reservaId}.${lineNo}`),
+        userId: pick(raw, ["user_id", "profile_id", "reader_id"], null),
         userName: pick(raw, ["full_name", "nome", "name"], ""),
-        userEmail: pick(raw, ["email", "reader_email"], ""),
-        titulo,
-        bibRef,
-        rotulo,
+        userEmail: pick(raw, ["email", "reader_email", "user_email"], ""),
+        titulo: pick(raw, ["titulo", "title", "book_title", "livro_titulo"], ""),
+        autor: pick(raw, ["autor", "author"], ""),
+        bibRef: pick(raw, ["bib_ref", "reference", "ref"], ""),
+        tombo: pick(raw, ["tombo", "rotulo", "label", "exemplar_tombo", "lote"], ""),
         status,
         createdAt,
-        expiresAt,
-        convertedAt,
-        cancelledAt,
+        expiresAt: pick(raw, ["expires_at", "valid_until", "validade"], plusDays(createdAt, 14)),
+        fulfilledAt: pick(raw, ["fulfilled_at", "converted_at"], null),
+        cancelledAt: pick(raw, ["cancelled_at"], null),
+        batchSize: Number(pick(raw, ["batch_size", "lote", "lot_size"], 1)) || 1
       };
     }
 
     function normalizeLoanRow(raw){
       const emprestimoId = Number(pick(raw, ["emprestimo_id", "loan_id", "id"], 0)) || 0;
-      const lineNoRaw = pick(raw, ["line_no", "item_no", "linha_no"], null);
-      const lineNo = lineNoRaw == null || lineNoRaw === "" ? null : Number(lineNoRaw);
-      const userId = pick(raw, ["user_id", "profile_id", "reader_id"], null);
-      const subId = pick(raw, ["sub_id"], lineNo ? `${emprestimoId}.${lineNo}` : `#${emprestimoId}`);
+      const lineNoRaw = pick(raw, ["line_no", "item_no", "linha_no"], 1);
+      const lineNo = lineNoRaw == null || lineNoRaw === "" ? 1 : Number(lineNoRaw) || 1;
       return {
         source: raw.__source || "",
         raw,
         emprestimoId,
         lineNo,
-        subId,
-        userId,
+        subId: pick(raw, ["sub_id"], `${emprestimoId}.${lineNo}`),
+        userId: pick(raw, ["user_id", "profile_id", "reader_id"], null),
         userName: pick(raw, ["full_name", "nome", "name"], ""),
-        userEmail: pick(raw, ["email", "reader_email"], ""),
-        titulo: pick(raw, ["titulo", "title", "book_title", "livro_titulo"], "—"),
-        bibRef: pick(raw, ["bib_ref", "reference", "ref"], "—"),
-        rotulo: pick(raw, ["rotulo", "tombo", "label", "exemplar_tombo", "lote"], "—"),
+        userEmail: pick(raw, ["email", "reader_email", "user_email"], ""),
+        bookId: pick(raw, ["book_id"], null),
+        titulo: pick(raw, ["titulo", "title", "book_title", "livro_titulo"], ""),
+        autor: pick(raw, ["autor", "author"], ""),
+        bibRef: pick(raw, ["bib_ref", "reference", "ref"], ""),
+        tombo: pick(raw, ["tombo", "rotulo", "label", "exemplar_tombo", "lote"], ""),
         itemStatus: pick(raw, ["item_status", "status", "emprestimo_status", "loan_status"], ""),
         emprestimoStatus: pick(raw, ["emprestimo_status", "loan_status", "status"], ""),
-        createdAt: pick(raw, ["emprestimo_created_at", "created_at", "loaned_at", "saida_em"], null),
-        dueAt: pick(raw, ["due_at", "prevista_devolucao", "data_prevista"], null),
-        returnedAt: pick(raw, ["returned_at", "devolucao_em", "effective_return_at", "returned_on"], null),
+        createdAt: pick(raw, ["emprestimo_created_at", "created_at", "loaned_at", "saida_em", "checkout_date"], null),
+        dueAt: pick(raw, ["due_at", "prevista_devolucao", "data_prevista", "due_date"], null),
+        returnedAt: pick(raw, ["returned_at", "devolucao_em", "effective_return_at", "returned_on", "returned_date"], null),
+        batchSize: Number(pick(raw, ["batch_size"], 1)) || 1
       };
     }
 
@@ -566,21 +721,27 @@
           map.set(key, row);
           continue;
         }
-        const prevScore = Number(!!prev.userName) + Number(!!prev.userEmail) + Number(prev.titulo && prev.titulo !== "—") + Number(prev.rotulo && prev.rotulo !== "—");
-        const rowScore = Number(!!row.userName) + Number(!!row.userEmail) + Number(row.titulo && row.titulo !== "—") + Number(row.rotulo && row.rotulo !== "—");
-        if (rowScore >= prevScore) map.set(key, { ...prev, ...row });
+        const score = (r) =>
+          Number(!!r.userName) +
+          Number(!!r.userEmail) +
+          Number(!!r.titulo) +
+          Number(!!r.bibRef) +
+          Number(!!r.tombo) +
+          Number(!!r.returnedAt) +
+          Number(!!r.dueAt);
+        if (score(row) >= score(prev)) map.set(key, { ...prev, ...row });
       }
       return Array.from(map.values());
     }
 
-    async function fetchFromCandidates(candidates, limit = 1000){
+    async function fetchFromCandidates(candidates, limit = 1500){
       const out = [];
       for (const source of candidates){
         try{
           const { data, error } = await supabase.from(source).select("*").limit(limit);
           if (error) continue;
           for (const row of (data || [])) out.push({ ...row, __source: source });
-        } catch (_) {}
+        } catch(_) {}
       }
       return out;
     }
@@ -601,24 +762,109 @@
       return map;
     }
 
-    async function enrichUsers(rows){
-      const need = rows.filter(r => r.userId && (!r.userName || !r.userEmail)).map(r => r.userId);
-      const userMap = await loadUsersByIds(need);
+    async function loadBooksByIds(bookIds){
+      const ids = Array.from(new Set((bookIds || []).map(x => Number(x)).filter(Boolean)));
+      const missing = ids.filter(id => !cachedBooksById.has(id));
+      if (missing.length){
+        const { data, error } = await supabase.from("books").select("id,bib_ref,titulo,autor").in("id", missing);
+        if (!error){
+          for (const row of (data || [])){
+            cachedBooksById.set(Number(row.id), row);
+            if (row.bib_ref) cachedBooksByBib.set(String(row.bib_ref), row);
+          }
+        }
+      }
+      const map = new Map();
+      for (const id of ids){
+        if (cachedBooksById.has(id)) map.set(id, cachedBooksById.get(id));
+      }
+      return map;
+    }
+
+    async function loadBooksByBibRefs(bibRefs){
+      const refs = Array.from(new Set((bibRefs || []).map(x => String(x || "").trim()).filter(Boolean)));
+      const missing = refs.filter(ref => !cachedBooksByBib.has(ref));
+      if (missing.length){
+        const { data, error } = await supabase.from("books").select("id,bib_ref,titulo,autor").in("bib_ref", missing);
+        if (!error){
+          for (const row of (data || [])){
+            cachedBooksByBib.set(String(row.bib_ref), row);
+            if (row.id != null) cachedBooksById.set(Number(row.id), row);
+          }
+        }
+      }
+      const map = new Map();
+      for (const ref of refs){
+        if (cachedBooksByBib.has(ref)) map.set(ref, cachedBooksByBib.get(ref));
+      }
+      return map;
+    }
+
+    async function enrichReservaRows(rows){
+      const userIds = rows.filter(r => r.userId && (!r.userName || !r.userEmail)).map(r => r.userId);
+      const userMap = await loadUsersByIds(userIds);
+      const bibRefs = rows.filter(r => r.bibRef && (!r.titulo || !r.autor)).map(r => r.bibRef);
+      const bookMap = await loadBooksByBibRefs(bibRefs);
+
       for (const row of rows){
-        const extra = row.userId ? userMap.get(String(row.userId)) : null;
-        if (extra){
-          if (!row.userName) row.userName = extra.full_name || "";
-          if (!row.userEmail) row.userEmail = extra.email || "";
+        if (row.userId){
+          const user = userMap.get(String(row.userId));
+          if (user){
+            if (!row.userName) row.userName = user.full_name || "";
+            if (!row.userEmail) row.userEmail = user.email || "";
+          }
+        }
+        if (row.bibRef){
+          const book = bookMap.get(String(row.bibRef));
+          if (book){
+            if (!row.titulo) row.titulo = book.titulo || "";
+            if (!row.autor) row.autor = book.autor || "";
+          }
+        }
+      }
+      return rows;
+    }
+
+    async function enrichLoanRows(rows){
+      const userIds = rows.filter(r => r.userId && (!r.userName || !r.userEmail)).map(r => r.userId);
+      const userMap = await loadUsersByIds(userIds);
+      const bookIds = rows.filter(r => r.bookId && (!r.titulo || !r.bibRef)).map(r => r.bookId);
+      const bookMapById = await loadBooksByIds(bookIds);
+      const bibRefs = rows.filter(r => r.bibRef && !r.titulo).map(r => r.bibRef);
+      const bookMapByBib = await loadBooksByBibRefs(bibRefs);
+
+      for (const row of rows){
+        if (row.userId){
+          const user = userMap.get(String(row.userId));
+          if (user){
+            if (!row.userName) row.userName = user.full_name || "";
+            if (!row.userEmail) row.userEmail = user.email || "";
+          }
+        }
+        if (row.bookId){
+          const book = bookMapById.get(Number(row.bookId));
+          if (book){
+            if (!row.titulo) row.titulo = book.titulo || "";
+            if (!row.bibRef) row.bibRef = book.bib_ref || "";
+            if (!row.autor) row.autor = book.autor || "";
+          }
+        }
+        if (row.bibRef){
+          const book = bookMapByBib.get(String(row.bibRef));
+          if (book){
+            if (!row.titulo) row.titulo = book.titulo || "";
+            if (!row.autor) row.autor = book.autor || "";
+          }
         }
       }
       return rows;
     }
 
     async function fetchReservaRows(){
-      const raw = await fetchFromCandidates(RESERVA_SOURCES, 1000);
+      const raw = await fetchFromCandidates(RESERVA_SOURCES, 1500);
       const rows = dedupeRows(raw.map(normalizeReservaRow).filter(r => r.reservaId), makeReservaKey);
-      await enrichUsers(rows);
-      rows.sort((a, b) => {
+      await enrichReservaRows(rows);
+      rows.sort((a,b) => {
         const ad = new Date(a.createdAt || 0).getTime();
         const bd = new Date(b.createdAt || 0).getTime();
         return bd - ad || b.reservaId - a.reservaId || (a.lineNo || 0) - (b.lineNo || 0);
@@ -627,10 +873,19 @@
     }
 
     async function fetchLoanRows(){
-      const raw = await fetchFromCandidates(LOAN_SOURCES, 1000);
+      const raw = await fetchFromCandidates(LOAN_SOURCES, 1500);
       const rows = dedupeRows(raw.map(normalizeLoanRow).filter(r => r.emprestimoId), makeLoanKey);
-      await enrichUsers(rows);
-      rows.sort((a, b) => {
+      await enrichLoanRows(rows);
+      const grouped = new Map();
+      for (const row of rows){
+        const id = row.emprestimoId;
+        if (!grouped.has(id)) grouped.set(id, []);
+        grouped.get(id).push(row);
+      }
+      for (const row of rows){
+        row.loanItemCount = grouped.get(row.emprestimoId)?.length || 1;
+      }
+      rows.sort((a,b) => {
         const ad = new Date(a.createdAt || 0).getTime();
         const bd = new Date(b.createdAt || 0).getTime();
         return bd - ad || b.emprestimoId - a.emprestimoId || (a.lineNo || 0) - (b.lineNo || 0);
@@ -638,52 +893,95 @@
       return rows;
     }
 
-    function showTab(name){
-      const names = ["Dados","Reservas","Emprestimos"];
-      for (const n of names){
-        $("tabBtn"+n).classList.toggle("active", n === name);
+    function buildLoanGroups(rows){
+      const map = new Map();
+      for (const row of rows){
+        const id = row.emprestimoId;
+        if (!map.has(id)){
+          map.set(id, {
+            emprestimoId: id,
+            userId: row.userId,
+            userName: row.userName,
+            userEmail: row.userEmail,
+            createdAt: row.createdAt,
+            dueAt: row.dueAt,
+            items: []
+          });
+        }
+        const group = map.get(id);
+        group.items.push(row);
+        if (!group.createdAt || new Date(row.createdAt || 0) < new Date(group.createdAt || 0)) group.createdAt = row.createdAt;
+        if (!group.dueAt || new Date(row.dueAt || 0) > new Date(group.dueAt || 0)) group.dueAt = row.dueAt;
+        if (!group.userName && row.userName) group.userName = row.userName;
+        if (!group.userEmail && row.userEmail) group.userEmail = row.userEmail;
       }
-      $("paneDados").classList.toggle("hidden", name !== "Dados");
-      $("paneReservas").classList.toggle("hidden", name !== "Reservas");
-      $("paneEmprestimos").classList.toggle("hidden", name !== "Emprestimos");
+      return Array.from(map.values()).sort((a,b) => {
+        const ad = new Date(a.createdAt || 0).getTime();
+        const bd = new Date(b.createdAt || 0).getTime();
+        return bd - ad || b.emprestimoId - a.emprestimoId;
+      });
     }
-    $("tabBtnDados").addEventListener("click", () => showTab("Dados"));
-    $("tabBtnReservas").addEventListener("click", () => showTab("Reservas"));
-    $("tabBtnEmprestimos").addEventListener("click", () => showTab("Emprestimos"));
+
+    function updateCounters(resRows, loanRows){
+      $("chipResCount").textContent = `Reservas ativas: ${resRows.length}`;
+      $("chipLoanCount").textContent = `Empréstimos abertos: ${loanRows.length}`;
+    }
+
+    function showMainPane(name){
+      const names = ["Acoes","Reservas","EmprestimosSub","EmprestimosLote","Perfil"];
+      for (const n of names){
+        $("mainTabBtn"+n).classList.toggle("active", n === name);
+        $("mainPane"+n).classList.toggle("hidden", n !== name);
+      }
+    }
+
+    $("mainTabBtnAcoes").addEventListener("click", () => showMainPane("Acoes"));
+    $("mainTabBtnReservas").addEventListener("click", () => showMainPane("Reservas"));
+    $("mainTabBtnEmprestimosSub").addEventListener("click", () => showMainPane("EmprestimosSub"));
+    $("mainTabBtnEmprestimosLote").addEventListener("click", () => showMainPane("EmprestimosLote"));
+    $("mainTabBtnPerfil").addEventListener("click", () => showMainPane("Perfil"));
+
+    function showProfilePane(name){
+      const names = ["Dados","Reservas","Emprestimos","Lotes"];
+      for (const n of names){
+        $("profileTabBtn"+n).classList.toggle("active", n === name);
+        $("profilePane"+n).classList.toggle("hidden", n !== name);
+      }
+    }
+
+    $("profileTabBtnDados").addEventListener("click", () => showProfilePane("Dados"));
+    $("profileTabBtnReservas").addEventListener("click", () => showProfilePane("Reservas"));
+    $("profileTabBtnEmprestimos").addEventListener("click", () => showProfilePane("Emprestimos"));
+    $("profileTabBtnLotes").addEventListener("click", () => showProfilePane("Lotes"));
 
     async function requireSession(){
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session){ location.assign(ROUTES.CADASTRO); return null; }
+      const { data: sessData } = await supabase.auth.getSession();
+      const session = sessData?.session || null;
+      if (!session){
+        location.assign(ROUTES.CADASTRO + "?next=painel.html");
+        return null;
+      }
       return session;
     }
 
-    async function requireBibliotecaOrRedirect(){
-      const { data, error } = await supabase.rpc("fn_v2_is_biblioteca");
-      if (error){ setStatus("statusLoans", "Não consegui verificar o acesso da biblioteca: " + error.message, "bad"); return false; }
-      if (!data){ location.assign(ROUTES.CONTA); return false; }
-      return true;
-    }
-
-    async function fillHeader(session){
-      const { data } = await supabase.rpc("fn_v2_is_biblioteca");
-      $("chipEmail").textContent = "E-mail: " + (session.user.email || "—");
-      $("chipFuncao").textContent = "Função: " + (data ? "bibliotecário(a/e) e leitor(a/e)" : "leitor(a/e)");
-      $("helloLine").textContent = "";
-      $("btnModoLeitor").classList.toggle("hidden", !data);
-    }
-
-    async function findUserByEmail(email){
-      const { data, error } = await supabase.from("profiles").select("id,email").eq("email", email).maybeSingle();
-      if (error) throw error;
-      if (!data?.id) throw new Error("E-mail não encontrado no cadastro.");
-      return data;
-    }
-
-    async function refreshAllLists(){
-      await Promise.all([loadReservasAtivas(), loadEmprestimosAbertos()]);
-      if (editingProfileId){
-        await Promise.all([loadProfileReservations(editingProfileId), loadProfileLoans(editingProfileId)]);
+    async function checkLibrarian(session){
+      try{
+        const { data, error } = await supabase.from("profiles").select("is_librarian").eq("id", session.user.id).maybeSingle();
+        if (error || !data?.is_librarian){
+          location.assign(ROUTES.CONTA);
+          return false;
+        }
+        return true;
+      } catch(_){
+        location.assign(ROUTES.CONTA);
+        return false;
       }
+    }
+
+    function fillHeader(session){
+      $("chipEmail").textContent = "E-mail: " + (session.user.email || "—");
+      $("chipFuncao").textContent = "Função: bibliotecário(a/e) e leitor(a/e)";
+      $("btnModoLeitor").classList.remove("hidden");
     }
 
     async function tryRpc(name, args){
@@ -691,346 +989,577 @@
         const { data, error } = await supabase.rpc(name, args);
         if (error) return { ok:false, error };
         return { ok:true, data };
-      } catch (error) {
+      } catch (error){
         return { ok:false, error };
       }
     }
 
-    async function confirmReservationRow(row, targetStatusId = "statusRes"){
-      const label = row.lineNo ? `${row.reservaId}.${row.lineNo}` : `#${row.reservaId}`;
-      setStatus(targetStatusId, "");
+    function getReservaRowsByKeys(keys, registry){
+      return keys.map(key => registry.get(key)).filter(Boolean);
+    }
 
-      const rpcAttempts = [];
+    function getSelectedReservaKeys(){
+      return Array.from(document.querySelectorAll('input[data-role="res-check"]:checked')).map(el => el.value);
+    }
+
+    async function confirmReservationRow(row, targetStatusId = "statusResMass", batchSize = 1){
+      if (!row || !row.reservaId) throw new Error("Reserva inválida.");
+      const rid = Number(row.reservaId);
+      const qty = Math.max(1, Math.min(5, Number(batchSize) || 1));
+
+      let result;
       if (row.lineNo != null){
-        rpcAttempts.push(["fn_v2_convert_reserva_linhas_to_emprestimo", {
-          p_reserva_id: Number(row.reservaId),
+        result = await tryRpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
+          p_reserva_id: rid,
           p_line_nos: [Number(row.lineNo)],
           p_due_at: null,
-          p_notes: "Retirada presencial confirmada no painel."
-        }]);
-      }
-      rpcAttempts.push(["fn_v2_convert_reserva_to_emprestimo", {
-        p_reserva_id: Number(row.reservaId),
-        p_due_at: null,
-        p_notes: "Retirada presencial confirmada no painel."
-      }]);
-      rpcAttempts.push(["fn_convert_reserva_to_emprestimo", {
-        p_reserva_id: Number(row.reservaId),
-        p_due_at: null,
-        p_notes: "Retirada presencial confirmada no painel."
-      }]);
-
-      for (const [rpcName, rpcArgs] of rpcAttempts){
-        const result = await tryRpc(rpcName, rpcArgs);
+          p_notes: "Retirada confirmada no painel."
+        });
         if (result.ok){
-          setStatus(targetStatusId, `Retirada confirmada para a reserva ${label}.`, "ok");
+          setStatus(targetStatusId, `Retirada confirmada para a reserva ${row.subId}.`, "ok");
           await refreshAllLists();
-          return;
+          return result.data;
         }
       }
 
-      if (!row.userId || !row.bibRef || row.bibRef === "—"){
-        throw new Error("Não encontrei dados suficientes para converter esta reserva em empréstimo.");
+      result = await tryRpc("fulfill_reserva", { p_reserva_id: rid, p_batch_size: qty });
+      if (result.ok){
+        const payload = Array.isArray(result.data) ? result.data[0] : result.data;
+        setStatus(targetStatusId, (payload?.message || `Retirada confirmada para a reserva ${row.subId}.`), "ok");
+        await refreshAllLists();
+        return result.data;
       }
 
-      const { data: loanId, error: createErr } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
-        p_user_id: row.userId,
-        p_bib_refs: [row.bibRef],
-        p_due_at: null,
-        p_notes: "Retirada presencial confirmada no painel."
+      result = await tryRpc("fn_v2_convert_reserva_to_emprestimo", {
+        p_reserva_id: rid, p_due_at: null, p_notes: "Retirada confirmada no painel."
       });
-      if (createErr) throw createErr;
+      if (result.ok){
+        setStatus(targetStatusId, `Retirada confirmada para a reserva ${row.subId}.`, "ok");
+        await refreshAllLists();
+        return result.data;
+      }
 
-      const { error: updateErr } = await supabase
-        .from("reservas")
-        .update({
-          status: "fulfilled",
-          fulfilled_at: new Date().toISOString(),
-          fulfilled_loan_id: Number(loanId || 0) || null
-        })
-        .eq("id", row.reservaId);
-      if (updateErr) throw updateErr;
-
-      setStatus(targetStatusId, `Retirada confirmada para a reserva ${label}.`, "ok");
-      await refreshAllLists();
+      throw (result.error || new Error("Não consegui confirmar a retirada."));
     }
 
-    async function cancelReservationRow(row, targetStatusId = "statusRes"){
-      const label = row.lineNo ? `${row.reservaId}.${row.lineNo}` : `#${row.reservaId}`;
-      setStatus(targetStatusId, "");
+    async function cancelReservationRow(row, targetStatusId = "statusResMass"){
+      if (!row || !row.reservaId) throw new Error("Reserva inválida.");
+      const rid = Number(row.reservaId);
 
-      const rpcAttempts = [];
+      let result;
       if (row.lineNo != null){
-        rpcAttempts.push(["fn_v2_cancel_reserva_linhas_as_biblioteca", {
-          p_reserva_id: Number(row.reservaId),
+        result = await tryRpc("fn_v2_cancel_reserva_linhas_as_biblioteca", {
+          p_reserva_id: rid,
           p_line_nos: [Number(row.lineNo)],
-          p_notes: "Cancelamento registrado pela biblioteca no painel."
-        }]);
-      }
-      rpcAttempts.push(["fn_v2_cancel_reserva_as_biblioteca", {
-        p_reserva_id: Number(row.reservaId),
-        p_notes: "Cancelamento registrado pela biblioteca no painel."
-      }]);
-      rpcAttempts.push(["fn_cancel_reserva_as_biblioteca", {
-        p_reserva_id: Number(row.reservaId),
-        p_notes: "Cancelamento registrado pela biblioteca no painel."
-      }]);
-
-      for (const [rpcName, rpcArgs] of rpcAttempts){
-        const result = await tryRpc(rpcName, rpcArgs);
+          p_notes: "Cancelamento registrado no painel."
+        });
         if (result.ok){
-          setStatus(targetStatusId, `Reserva ${label} cancelada.`, "ok");
+          setStatus(targetStatusId, `Reserva ${row.subId} cancelada.`, "ok");
           await refreshAllLists();
-          return;
+          return result.data;
         }
       }
 
-      const { error: updateErr } = await supabase
-        .from("reservas")
-        .update({
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-          cancelled_by_role: "biblioteca",
-          cancelled_reason: "Cancelamento registrado no painel."
-        })
-        .eq("id", row.reservaId);
-      if (updateErr) throw updateErr;
-
-      setStatus(targetStatusId, `Reserva ${label} cancelada.`, "ok");
-      await refreshAllLists();
-    }
-
-    $("btnRegistrarSaida").addEventListener("click", async () => {
-      setStatus("statusSaida", "");
-      const email = $("borrowerEmail").value.trim().toLowerCase();
-      const refs = parseRefs($("bibRefs").value);
-      if (!email) return setStatus("statusSaida", "Informe o e-mail do(a/e) leitor(a/e).", "warn");
-      if (!refs.length) return setStatus("statusSaida", "Informe pelo menos 1 referência.", "warn");
-      if (refs.length > 5) return setStatus("statusSaida", "Máximo: 5 referências.", "warn");
-      const bad = refs.find(r => !/^\d{7}$/.test(r));
-      if (bad) return setStatus("statusSaida", `Referência inválida: ${bad}. Use 7 dígitos.`, "warn");
-
-      $("btnRegistrarSaida").disabled = true;
-      try{
-        const borrower = await findUserByEmail(email);
-        const { data, error } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
-          p_user_id: borrower.id, p_bib_refs: refs, p_due_at: null, p_notes: "Saída registrada no painel."
-        });
-        if (error) throw error;
-        setStatus("statusSaida", `Empréstimo ${data} registrado com ${refs.length} livro(s).`, "ok");
-        $("bibRefs").value = "";
-        refreshLoanHint();
+      result = await tryRpc("cancel_reserva", { p_reserva_id: rid });
+      if (result.ok){
+        const payload = Array.isArray(result.data) ? result.data[0] : result.data;
+        setStatus(targetStatusId, (payload?.message || `Reserva ${row.subId} cancelada.`), "ok");
         await refreshAllLists();
-      } catch (e) {
-        setStatus("statusSaida", e.message || String(e), "bad");
-      } finally {
-        $("btnRegistrarSaida").disabled = false;
+        return result.data;
       }
-    });
 
-    $("btnDevolverId").addEventListener("click", async () => {
-      setStatus("statusDev", "");
-      const id = Number(($("loanId").value || "").trim());
-      if (!Number.isFinite(id) || id <= 0) return setStatus("statusDev", "Informe um ID válido.", "warn");
-
-      $("btnDevolverId").disabled = true;
-      try{
-        const { data, error } = await supabase.rpc("fn_v2_return_emprestimo_total", {
-          p_emprestimo_id: id, p_notes: "Devolução total registrada no painel."
-        });
-        if (error) throw error;
-        setStatus("statusDev", `Devolução total registrada. Itens processados: ${data}.`, "ok");
-        await refreshAllLists();
-      } catch (e) {
-        setStatus("statusDev", e.message || String(e), "bad");
-      } finally {
-        $("btnDevolverId").disabled = false;
-      }
-    });
-
-    $("btnDevolverSubIds").addEventListener("click", async () => {
-      setStatus("statusDev", "");
-      const subIds = parseSubIds($("loanSubIds").value);
-      if (!subIds.length) return setStatus("statusDev", "Informe pelo menos 1 sub-ID.", "warn");
-      const parsed = subIds.map(s => {
-        const m = s.match(/^(\d+)\.(\d+)$/);
-        return m ? { emprestimo_id:Number(m[1]), line_no:Number(m[2]) } : null;
+      result = await tryRpc("fn_v2_cancel_reserva_as_biblioteca", {
+        p_reserva_id: rid,
+        p_notes: "Cancelamento registrado no painel."
       });
-      if (parsed.some(x => !x)) return setStatus("statusDev", "Formato inválido. Use, por exemplo: 154.2", "warn");
-      const groups = groupBy(parsed, x => x.emprestimo_id);
-
-      $("btnDevolverSubIds").disabled = true;
-      try{
-        let total = 0;
-        for (const [emprestimoId, items] of groups.entries()){
-          const lineNos = items.map(i => i.line_no);
-          const { data, error } = await supabase.rpc("fn_v2_return_emprestimo_linhas", {
-            p_emprestimo_id: Number(emprestimoId), p_line_nos: lineNos, p_notes: "Devolução parcial registrada no painel."
-          });
-          if (error) throw error;
-          total += Number(data || 0);
-        }
-        setStatus("statusDev", `Devolução parcial registrada. Itens processados: ${total}.`, "ok");
+      if (result.ok){
+        setStatus(targetStatusId, `Reserva ${row.subId} cancelada.`, "ok");
         await refreshAllLists();
-      } catch (e) {
-        setStatus("statusDev", e.message || String(e), "bad");
-      } finally {
-        $("btnDevolverSubIds").disabled = false;
+        return result.data;
       }
-    });
 
-    async function loadReservasAtivas(){
-      setStatus("statusRes", "");
-      reservaRowRegistry.clear();
-      const tbody = $("tbodyRes");
-      tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      try{
-        const rows = (await fetchReservaRows()).filter(r => isReservaAtivaStatus(r.status));
-        if (!rows.length){
-          tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`;
-          return;
+      throw (result.error || new Error("Não consegui cancelar a reserva."));
+    }
+
+    async function returnLoanRow(row, targetStatusId = "statusLoansSub"){
+      if (!row || !row.emprestimoId) throw new Error("Empréstimo inválido.");
+      const loanId = Number(row.emprestimoId);
+
+      let result;
+      if (row.lineNo != null){
+        result = await tryRpc("fn_v2_return_emprestimo_linhas", {
+          p_emprestimo_id: loanId,
+          p_line_nos: [Number(row.lineNo)],
+          p_notes: "Devolução parcial registrada no painel."
+        });
+        if (result.ok){
+          setStatus(targetStatusId, `Devolução registrada para ${row.subId}.`, "ok");
+          await refreshAllLists();
+          return result.data;
         }
-        rows.forEach(r => reservaRowRegistry.set(makeReservaKey(r), r));
-        tbody.innerHTML = rows.map(r => {
-          const who = `${esc(r.userName || "—")}<br><span class="mini subtle">${esc(r.userEmail || "—")}</span>`;
-          const actionBtns = `
-            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
-              <button class="btn primary" type="button" data-role="confirm-reserva" data-key="${esc(makeReservaKey(r))}">Confirmar retirada</button>
-              <button class="btn" type="button" data-role="cancel-reserva" data-key="${esc(makeReservaKey(r))}">Cancelar</button>
-            </div>`;
-          return `<tr>
-            <td>#${r.reservaId}</td>
-            <td>${fmtDateTime(r.createdAt)}</td>
-            <td>${esc(r.titulo || "—")}</td>
-            <td>${who}</td>
-            <td class="mono">${esc(r.bibRef || "—")}</td>
-            <td class="mono">${esc(r.rotulo || "—")}</td>
-            <td>${esc(r.status || "—")}</td>
-            <td>${actionBtns}</td>
-          </tr>`;
-        }).join("");
+      }
+
+      if ((Number(row.loanItemCount) || 1) === 1){
+        result = await tryRpc("mark_loan_returned", { p_loan_id: loanId });
+        if (result.ok){
+          setStatus(targetStatusId, `Devolução registrada para ${row.subId}.`, "ok");
+          await refreshAllLists();
+          return result.data;
+        }
+        result = await tryRpc("fn_v2_return_emprestimo_total", {
+          p_emprestimo_id: loanId,
+          p_notes: "Devolução total registrada no painel."
+        });
+        if (result.ok){
+          setStatus(targetStatusId, `Devolução registrada para ${row.subId}.`, "ok");
+          await refreshAllLists();
+          return result.data;
+        }
+      }
+
+      throw new Error("Não encontrei uma RPC segura para devolver apenas este item. Use a devolução parcial por sub-ID ou a vista por lote.");
+    }
+
+    async function returnLoanLotGroup(group, targetStatusId = "statusLoansLot"){
+      if (!group || !group.emprestimoId) throw new Error("Lote inválido.");
+      const loanId = Number(group.emprestimoId);
+
+      let result = await tryRpc("fn_v2_return_emprestimo_total", {
+        p_emprestimo_id: loanId,
+        p_notes: "Devolução total registrada no painel."
+      });
+      if (result.ok){
+        setStatus(targetStatusId, `Devolução total registrada para o lote #${loanId}.`, "ok");
+        await refreshAllLists();
+        return result.data;
+      }
+
+      result = await tryRpc("mark_loan_returned", { p_loan_id: loanId });
+      if (result.ok){
+        setStatus(targetStatusId, `Devolução total registrada para o lote #${loanId}.`, "ok");
+        await refreshAllLists();
+        return result.data;
+      }
+
+      throw (result.error || new Error("Não consegui registrar a devolução total."));
+    }
+
+    async function runBulkConfirm(){
+      setStatus("statusResMass", "");
+      const keys = getSelectedReservaKeys();
+      if (!keys.length) return setStatus("statusResMass", "Selecione pelo menos uma reserva.", "warn");
+      const rows = getReservaRowsByKeys(keys, reservaRowRegistry);
+      if (!rows.length) return setStatus("statusResMass", "Não encontrei as reservas selecionadas.", "warn");
+
+      const byUser = new Map();
+      for (const row of rows){
+        const userKey = String(row.userId || "sem-user");
+        if (!byUser.has(userKey)) byUser.set(userKey, []);
+        byUser.get(userKey).push(row);
+      }
+
+      try{
+        for (const groupRows of byUser.values()){
+          const qty = Math.max(1, Math.min(5, groupRows.length));
+          for (const row of groupRows){
+            await confirmReservationRow(row, "statusResMass", qty);
+          }
+        }
+        setStatus("statusResMass", "Retiradas confirmadas para as reservas selecionadas.", "ok");
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar reservas.</td></tr>`;
-        setStatus("statusRes", e.message || String(e), "bad");
+        setStatus("statusResMass", e.message || String(e), "bad");
       }
     }
 
-    async function loadEmprestimosAbertos(){
-      setStatus("statusLoans", "");
-      const tbody = $("tbodyLoans");
-      tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
+    async function runBulkCancel(){
+      setStatus("statusResMass", "");
+      const keys = getSelectedReservaKeys();
+      if (!keys.length) return setStatus("statusResMass", "Selecione pelo menos uma reserva.", "warn");
+      const rows = getReservaRowsByKeys(keys, reservaRowRegistry);
+      if (!rows.length) return setStatus("statusResMass", "Não encontrei as reservas selecionadas.", "warn");
       try{
-        const rows = (await fetchLoanRows()).filter(r => isLoanOpenStatus(r.itemStatus || r.emprestimoStatus));
-        if (!rows.length){
-          tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos abertos.</td></tr>`;
-          return;
+        for (const row of rows){
+          await cancelReservationRow(row, "statusResMass");
         }
-        tbody.innerHTML = rows.map(r => {
-          const who = `${esc(r.userName || "—")}<br><span class="mini subtle">${esc(r.userEmail || "—")}</span>`;
-          return `<tr>
-            <td class="mono">${esc(r.subId || "—")}</td>
-            <td>${who}</td>
-            <td>${esc(r.titulo || "—")}</td>
-            <td class="mono">${esc(r.bibRef || "—")}</td>
-            <td class="mono">${esc(r.rotulo || "—")}</td>
-            <td>#${r.emprestimoId}</td>
-            <td>${fmtDate(r.dueAt)}</td>
-            <td>${esc(r.itemStatus || r.emprestimoStatus || "—")}</td>
-          </tr>`;
-        }).join("");
+        setStatus("statusResMass", "Reservas selecionadas canceladas.", "ok");
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar empréstimos.</td></tr>`;
-        setStatus("statusLoans", e.message || String(e), "bad");
+        setStatus("statusResMass", e.message || String(e), "bad");
       }
+    }
+
+    function renderMassReservations(rows){
+      reservaRowRegistry.clear();
+      const tbody = $("tbodyResMass");
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="10">Sem reservas ativas.</td></tr>`;
+        return;
+      }
+      rows.forEach(r => reservaRowRegistry.set(makeReservaKey(r), r));
+      tbody.innerHTML = rows.map(r => {
+        const key = makeReservaKey(r);
+        const who = `${esc(r.userName || "—")}<br><span class="mini subtle">${esc(r.userEmail || "—")}</span>`;
+        return `<tr>
+          <td class="check-inline"><input type="checkbox" data-role="res-check" value="${esc(key)}"></td>
+          <td class="mono">${esc(r.subId || "—")}<div class="mini">#${esc(r.reservaId)}</div></td>
+          <td>${who}</td>
+          <td><div><b>${esc(r.titulo || "—")}</b></div><div class="mini">${esc(r.autor || "")}</div></td>
+          <td class="mono">${esc(r.bibRef || "—")}</td>
+          <td class="mono">${esc(r.tombo || "—")}</td>
+          <td>${fmtDateTime(r.createdAt)}</td>
+          <td>${fmtDateTime(r.expiresAt)}</td>
+          <td><select class="select" data-kind="batch-size" style="min-width:110px">
+                ${[1,2,3,4,5].map(n => `<option value="${n}" ${String(n)===String(r.batchSize||1) ? "selected": ""}>${n} livro${n>1 ? "s" : ""}</option>`).join("")}
+              </select></td>
+          <td>
+            <div class="action-col">
+              <button class="btn primary small" type="button" data-role="confirm-reserva-row" data-key="${esc(key)}">Confirmar</button>
+              <button class="btn small" type="button" data-role="cancel-reserva-row" data-key="${esc(key)}">Cancelar</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderMassLoansSub(rows){
+      loanRowRegistry.clear();
+      const tbody = $("tbodyLoansSub");
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="10">Sem empréstimos abertos.</td></tr>`;
+        return;
+      }
+      rows.forEach(r => loanRowRegistry.set(makeLoanKey(r), r));
+      tbody.innerHTML = rows.map(r => {
+        const key = makeLoanKey(r);
+        const who = `${esc(r.userName || "—")}<br><span class="mini subtle">${esc(r.userEmail || "—")}</span>`;
+        return `<tr>
+          <td class="mono">${esc(r.subId || "—")}</td>
+          <td>${who}</td>
+          <td><div><b>${esc(r.titulo || "—")}</b></div><div class="mini">${esc(r.autor || "")}</div></td>
+          <td class="mono">${esc(r.bibRef || "—")}</td>
+          <td class="mono">${esc(r.tombo || "—")}</td>
+          <td>#${esc(r.emprestimoId)}</td>
+          <td>${fmtDateTime(r.createdAt)}</td>
+          <td>${fmtDate(r.dueAt)}</td>
+          <td>${esc(r.itemStatus || r.emprestimoStatus || "—")}</td>
+          <td>
+            <div class="action-col">
+              <button class="btn small" type="button" data-role="return-loan-row" data-key="${esc(key)}">Registrar devolução</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    function renderMassLoansLot(groups){
+      loanLotRegistry.clear();
+      const tbody = $("tbodyLoansLot");
+      if (!groups.length){
+        tbody.innerHTML = `<tr><td colspan="7">Sem lotes abertos.</td></tr>`;
+        return;
+      }
+      groups.forEach(g => loanLotRegistry.set(String(g.emprestimoId), g));
+      tbody.innerHTML = groups.map(g => {
+        const who = `${esc(g.userName || "—")}<br><span class="mini subtle">${esc(g.userEmail || "—")}</span>`;
+        const itemsHtml = g.items.map(item => `
+          <div class="list-stack">
+            <span class="mono">${esc(item.subId || "—")}</span>
+            <span><b>${esc(item.titulo || "—")}</b></span>
+            <span class="mini">${esc(item.bibRef || "—")} · ${esc(item.tombo || "—")}</span>
+          </div>
+        `).join("");
+        return `<tr>
+          <td class="mono">#${esc(g.emprestimoId)}</td>
+          <td>${who}</td>
+          <td><span class="tag">${g.items.length} item(ns)</span></td>
+          <td><div class="lot-items">${itemsHtml}</div></td>
+          <td>${fmtDateTime(g.createdAt)}</td>
+          <td>${fmtDate(g.dueAt)}</td>
+          <td><button class="btn small" type="button" data-role="return-loan-lot" data-loan-id="${esc(g.emprestimoId)}">Registrar devolução total</button></td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadMassLists(){
+      setStatus("statusResMass", "");
+      setStatus("statusLoansSub", "");
+      setStatus("statusLoansLot", "");
+
+      const [allReservas, allLoans] = await Promise.all([fetchReservaRows(), fetchLoanRows()]);
+      const activeReservas = allReservas.filter(r => isReservaActiveStatus(r.status));
+      const openLoans = allLoans.filter(r => isLoanOpenStatus(r.itemStatus || r.emprestimoStatus));
+      const openLoanGroups = buildLoanGroups(openLoans);
+
+      renderMassReservations(activeReservas);
+      renderMassLoansSub(openLoans);
+      renderMassLoansLot(openLoanGroups);
+      updateCounters(activeReservas, openLoans);
     }
 
     async function loadProfileReservations(userId){
-      perfilReservaRowRegistry.clear();
+      profileReservaRowRegistry.clear();
       const tbody = $("tbodyPerfilReservas");
-      tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
       try{
         const rows = (await fetchReservaRows()).filter(r => String(r.userId || "") === String(userId || ""));
         if (!rows.length){
-          tbody.innerHTML = `<tr><td colspan="9">Sem reservas para esse perfil.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="8">Sem reservas para esse perfil.</td></tr>`;
           return;
         }
-        rows.forEach(r => perfilReservaRowRegistry.set(makeReservaKey(r), r));
+        rows.forEach(r => profileReservaRowRegistry.set(makeReservaKey(r), r));
         tbody.innerHTML = rows.map(r => {
-          const finalStamp = r.convertedAt ? fmtDateTime(r.convertedAt) : (r.cancelledAt ? fmtDateTime(r.cancelledAt) : "—");
-          const actionCell = isReservaAtivaStatus(r.status)
-            ? `<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
-                 <button class="btn primary" type="button" data-role="confirm-reserva-perfil" data-key="${esc(makeReservaKey(r))}">Confirmar retirada</button>
-                 <button class="btn" type="button" data-role="cancel-reserva-perfil" data-key="${esc(makeReservaKey(r))}">Cancelar</button>
+          const key = makeReservaKey(r);
+          const finalStamp = r.fulfilledAt ? `Confirmada em ${fmtDateTime(r.fulfilledAt)}` :
+                             r.cancelledAt ? `Encerrada em ${fmtDateTime(r.cancelledAt)}` :
+                             `Retirar até ${fmtDateTime(r.expiresAt)}`;
+          const actionCell = isReservaActiveStatus(r.status)
+            ? `<div class="action-col">
+                 <select class="select" data-kind="batch-size" style="min-width:110px">
+                   ${[1,2,3,4,5].map(n => `<option value="${n}" ${String(n)===String(r.batchSize||1) ? "selected": ""}>${n}</option>`).join("")}
+                 </select>
+                 <button class="btn primary small" type="button" data-role="confirm-reserva-profile" data-key="${esc(key)}">Confirmar</button>
+                 <button class="btn small" type="button" data-role="cancel-reserva-profile" data-key="${esc(key)}">Cancelar</button>
                </div>`
             : esc(finalStamp);
           return `<tr>
-            <td>#${r.reservaId}</td>
+            <td>#${esc(r.reservaId)}</td>
             <td class="mono">${esc(r.subId || "—")}</td>
-            <td>${esc(r.titulo || "—")}</td>
+            <td><div><b>${esc(r.titulo || "—")}</b></div><div class="mini">${esc(r.autor || "")}</div></td>
             <td class="mono">${esc(r.bibRef || "—")}</td>
-            <td class="mono">${esc(r.rotulo || "—")}</td>
+            <td class="mono">${esc(r.tombo || "—")}</td>
             <td>${esc(r.status || "—")}</td>
             <td>${fmtDateTime(r.createdAt)}</td>
-            <td>${fmtDateTime(r.expiresAt)}</td>
             <td>${actionCell}</td>
           </tr>`;
         }).join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar reservas.</td></tr>`;
+      } catch (e){
+        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar reservas.</td></tr>`;
       }
     }
 
     async function loadProfileLoans(userId){
-      const tbody = $("tbodyPerfilEmprestimos");
-      tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
+      profileLoanRowRegistry.clear();
+      profileLoanLotRegistry.clear();
+      const tbodyRows = $("tbodyPerfilEmprestimos");
+      const tbodyLots = $("tbodyPerfilLotes");
+      tbodyRows.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
+      tbodyLots.innerHTML = `<tr><td colspan="5">Carregando…</td></tr>`;
       try{
         const rows = (await fetchLoanRows()).filter(r => String(r.userId || "") === String(userId || ""));
+        const groups = buildLoanGroups(rows);
         if (!rows.length){
-          tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos para esse perfil.</td></tr>`;
-          return;
+          tbodyRows.innerHTML = `<tr><td colspan="9">Sem empréstimos para esse perfil.</td></tr>`;
+        } else {
+          rows.forEach(r => profileLoanRowRegistry.set(makeLoanKey(r), r));
+          tbodyRows.innerHTML = rows.map(r => {
+            const key = makeLoanKey(r);
+            const open = isLoanOpenStatus(r.itemStatus || r.emprestimoStatus);
+            const actionCell = open
+              ? `<button class="btn small" type="button" data-role="return-loan-row-profile" data-key="${esc(key)}">Registrar devolução</button>`
+              : esc(fmtDateTime(r.returnedAt));
+            return `<tr>
+              <td>#${esc(r.emprestimoId)}</td>
+              <td class="mono">${esc(r.subId || "—")}</td>
+              <td><div><b>${esc(r.titulo || "—")}</b></div><div class="mini">${esc(r.autor || "")}</div></td>
+              <td class="mono">${esc(r.bibRef || "—")}</td>
+              <td class="mono">${esc(r.tombo || "—")}</td>
+              <td>${esc(r.itemStatus || r.emprestimoStatus || "—")}</td>
+              <td>${fmtDateTime(r.createdAt)}</td>
+              <td>${fmtDate(r.dueAt)}</td>
+              <td>${actionCell}</td>
+            </tr>`;
+          }).join("");
         }
-        tbody.innerHTML = rows.map(r => `<tr>
-          <td>#${r.emprestimoId}</td>
-          <td class="mono">${esc(r.subId || "—")}</td>
-          <td>${esc(r.titulo || "—")}</td>
-          <td class="mono">${esc(r.bibRef || "—")}</td>
-          <td class="mono">${esc(r.rotulo || "—")}</td>
-          <td>${esc(r.itemStatus || r.emprestimoStatus || "—")}</td>
-          <td>${fmtDateTime(r.createdAt)}</td>
-          <td>${fmtDate(r.dueAt)}</td>
-          <td>${fmtDateTime(r.returnedAt)}</td>
-        </tr>`).join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`;
+
+        if (!groups.length){
+          tbodyLots.innerHTML = `<tr><td colspan="5">Sem lotes para esse perfil.</td></tr>`;
+        } else {
+          groups.forEach(g => profileLoanLotRegistry.set(String(g.emprestimoId), g));
+          tbodyLots.innerHTML = groups.map(g => {
+            const itemsHtml = g.items.map(item => `
+              <div class="list-stack">
+                <span class="mono">${esc(item.subId || "—")}</span>
+                <span><b>${esc(item.titulo || "—")}</b></span>
+                <span class="mini">${esc(item.bibRef || "—")} · ${esc(item.tombo || "—")}</span>
+              </div>
+            `).join("");
+            const stillOpen = g.items.some(item => isLoanOpenStatus(item.itemStatus || item.emprestimoStatus));
+            const actionCell = stillOpen
+              ? `<button class="btn small" type="button" data-role="return-loan-lot-profile" data-loan-id="${esc(g.emprestimoId)}">Registrar devolução total</button>`
+              : "—";
+            return `<tr>
+              <td class="mono">#${esc(g.emprestimoId)}</td>
+              <td><div class="lot-items">${itemsHtml}</div></td>
+              <td>${fmtDateTime(g.createdAt)}</td>
+              <td>${fmtDate(g.dueAt)}</td>
+              <td>${actionCell}</td>
+            </tr>`;
+          }).join("");
+        }
+      } catch (e){
+        tbodyRows.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`;
+        tbodyLots.innerHTML = `<tr><td colspan="5">Erro ao carregar lotes.</td></tr>`;
       }
     }
 
-    $("btnRecarregarRes").addEventListener("click", loadReservasAtivas);
-    $("btnRecarregarLoans").addEventListener("click", loadEmprestimosAbertos);
+    async function refreshAllLists(){
+      await loadMassLists();
+      if (editingProfileId){
+        await Promise.all([
+          loadProfileReservations(editingProfileId),
+          loadProfileLoans(editingProfileId)
+        ]);
+      }
+    }
+
+    async function findUserByEmail(email){
+      const { data, error } = await supabase.from("profiles").select("*").ilike("email", email).maybeSingle();
+      if (error) throw error;
+      if (!data?.id) throw new Error("E-mail não encontrado no cadastro.");
+      return data;
+    }
+
+    $("btnRecarregarReservas").addEventListener("click", refreshAllLists);
+    $("btnRecarregarLoansSub").addEventListener("click", refreshAllLists);
+    $("btnRecarregarLoansLot").addEventListener("click", refreshAllLists);
+    $("btnConfirmarSelecionadas").addEventListener("click", runBulkConfirm);
+    $("btnCancelarSelecionadas").addEventListener("click", runBulkCancel);
+
+    $("btnFulfillReserva").addEventListener("click", async () => {
+      setStatus("statusFulfill", "");
+      const reservaId = Number(($("fulfillReservaId").value || "").trim());
+      const batchSize = Number(($("fulfillBatchSize").value || "1").trim()) || 1;
+      if (!reservaId) return setStatus("statusFulfill", "Informe o ID da reserva.", "warn");
+      try{
+        const rows = await fetchReservaRows();
+        const row = rows.find(r => Number(r.reservaId) === reservaId);
+        if (row){
+          await confirmReservationRow(row, "statusFulfill", batchSize);
+        } else {
+          const result = await tryRpc("fulfill_reserva", { p_reserva_id: reservaId, p_batch_size: batchSize });
+          if (!result.ok) throw (result.error || new Error("Não consegui confirmar a retirada."));
+          const payload = Array.isArray(result.data) ? result.data[0] : result.data;
+          setStatus("statusFulfill", payload?.message || "Retirada confirmada.", "ok");
+          await refreshAllLists();
+        }
+      } catch (e){
+        setStatus("statusFulfill", e.message || String(e), "bad");
+      }
+    });
+
+    $("btnRegistrarSaida").addEventListener("click", async () => {
+      setStatus("statusSaida", "");
+      const email = $("checkoutUserEmail").value.trim().toLowerCase();
+      const bibRef = $("checkoutBibRef").value.trim();
+      const batchSize = Number(($("checkoutBatchSize").value || "1").trim()) || 1;
+      if (!email || !bibRef) return setStatus("statusSaida", "Preencha o e-mail e a referência BibLivre.", "warn");
+
+      try{
+        const borrower = await findUserByEmail(email);
+        const { data: bk, error: bkErr } = await supabase.from("books").select("id,bib_ref").eq("bib_ref", bibRef).maybeSingle();
+        if (bkErr) throw bkErr;
+        if (!bk) throw new Error("Livro não encontrado para esta referência (bib_ref).");
+
+        let result = await tryRpc("mark_loan_checkout", { p_user_id: borrower.id, p_book_id: bk.id, p_batch_size: batchSize });
+        if (!result.ok){
+          result = await tryRpc("fn_v2_create_emprestimo_by_bib_refs", {
+            p_user_id: borrower.id, p_bib_refs: [bibRef], p_due_at: null, p_notes: "Saída registrada no painel."
+          });
+        }
+        if (!result.ok) throw (result.error || new Error("Não consegui registrar a saída."));
+        const payload = Array.isArray(result.data) ? result.data[0] : result.data;
+        setStatus("statusSaida", (payload?.message || "Saída registrada.") + (payload?.loan_id ? ` (ID: ${payload.loan_id})` : "") + (payload?.due_date ? ` Prazo: ${payload.due_date}.` : ""), "ok");
+        $("checkoutBibRef").value = "";
+        await refreshAllLists();
+      } catch (e){
+        setStatus("statusSaida", e.message || String(e), "bad");
+      }
+    });
+
+    $("btnDevolverId").addEventListener("click", async () => {
+      setStatus("statusDevTotal", "");
+      const loanId = Number(($("returnLoanId").value || "").trim());
+      if (!loanId) return setStatus("statusDevTotal", "Informe o ID do empréstimo.", "warn");
+      try{
+        const group = loanLotRegistry.get(String(loanId)) || profileLoanLotRegistry.get(String(loanId)) || { emprestimoId: loanId };
+        await returnLoanLotGroup(group, "statusDevTotal");
+      } catch (e){
+        setStatus("statusDevTotal", e.message || String(e), "bad");
+      }
+    });
+
+    $("btnDevolverSubIds").addEventListener("click", async () => {
+      setStatus("statusDevParcial", "");
+      const subIds = parseSubIds($("returnSubIds").value);
+      if (!subIds.length) return setStatus("statusDevParcial", "Informe pelo menos um sub-ID.", "warn");
+      const parsed = subIds.map(s => {
+        const m = s.match(/^(\d+)\.(\d+)$/);
+        return m ? { emprestimoId: Number(m[1]), lineNo: Number(m[2]), subId: s } : null;
+      });
+      if (parsed.some(x => !x)) return setStatus("statusDevParcial", "Formato inválido. Use, por exemplo: 154.2", "warn");
+      try{
+        const groups = new Map();
+        for (const item of parsed){
+          if (!groups.has(item.emprestimoId)) groups.set(item.emprestimoId, []);
+          groups.get(item.emprestimoId).push(item.lineNo);
+        }
+        for (const [emprestimoId, lineNos] of groups.entries()){
+          const result = await tryRpc("fn_v2_return_emprestimo_linhas", {
+            p_emprestimo_id: Number(emprestimoId),
+            p_line_nos: lineNos,
+            p_notes: "Devolução parcial registrada no painel."
+          });
+          if (!result.ok) throw (result.error || new Error(`Não consegui devolver linhas do lote #${emprestimoId}.`));
+        }
+        setStatus("statusDevParcial", "Devolução parcial registrada.", "ok");
+        await refreshAllLists();
+      } catch (e){
+        setStatus("statusDevParcial", e.message || String(e), "bad");
+      }
+    });
 
     document.addEventListener("click", async (event) => {
       const btn = event.target.closest("button[data-role]");
       if (!btn) return;
-      const role = btn.getAttribute("data-role");
-      const key = btn.getAttribute("data-key") || "";
+      const role = btn.dataset.role;
+      const key = btn.dataset.key || "";
+      const loanId = btn.dataset.loanId || "";
+      const targetStatus =
+        role.includes("profile") ? "statusPerfil" :
+        role.includes("loan-lot") ? "statusLoansLot" :
+        role.includes("loan-row") ? "statusLoansSub" :
+        "statusResMass";
+
       try{
         btn.disabled = true;
-        if (role === "confirm-reserva"){
+        if (role === "confirm-reserva-row"){
           const row = reservaRowRegistry.get(key);
-          if (row) await confirmReservationRow(row, "statusRes");
-        } else if (role === "cancel-reserva"){
+          const batch = Number(btn.closest("tr")?.querySelector('[data-kind="batch-size"]')?.value || row?.batchSize || 1) || 1;
+          await confirmReservationRow(row, targetStatus, batch);
+        } else if (role === "cancel-reserva-row"){
           const row = reservaRowRegistry.get(key);
-          if (row) await cancelReservationRow(row, "statusRes");
-        } else if (role === "confirm-reserva-perfil"){
-          const row = perfilReservaRowRegistry.get(key);
-          if (row) await confirmReservationRow(row, "statusPerfil");
-        } else if (role === "cancel-reserva-perfil"){
-          const row = perfilReservaRowRegistry.get(key);
-          if (row) await cancelReservationRow(row, "statusPerfil");
+          await cancelReservationRow(row, targetStatus);
+        } else if (role === "return-loan-row"){
+          const row = loanRowRegistry.get(key);
+          await returnLoanRow(row, targetStatus);
+        } else if (role === "return-loan-lot"){
+          const group = loanLotRegistry.get(String(loanId));
+          await returnLoanLotGroup(group, targetStatus);
+        } else if (role === "confirm-reserva-profile"){
+          const row = profileReservaRowRegistry.get(key);
+          const batch = Number(btn.closest("tr")?.querySelector('[data-kind="batch-size"]')?.value || row?.batchSize || 1) || 1;
+          await confirmReservationRow(row, targetStatus, batch);
+        } else if (role === "cancel-reserva-profile"){
+          const row = profileReservaRowRegistry.get(key);
+          await cancelReservationRow(row, targetStatus);
+        } else if (role === "return-loan-row-profile"){
+          const row = profileLoanRowRegistry.get(key);
+          await returnLoanRow(row, targetStatus);
+        } else if (role === "return-loan-lot-profile"){
+          const group = profileLoanLotRegistry.get(String(loanId));
+          await returnLoanLotGroup(group, targetStatus);
         }
-      } catch (e) {
-        const target = role.includes("perfil") ? "statusPerfil" : "statusRes";
-        setStatus(target, e.message || String(e), "bad");
+      } catch (e){
+        setStatus(targetStatus, e.message || String(e), "bad");
       } finally {
         btn.disabled = false;
       }
@@ -1041,14 +1570,9 @@
       const email = $("searchEmail").value.trim().toLowerCase();
       if (!email) return setStatus("statusPerfil", "Informe um e-mail.", "warn");
 
-      $("btnBuscarPerfil").disabled = true;
       try{
-        const { data, error } = await supabase.from("profiles").select("*").eq("email", email).maybeSingle();
-        if (error) throw error;
-        if (!data?.id) return setStatus("statusPerfil", "Não encontrei esse e-mail no cadastro.", "warn");
-
+        const data = await findUserByEmail(email);
         editingProfileId = data.id;
-        editingProfileEmail = data.email || email;
         editingKnownColumns = {
           surname: firstExistingKey(data, ["surname","sobrenome","last_name","lastname"]),
           phone: firstExistingKey(data, ["phone","telefone"]),
@@ -1070,13 +1594,15 @@
         $("editLibrarian").value = editingKnownColumns.is_librarian ? String(!!data[editingKnownColumns.is_librarian]) : "false";
 
         $("profileArea").classList.remove("hidden");
-        showTab("Dados");
-        await Promise.all([loadProfileReservations(editingProfileId), loadProfileLoans(editingProfileId)]);
+        showProfilePane("Dados");
+        showMainPane("Perfil");
+        await Promise.all([
+          loadProfileReservations(editingProfileId),
+          loadProfileLoans(editingProfileId)
+        ]);
         setStatus("statusPerfil", "Perfil carregado.", "ok");
-      } catch (e) {
+      } catch (e){
         setStatus("statusPerfil", e.message || String(e), "bad");
-      } finally {
-        $("btnBuscarPerfil").disabled = false;
       }
     });
 
@@ -1096,33 +1622,23 @@
 
       if (!Object.keys(payload).length) return setStatus("statusPerfil", "Nenhum campo compatível foi encontrado para atualização.", "warn");
 
-      $("btnSalvarPerfil").disabled = true;
       try{
         const { error } = await supabase.from("profiles").update(payload).eq("id", editingProfileId);
         if (error) throw error;
         setStatus("statusPerfil", "Alterações salvas.", "ok");
-      } catch (e) {
+      } catch (e){
         setStatus("statusPerfil", e.message || String(e), "bad");
-      } finally {
-        $("btnSalvarPerfil").disabled = false;
       }
-    });
-
-    $("btnSair").addEventListener("click", async () => {
-      $("btnSair").disabled = true;
-      try{ await supabase.auth.signOut(); location.assign(ROUTES.CADASTRO); }
-      finally { $("btnSair").disabled = false; }
     });
 
     const session = await requireSession();
     if (session){
-      await fillHeader(session);
-      const ok = await requireBibliotecaOrRedirect();
+      fillHeader(session);
+      const ok = await checkLibrarian(session);
       if (ok){
         await refreshAllLists();
       }
     }
   </script>
-
 </body>
 </html>
