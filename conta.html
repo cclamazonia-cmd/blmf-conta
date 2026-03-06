@@ -126,7 +126,44 @@
   
     .table-scroll{ width:100%; overflow-x:auto; }
 
-  
+    .header-actions{
+      display:flex;
+      justify-content:flex-start;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:10px;
+      align-items:center;
+    }
+    .header-btn,
+    .logout-btn{
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.24);
+      background:linear-gradient(180deg, #d41414 0%, #9f0000 100%);
+      color:#fff !important;
+      font-weight:700;
+      box-shadow:0 8px 18px rgba(0,0,0,.28);
+    }
+    .header-btn:hover,
+    .header-btn:focus,
+    .logout-btn:hover,
+    .logout-btn:focus{
+      transform:translateY(-1px);
+      border-color:rgba(255,255,255,0.38) !important;
+      background:linear-gradient(180deg, #e01919 0%, #b10000 100%);
+      color:#fff !important;
+    }
+    .logout-btn{
+      margin-left:auto;
+      min-width:96px;
+    }
+    @media (max-width: 700px){
+      .logout-btn{ margin-left:0; }
+    }
 
     /* accent-red-fix */
     a, a:visited{ color:inherit; }
@@ -183,14 +220,14 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
             <h1 style="margin:0;">Conta — Biblioteca Libertária Maxwell Ferreira</h1>
             <p class="subtitle">Área do/a/e leitor/a/e</p>
           </div>
-          <button id="logout" class="secondary">Sair</button>
         </div>
 
-        <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <a class="secondary" href="https://cclamazonia-cmd.github.io/blmf-catalogo/" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao catálogo</a>
-                 <a id="goPainelBiblio" class="secondary" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Painel (bibliotecário-a-e)</a>
-          <a class="secondary" href="https://cclamazonia.noblogs.org" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px;">Voltar ao blogue</a>
-           </div>
+        <div class="header-actions">
+          <a class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
+          <a id="goPainelBiblio" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none;">Painel (bibliotecário-a-e)</a>
+          <a class="header-btn" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
+          <button id="logout" class="logout-btn" type="button">Sair</button>
+        </div>
         </div>
       </div>
     </div>
