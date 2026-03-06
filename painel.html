@@ -806,14 +806,31 @@
       return Array.from(merged.values()).sort((a,b) => Number(a.reserva_id) - Number(b.reserva_id) || Number(a.line_no||1) - Number(b.line_no||1));
     }
 
+    function reservaRowKey(row){
+      return `${row.source || "view"}::${Number(row.reserva_id)}::${Number(row.line_no || 1)}::${String(row.bib_ref || "")}`;
+    }
+
+    function syncSelectedReservaKeysFromDom(){
+      const next = new Set();
+      document.querySelectorAll("input[data-reserva-item]").forEach((el) => {
+        const key = el.getAttribute("data-reserva-key");
+        if (el.checked && key) next.add(key);
+      });
+      selectedReservaKeys = next;
+    }
+
     function getSelectedReservaRows(){
-      return Array.from(document.querySelectorAll("input[data-reserva-item]:checked")).map(el => ({
-        reserva_id: Number(el.getAttribute("data-reserva-id")),
-        line_no: Number(el.getAttribute("data-line-no") || 1),
-        source: el.getAttribute("data-source") || "view",
-        bib_ref: el.getAttribute("data-bib-ref") || null,
-        user_id: el.getAttribute("data-user-id") || null
-      }));
+      syncSelectedReservaKeysFromDom();
+      return Array.from(selectedReservaKeys)
+        .map((key) => reservaRowsByKey.get(key))
+        .filter(Boolean)
+        .map((row) => ({
+          reserva_id: Number(row.reserva_id),
+          line_no: Number(row.line_no || 1),
+          source: row.source || "view",
+          bib_ref: row.bib_ref || null,
+          user_id: row.user_id || null
+        }));
     }
 
     async function confirmLegacyReservaGroup(reservaId, lineNos){
@@ -916,14 +933,19 @@
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
       try {
         const data = await loadActiveReservaRows();
-        if (!data.length){ tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`; return; }
-        const userMap = await loadUsersByIds(data.map(r => r.user_id));
-        tbody.innerHTML = data.map(r => {
+        reservaRowsState = Array.isArray(data) ? data.slice() : [];
+        reservaRowsByKey = new Map(reservaRowsState.map((row) => [reservaRowKey(row), row]));
+        selectedReservaKeys = new Set(Array.from(selectedReservaKeys).filter((key) => reservaRowsByKey.has(key)));
+        if (!reservaRowsState.length){ tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`; return; }
+        const userMap = await loadUsersByIds(reservaRowsState.map(r => r.user_id));
+        tbody.innerHTML = reservaRowsState.map(r => {
           const du = displayUser(userMap.get(String(r.user_id)) || null);
           const who = `${du.name}<br><span class="mini subtle">${du.email}</span>`;
           const expires = r.expires_at ? String(r.expires_at).slice(0,10) : "—";
-          return `<tr>
-            <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${r.reserva_id}" data-line-no="${r.line_no || 1}" data-source="${r.source || 'view'}" data-bib-ref="${r.bib_ref || ''}" data-user-id="${r.user_id || ''}"></td>
+          const rowKey = reservaRowKey(r);
+          const checked = selectedReservaKeys.has(rowKey) ? ' checked' : '';
+          return `<tr data-reserva-row="1" data-reserva-key="${rowKey}" style="cursor:pointer">
+            <td><input type="checkbox"${checked} data-reserva-item="1" data-reserva-key="${rowKey}" data-reserva-id="${r.reserva_id}" data-line-no="${r.line_no || 1}" data-source="${r.source || 'view'}" data-bib-ref="${r.bib_ref || ''}" data-user-id="${r.user_id || ''}"></td>
             <td class="mono">${r.sub_id || `${r.reserva_id}.${r.line_no || 1}`}</td>
             <td>${who}</td>
             <td>${r.titulo || "—"}</td>
@@ -1015,6 +1037,26 @@
         <td><button class="btn" type="button" data-renovar-loan="${r.emprestimo_id}">Renovar</button></td>
       </tr>`).join("");
     }
+
+    $("tbodyRes").addEventListener("change", (ev) => {
+      const input = ev.target.closest('input[data-reserva-item]');
+      if (!input) return;
+      const key = input.getAttribute('data-reserva-key');
+      if (!key) return;
+      if (input.checked) selectedReservaKeys.add(key);
+      else selectedReservaKeys.delete(key);
+    });
+
+    $("tbodyRes").addEventListener("click", (ev) => {
+      const input = ev.target.closest('input[data-reserva-item]');
+      if (input) return;
+      const row = ev.target.closest('tr[data-reserva-row]');
+      if (!row) return;
+      const cb = row.querySelector('input[data-reserva-item]');
+      if (!cb) return;
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
 
     $("btnRecarregarRes").addEventListener("click", loadReservasAtivas);
     $("btnRecarregarLoans").addEventListener("click", loadEmprestimosAbertos);
