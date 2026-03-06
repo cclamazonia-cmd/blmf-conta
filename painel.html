@@ -651,17 +651,9 @@
       return data;
     }
 
-    function normalizeIdList(values){
-      return Array.from(new Set((values || [])
-        .filter(v => v !== null && v !== undefined && String(v).trim() !== "" && String(v).trim().toLowerCase() !== "null" && String(v).trim().toLowerCase() !== "undefined")
-        .map(v => String(v).trim())
-      ));
-    }
-
     async function loadUsersByIds(userIds){
-      const ids = normalizeIdList(userIds);
-      if (!ids.length) return new Map();
-      const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", ids);
+      if (!userIds.length) return new Map();
+      const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", userIds);
       if (error) throw error;
       return new Map((data || []).map(x => [String(x.id), x]));
     }
@@ -886,35 +878,19 @@
         tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`;
         return active;
       }
-      try {
-        const userMap = await loadUsersByIds(active.map(r => r.user_id));
-        tbody.innerHTML = active.map(r => `
-          <tr>
-            <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${Number(r.reserva_id)}" data-line-no="${Number(r.line_no)}"></td>
-            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-            <td>${renderWho(userMap, r.user_id)}</td>
-            <td>${safeHtml(r.titulo || "—")}</td>
-            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-            <td>#${Number(r.reserva_id)}</td>
-            <td>${formatDate(r.expires_at)}</td>
-          </tr>
-        `).join("");
-      } catch (e) {
-        tbody.innerHTML = active.map(r => `
-          <tr>
-            <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${Number(r.reserva_id)}" data-line-no="${Number(r.line_no)}"></td>
-            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-            <td>—</td>
-            <td>${safeHtml(r.titulo || "—")}</td>
-            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-            <td>#${Number(r.reserva_id)}</td>
-            <td>${formatDate(r.expires_at)}</td>
-          </tr>
-        `).join("");
-        if (!options.quiet) setStatus("statusRes", "Alguns perfis não puderam ser resolvidos, mas a lista ativa foi exibida mesmo assim.", "warn");
-      }
+      const userMap = await loadUsersByIds(Array.from(new Set(active.map(r => String(r.user_id)).filter(Boolean))));
+      tbody.innerHTML = active.map(r => `
+        <tr>
+          <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${Number(r.reserva_id)}" data-line-no="${Number(r.line_no)}"></td>
+          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+          <td>${renderWho(userMap, r.user_id)}</td>
+          <td>${safeHtml(r.titulo || "—")}</td>
+          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+          <td>#${Number(r.reserva_id)}</td>
+          <td>${formatDate(r.expires_at)}</td>
+        </tr>
+      `).join("");
       return active;
     }
 
@@ -942,92 +918,67 @@
         tbodyBatches.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos por lote.</td></tr>`;
         return active;
       }
-      try {
-        const userMap = await loadUsersByIds(active.map(r => r.user_id));
-        tbody.innerHTML = active.map(r => `
-          <tr>
-            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-            <td>${renderWho(userMap, r.user_id)}</td>
-            <td>${safeHtml(r.titulo || "—")}</td>
-            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-            <td>#${Number(r.emprestimo_id)}</td>
-            <td>${formatDate(r.due_at)}</td>
-            <td>${safeHtml(r.emprestimo_status || r.item_status || "aberto")}</td>
-          </tr>
-        `).join("");
-        renderLoanBatchRows(active, userMap);
-      } catch (e) {
-        tbody.innerHTML = active.map(r => `
-          <tr>
-            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-            <td>—</td>
-            <td>${safeHtml(r.titulo || "—")}</td>
-            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-            <td>#${Number(r.emprestimo_id)}</td>
-            <td>${formatDate(r.due_at)}</td>
-            <td>${safeHtml(r.emprestimo_status || r.item_status || "aberto")}</td>
-          </tr>
-        `).join("");
-        renderLoanBatchRows(active, new Map());
-        if (!options.quiet) setStatus("statusLoans", "Alguns perfis não puderam ser resolvidos, mas os empréstimos ativos foram exibidos mesmo assim.", "warn");
-      }
+      const userMap = await loadUsersByIds(Array.from(new Set(active.map(r => String(r.user_id)).filter(Boolean))));
+      tbody.innerHTML = active.map(r => `
+        <tr>
+          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+          <td>${renderWho(userMap, r.user_id)}</td>
+          <td>${safeHtml(r.titulo || "—")}</td>
+          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+          <td>#${Number(r.emprestimo_id)}</td>
+          <td>${formatDate(r.due_at)}</td>
+          <td>${safeHtml(r.emprestimo_status || r.item_status || "aberto")}</td>
+        </tr>
+      `).join("");
+      renderLoanBatchRows(active, userMap);
       return active;
     }
 
     async function loadProfileReservations(userId){
       const tbody = $("tbodyPerfilReservas");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      try {
-        const { rows } = await loadMergedReservaRows(userId);
-        const active = rows.filter(reservationIsReallyActive);
-        if (!active.length){
-          tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas para esse perfil.</td></tr>`;
-          return;
-        }
-        tbody.innerHTML = active.map(r => `
-          <tr>
-            <td>#${Number(r.reserva_id)}</td>
-            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-            <td>${safeHtml(r.titulo || "—")}</td>
-            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-            <td>${safeHtml(r.item_status || r.status || "ativa")}</td>
-            <td>${formatDateTime(r.reserva_created_at || r.created_at)}</td>
-            <td>${formatDateTime(r.expires_at)}</td>
-          </tr>
-        `).join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8">Não consegui montar a lista de reservas ativas deste perfil.</td></tr>`;
+      const { rows } = await loadMergedReservaRows(userId);
+      const active = rows.filter(reservationIsReallyActive);
+      if (!active.length){
+        tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas para esse perfil.</td></tr>`;
+        return;
       }
+      tbody.innerHTML = active.map(r => `
+        <tr>
+          <td>#${Number(r.reserva_id)}</td>
+          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+          <td>${safeHtml(r.titulo || "—")}</td>
+          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+          <td>${safeHtml(r.item_status || r.status || "ativa")}</td>
+          <td>${formatDateTime(r.reserva_created_at || r.created_at)}</td>
+          <td>${formatDateTime(r.expires_at)}</td>
+        </tr>
+      `).join("");
     }
 
     async function loadProfileLoans(userId){
       const tbody = $("tbodyPerfilEmprestimos");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      try {
-        const { rows } = await loadMergedLoanRows(userId);
-        const active = rows.filter(loanIsReallyActive);
-        if (!active.length){
-          tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>`;
-          return;
-        }
-        tbody.innerHTML = active.map(r => `
-          <tr>
-            <td>#${Number(r.emprestimo_id)}</td>
-            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-            <td>${safeHtml(r.titulo || "—")}</td>
-            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-            <td>${safeHtml(r.item_status || r.emprestimo_status || "aberto")}</td>
-            <td>${formatDateTime(r.created_at)}</td>
-            <td>${formatDateTime(r.due_at)}</td>
-          </tr>
-        `).join("");
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8">Não consegui montar a lista de empréstimos ativos deste perfil.</td></tr>`;
+      const { rows } = await loadMergedLoanRows(userId);
+      const active = rows.filter(loanIsReallyActive);
+      if (!active.length){
+        tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>`;
+        return;
       }
+      tbody.innerHTML = active.map(r => `
+        <tr>
+          <td>#${Number(r.emprestimo_id)}</td>
+          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+          <td>${safeHtml(r.titulo || "—")}</td>
+          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+          <td>${safeHtml(r.item_status || r.emprestimo_status || "aberto")}</td>
+          <td>${formatDateTime(r.created_at)}</td>
+          <td>${formatDateTime(r.due_at)}</td>
+        </tr>
+      `).join("");
     }
 
     function detectProfileColumns(data){
@@ -1067,6 +1018,85 @@
         reserva_id: Number(el.getAttribute("data-reserva-id")),
         line_no: Number(el.getAttribute("data-line-no"))
       }));
+    }
+
+    function getSelectedReservaFullRows(){
+      const byKey = new Map((currentActiveReservations || []).map(r => [reservationKey(r), r]));
+      return getSelectedReservaRows().map(r => byKey.get(reservationKey(r)) || r).filter(Boolean);
+    }
+
+    async function tryRpc(name, args){
+      try {
+        const { data, error } = await supabase.rpc(name, args);
+        if (error) return { ok:false, data:null, error };
+        return { ok:true, data, error:null };
+      } catch (error) {
+        return { ok:false, data:null, error };
+      }
+    }
+
+    function shouldTryDirectReservaFallback(error, rows){
+      const list = Array.isArray(rows) ? rows : [rows];
+      if (list.some(r => String(r?._source || "") === "reservas")) return true;
+      const msg = normalizeText(error?.message || error || "");
+      return /(nao encontrad|não encontrad|not found|reserva)/.test(msg);
+    }
+
+    function buildReservaUpdatePayload(row, mode, loanId = null){
+      const nowIso = new Date().toISOString();
+      const payload = {};
+      if (mode === "fulfilled"){
+        payload.status = "fulfilled";
+        if (Object.prototype.hasOwnProperty.call(row, "fulfilled_at")) payload.fulfilled_at = nowIso;
+        if (Object.prototype.hasOwnProperty.call(row, "fulfilled_loan_id")) payload.fulfilled_loan_id = loanId;
+        if (Object.prototype.hasOwnProperty.call(row, "loan_id")) payload.loan_id = loanId;
+        if (Object.prototype.hasOwnProperty.call(row, "emprestimo_id")) payload.emprestimo_id = loanId;
+        if (Object.prototype.hasOwnProperty.call(row, "converted_at")) payload.converted_at = nowIso;
+        if (Object.prototype.hasOwnProperty.call(row, "convertida_em")) payload.convertida_em = nowIso;
+      } else {
+        payload.status = "cancelled";
+        if (Object.prototype.hasOwnProperty.call(row, "cancelled_at")) payload.cancelled_at = nowIso;
+        if (Object.prototype.hasOwnProperty.call(row, "canceled_at")) payload.canceled_at = nowIso;
+        if (Object.prototype.hasOwnProperty.call(row, "cancelada_em")) payload.cancelada_em = nowIso;
+        if (Object.prototype.hasOwnProperty.call(row, "cancelled_by_role")) payload.cancelled_by_role = "biblioteca";
+        if (Object.prototype.hasOwnProperty.call(row, "cancelled_reason")) payload.cancelled_reason = "Cancelamento registrado pela biblioteca no painel.";
+      }
+      return payload;
+    }
+
+    async function directConfirmReservationRows(rows){
+      const validRows = rows.filter(r => r && r.user_id && r.bib_ref && String(r.bib_ref).trim() !== "");
+      if (!validRows.length) throw new Error("Não encontrei dados suficientes para confirmar a retirada destas reservas.");
+      const createdLoanIds = [];
+      const groups = Array.from(groupBy(validRows, r => String(r.user_id)).entries());
+      for (const [userId, items] of groups){
+        const refs = Array.from(new Set(items.map(r => String(r.bib_ref || "").trim()).filter(Boolean)));
+        const { data: loanId, error: createErr } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
+          p_user_id: userId,
+          p_bib_refs: refs,
+          p_due_at: null,
+          p_notes: "Retirada presencial confirmada no painel."
+        });
+        if (createErr) throw createErr;
+        createdLoanIds.push(loanId);
+        for (const row of items){
+          const payload = buildReservaUpdatePayload(row, "fulfilled", Number(loanId || 0) || null);
+          const { error: updateErr } = await supabase.from("reservas").update(payload).eq("id", Number(row.reserva_id));
+          if (updateErr) throw updateErr;
+        }
+      }
+      return createdLoanIds;
+    }
+
+    async function directCancelReservationRows(rows){
+      let total = 0;
+      for (const row of rows){
+        const payload = buildReservaUpdatePayload(row, "cancelled", null);
+        const { error: updateErr } = await supabase.from("reservas").update(payload).eq("id", Number(row.reserva_id));
+        if (updateErr) throw updateErr;
+        total += 1;
+      }
+      return total;
     }
 
     async function refreshAllActiveLists(options = {}){
@@ -1199,20 +1229,32 @@
 
     $("btnConfirmarSelecionados").addEventListener("click", async () => {
       setStatus("statusRes", "");
-      const rows = getSelectedReservaRows();
+      const rows = getSelectedReservaFullRows();
       if (!rows.length) return setStatus("statusRes", "Selecione pelo menos 1 livro reservado.", "warn");
       const groups = groupBy(rows, x => x.reserva_id);
 
       $("btnConfirmarSelecionados").disabled = true;
       try{
         const created = [];
+        const fallbackRows = [];
         for (const [reservaId, items] of groups.entries()){
           const lineNos = items.map(i => i.line_no);
-          const { data, error } = await supabase.rpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
+          const result = await tryRpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
             p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
           });
-          if (error) throw error;
-          created.push(data);
+          if (result.ok){
+            created.push(result.data);
+            continue;
+          }
+          if (shouldTryDirectReservaFallback(result.error, items)){
+            fallbackRows.push(...items);
+            continue;
+          }
+          throw result.error;
+        }
+        if (fallbackRows.length){
+          const fallbackCreated = await directConfirmReservationRows(fallbackRows);
+          created.push(...fallbackCreated);
         }
         const activeAfter = await loadReservasAtivas({ quiet: true });
         await loadEmprestimosAbertos({ quiet: true });
@@ -1223,9 +1265,10 @@
         const remaining = new Set(activeAfter.map(reservationKey));
         const stillActive = rows.filter(r => remaining.has(reservationKey(r)));
         if (stillActive.length){
-          setStatus("statusRes", `A retirada foi solicitada, mas ${stillActive.length} item(ns) continuam ativos após o refresco. Verifique a lógica RPC.`, "warn");
+          setStatus("statusRes", `A retirada foi solicitada, mas ${stillActive.length} item(ns) continuam ativos após o refresco.`, "warn");
         } else {
-          setStatus("statusRes", `Retirada confirmada. Empréstimo(s) criado(s): ${created.join(", ")}.`, "ok");
+          const done = created.filter(v => v !== null && v !== undefined && String(v) !== "");
+          setStatus("statusRes", done.length ? `Retirada confirmada. Empréstimo(s) criado(s): ${done.join(", ")}.` : "Retirada confirmada.", "ok");
         }
       } catch (e) {
         setStatus("statusRes", e.message || String(e), "bad");
@@ -1236,21 +1279,30 @@
 
     $("btnCancelarSelecionados").addEventListener("click", async () => {
       setStatus("statusRes", "");
-      const rows = getSelectedReservaRows();
+      const rows = getSelectedReservaFullRows();
       if (!rows.length) return setStatus("statusRes", "Selecione pelo menos 1 livro reservado.", "warn");
       const groups = groupBy(rows, x => x.reserva_id);
 
       $("btnCancelarSelecionados").disabled = true;
       try{
         let total = 0;
+        const fallbackRows = [];
         for (const [reservaId, items] of groups.entries()){
           const lineNos = items.map(i => i.line_no);
-          const { data, error } = await supabase.rpc("fn_v2_cancel_reserva_linhas_as_biblioteca", {
+          const result = await tryRpc("fn_v2_cancel_reserva_linhas_as_biblioteca", {
             p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_notes: "Cancelamento registrado pela biblioteca no painel."
           });
-          if (error) throw error;
-          total += Number(data || 0);
+          if (result.ok){
+            total += Number(result.data || 0) || items.length;
+            continue;
+          }
+          if (shouldTryDirectReservaFallback(result.error, items)){
+            fallbackRows.push(...items);
+            continue;
+          }
+          throw result.error;
         }
+        if (fallbackRows.length) total += await directCancelReservationRows(fallbackRows);
         const activeAfter = await loadReservasAtivas({ quiet: true });
         if (editingProfileId) await loadProfileReservations(editingProfileId);
         const remaining = new Set(activeAfter.map(reservationKey));
