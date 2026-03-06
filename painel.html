@@ -386,10 +386,14 @@
                     </div>
                   </div>
 
-                  <div class="row" style="margin-top:12px">
+                  <div class="row3" style="margin-top:12px">
                     <div>
                       <label for="editAddress1">Endereço 1</label>
-                      <input class="input" id="editAddress1" type="text" placeholder="Rua e número">
+                      <input class="input" id="editAddress1" type="text" placeholder="Rua, avenida, travessa...">
+                    </div>
+                    <div>
+                      <label for="editAddressNumber">Nº casa/apt.</label>
+                      <input class="input" id="editAddressNumber" type="text" placeholder="Número, casa, apt.">
                     </div>
                     <div>
                       <label for="editAddress2">Endereço 2</label>
@@ -987,6 +991,7 @@
         phone: firstExistingKey(data, ['phone','telefone']),
         country: firstExistingKey(data, ['country','pais','país']),
         address1: firstExistingKey(data, ['address_line1','endereco1','endereço1','address1','logradouro','rua']),
+        address_number: firstExistingKey(data, ['address_number','numero','número','num','house_number','street_number','address_no','address_num','apt','apartment','unit']),
         address2: firstExistingKey(data, ['address_line2','endereco2','endereço2','address2','complemento','bairro']),
         postal_code: firstExistingKey(data, ['postal_code','cep','zip','zipcode']),
         city: firstExistingKey(data, ['city','cidade','municipio','município']),
@@ -999,6 +1004,7 @@
       $('editPhone').value = editingKnownColumns.phone ? (data[editingKnownColumns.phone] || '') : '';
       $('editCountry').value = editingKnownColumns.country ? (data[editingKnownColumns.country] || '') : '';
       $('editAddress1').value = editingKnownColumns.address1 ? (data[editingKnownColumns.address1] || '') : '';
+      $('editAddressNumber').value = editingKnownColumns.address_number ? (data[editingKnownColumns.address_number] || '') : '';
       $('editAddress2').value = editingKnownColumns.address2 ? (data[editingKnownColumns.address2] || '') : '';
       $('editPostalCode').value = editingKnownColumns.postal_code ? (data[editingKnownColumns.postal_code] || '') : '';
       $('editCity').value = editingKnownColumns.city ? (data[editingKnownColumns.city] || '') : '';
@@ -1017,6 +1023,7 @@
       if (editingKnownColumns.phone) payload[editingKnownColumns.phone] = $('editPhone').value.trim();
       if (editingKnownColumns.country) payload[editingKnownColumns.country] = $('editCountry').value.trim();
       if (editingKnownColumns.address1) payload[editingKnownColumns.address1] = $('editAddress1').value.trim();
+      if (editingKnownColumns.address_number) payload[editingKnownColumns.address_number] = $('editAddressNumber').value.trim();
       if (editingKnownColumns.address2) payload[editingKnownColumns.address2] = $('editAddress2').value.trim();
       if (editingKnownColumns.postal_code) payload[editingKnownColumns.postal_code] = $('editPostalCode').value.trim();
       if (editingKnownColumns.city) payload[editingKnownColumns.city] = $('editCity').value.trim();
