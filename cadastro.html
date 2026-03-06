@@ -52,7 +52,27 @@
     .rules summary{ cursor:pointer; }
     .rules ul{ margin:10px 0 0 18px; color:#f0f0f0; }
     .rules a{ color:#fff; text-decoration:underline; }
-  </style>
+  
+/* red-only override */
+html{ accent-color:#c00000; }
+a:any-link{ color:inherit; }
+.rules a,
+.rules a:visited,
+.notice a,
+.notice a:visited,
+.small a,
+.small a:visited{
+  color:#c00000 !important;
+}
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color: rgba(225,29,47,.8) !important;
+  box-shadow: 0 0 0 3px rgba(225,29,47,.2) !important;
+}
+button:hover, button:focus, .secondary:hover, .secondary:focus{
+  border-color: rgba(225,29,47,.55) !important;
+}
+</style>
 </head>
 <body>
   <main class="card">
@@ -151,7 +171,7 @@
     import { supabase } from "./js/auth.js";
 
     const ROUTES = {
-      BLOG: "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/",
+      BLOG: "https://cclamazonia.noblogs.org",
       REGIMENTO: "https://cclamazonia.noblogs.org/catalogo-da-biblioteca-libertaria-maxwell-ferreira/",
       CATALOGO: "https://cclamazonia-cmd.github.io/blmf-catalogo/",
       CRIAR: "https://cclamazonia-cmd.github.io/blmf-conta/criar-conta.html",
