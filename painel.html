@@ -30,7 +30,7 @@
       background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat;
     }
     a, a:visited{color:inherit;text-decoration:none}
-    .wrap{max-width:1420px;margin:0 auto;padding:24px}
+    .wrap{max-width:1560px;margin:0 auto;padding:24px}
     .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
     .brand{display:flex;align-items:center;gap:12px}
     .logo{height:64px;width:auto;max-width:170px;object-fit:contain;display:block;flex-shrink:0;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
@@ -58,10 +58,11 @@
     }
     .main-layout{
       display:grid;
-      grid-template-columns: 250px 1fr;
+      grid-template-columns:minmax(210px,250px) minmax(0,1fr);
       gap:14px;
       align-items:start;
     }
+    .main-layout > div{min-width:0;}
     @media (max-width:980px){.main-layout{grid-template-columns:1fr}}
     .side-tabs{
       display:flex;
@@ -123,18 +124,23 @@
     .tag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:rgba(179,0,24,.18);border:1px solid rgba(255,255,255,.08);font-size:.82rem}
     .profile-layout{
       display:grid;
-      grid-template-columns: 220px 1fr;
+      grid-template-columns:minmax(170px,220px) minmax(0,1fr);
       gap:14px;
       margin-top:12px;
+      align-items:start;
     }
+    .profile-layout > div{min-width:0;}
     @media (max-width:980px){.profile-layout{grid-template-columns:1fr}}
     .tabs-col{
       display:flex;
       flex-direction:column;
       gap:10px;
+      min-width:0;
     }
     .tab-pane.hidden{display:none !important}
     .check-inline{display:flex;align-items:center;justify-content:center}
+    .tableWrap{min-width:0;}
+    .card{overflow:hidden;}
   </style>
 </head>
 <body>
@@ -398,7 +404,7 @@
                   <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
                 </div>
               </div>
-              <div class="mini" style="display:flex;align-items:flex-end">As listas do perfil são recarregadas automaticamente depois de cada ação feita nas vistas gerais.</div>
+              <div class="mini" style="display:flex;align-items:flex-end">As listas do perfil mostram apenas itens ativos e são recarregadas automaticamente depois de cada ação feita nas vistas gerais.</div>
             </div>
 
             <div class="profile-layout hidden" id="profileArea">
@@ -994,6 +1000,42 @@
       }
     }
 
+    function getRpcPayload(result){
+      return Array.isArray(result?.data) ? result.data[0] : result?.data;
+    }
+
+    function rpcSucceeded(result){
+      if (!result?.ok) return false;
+      const payload = getRpcPayload(result);
+      if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "ok")){
+        return !!payload.ok;
+      }
+      return true;
+    }
+
+    function rpcMessage(result, fallback){
+      const payload = getRpcPayload(result);
+      return payload?.message || fallback;
+    }
+
+    async function refreshAndEnsureReservaClosed(row){
+      await refreshAllLists();
+      const refreshed = (await fetchReservaRows()).find(r => makeReservaKey(r) === makeReservaKey(row));
+      return !refreshed || !isReservaActiveStatus(refreshed.status);
+    }
+
+    async function refreshAndEnsureLoanClosed(row){
+      await refreshAllLists();
+      const refreshed = (await fetchLoanRows()).find(r => makeLoanKey(r) === makeLoanKey(row));
+      return !refreshed || !isLoanOpenStatus(refreshed.itemStatus || refreshed.emprestimoStatus);
+    }
+
+    async function refreshAndEnsureLoanLotClosed(group){
+      await refreshAllLists();
+      const refreshed = (await fetchLoanRows()).filter(r => Number(r.emprestimoId) === Number(group?.emprestimoId));
+      return refreshed.length === 0 || refreshed.every(r => !isLoanOpenStatus(r.itemStatus || r.emprestimoStatus));
+    }
+
     function getReservaRowsByKeys(keys, registry){
       return keys.map(key => registry.get(key)).filter(Boolean);
     }
@@ -1015,31 +1057,33 @@
           p_due_at: null,
           p_notes: "Retirada confirmada no painel."
         });
-        if (result.ok){
-          setStatus(targetStatusId, `Retirada confirmada para a reserva ${row.subId}.`, "ok");
-          await refreshAllLists();
+        if (rpcSucceeded(result)){
+          const changed = await refreshAndEnsureReservaClosed(row);
+          if (!changed) throw new Error("A retirada foi anunciada como confirmada, mas a reserva continua ativa.");
+          setStatus(targetStatusId, rpcMessage(result, `Retirada confirmada para a reserva ${row.subId}.`), "ok");
           return result.data;
         }
       }
 
       result = await tryRpc("fulfill_reserva", { p_reserva_id: rid, p_batch_size: qty });
-      if (result.ok){
-        const payload = Array.isArray(result.data) ? result.data[0] : result.data;
-        setStatus(targetStatusId, (payload?.message || `Retirada confirmada para a reserva ${row.subId}.`), "ok");
-        await refreshAllLists();
+      if (rpcSucceeded(result)){
+        const changed = await refreshAndEnsureReservaClosed(row);
+        if (!changed) throw new Error("A retirada foi anunciada como confirmada, mas a reserva continua ativa.");
+        setStatus(targetStatusId, rpcMessage(result, `Retirada confirmada para a reserva ${row.subId}.`), "ok");
         return result.data;
       }
 
       result = await tryRpc("fn_v2_convert_reserva_to_emprestimo", {
         p_reserva_id: rid, p_due_at: null, p_notes: "Retirada confirmada no painel."
       });
-      if (result.ok){
-        setStatus(targetStatusId, `Retirada confirmada para a reserva ${row.subId}.`, "ok");
-        await refreshAllLists();
+      if (rpcSucceeded(result)){
+        const changed = await refreshAndEnsureReservaClosed(row);
+        if (!changed) throw new Error("A retirada foi anunciada como confirmada, mas a reserva continua ativa.");
+        setStatus(targetStatusId, rpcMessage(result, `Retirada confirmada para a reserva ${row.subId}.`), "ok");
         return result.data;
       }
 
-      throw (result.error || new Error("Não consegui confirmar a retirada."));
+      throw (result?.error || new Error(rpcMessage(result, "Não consegui confirmar a retirada.")));
     }
 
     async function cancelReservationRow(row, targetStatusId = "statusResMass"){
@@ -1053,18 +1097,19 @@
           p_line_nos: [Number(row.lineNo)],
           p_notes: "Cancelamento registrado no painel."
         });
-        if (result.ok){
-          setStatus(targetStatusId, `Reserva ${row.subId} cancelada.`, "ok");
-          await refreshAllLists();
+        if (rpcSucceeded(result)){
+          const changed = await refreshAndEnsureReservaClosed(row);
+          if (!changed) throw new Error("O cancelamento foi anunciado como concluído, mas a reserva continua ativa.");
+          setStatus(targetStatusId, rpcMessage(result, `Reserva ${row.subId} cancelada.`), "ok");
           return result.data;
         }
       }
 
       result = await tryRpc("cancel_reserva", { p_reserva_id: rid });
-      if (result.ok){
-        const payload = Array.isArray(result.data) ? result.data[0] : result.data;
-        setStatus(targetStatusId, (payload?.message || `Reserva ${row.subId} cancelada.`), "ok");
-        await refreshAllLists();
+      if (rpcSucceeded(result)){
+        const changed = await refreshAndEnsureReservaClosed(row);
+        if (!changed) throw new Error("O cancelamento foi anunciado como concluído, mas a reserva continua ativa.");
+        setStatus(targetStatusId, rpcMessage(result, `Reserva ${row.subId} cancelada.`), "ok");
         return result.data;
       }
 
@@ -1072,13 +1117,14 @@
         p_reserva_id: rid,
         p_notes: "Cancelamento registrado no painel."
       });
-      if (result.ok){
-        setStatus(targetStatusId, `Reserva ${row.subId} cancelada.`, "ok");
-        await refreshAllLists();
+      if (rpcSucceeded(result)){
+        const changed = await refreshAndEnsureReservaClosed(row);
+        if (!changed) throw new Error("O cancelamento foi anunciado como concluído, mas a reserva continua ativa.");
+        setStatus(targetStatusId, rpcMessage(result, `Reserva ${row.subId} cancelada.`), "ok");
         return result.data;
       }
 
-      throw (result.error || new Error("Não consegui cancelar a reserva."));
+      throw (result?.error || new Error(rpcMessage(result, "Não consegui cancelar a reserva.")));
     }
 
     async function returnLoanRow(row, targetStatusId = "statusLoansSub"){
@@ -1300,9 +1346,9 @@
       const tbody = $("tbodyPerfilReservas");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
       try{
-        const rows = (await fetchReservaRows()).filter(r => String(r.userId || "") === String(userId || ""));
+        const rows = (await fetchReservaRows()).filter(r => String(r.userId || "") === String(userId || "") && isReservaActiveStatus(r.status));
         if (!rows.length){
-          tbody.innerHTML = `<tr><td colspan="8">Sem reservas para esse perfil.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas para esse perfil.</td></tr>`;
           return;
         }
         rows.forEach(r => profileReservaRowRegistry.set(makeReservaKey(r), r));
@@ -1344,10 +1390,10 @@
       tbodyRows.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
       tbodyLots.innerHTML = `<tr><td colspan="5">Carregando…</td></tr>`;
       try{
-        const rows = (await fetchLoanRows()).filter(r => String(r.userId || "") === String(userId || ""));
+        const rows = (await fetchLoanRows()).filter(r => String(r.userId || "") === String(userId || "") && isLoanOpenStatus(r.itemStatus || r.emprestimoStatus));
         const groups = buildLoanGroups(rows);
         if (!rows.length){
-          tbodyRows.innerHTML = `<tr><td colspan="9">Sem empréstimos para esse perfil.</td></tr>`;
+          tbodyRows.innerHTML = `<tr><td colspan="9">Sem empréstimos ativos para esse perfil.</td></tr>`;
         } else {
           rows.forEach(r => profileLoanRowRegistry.set(makeLoanKey(r), r));
           tbodyRows.innerHTML = rows.map(r => {
@@ -1371,7 +1417,7 @@
         }
 
         if (!groups.length){
-          tbodyLots.innerHTML = `<tr><td colspan="5">Sem lotes para esse perfil.</td></tr>`;
+          tbodyLots.innerHTML = `<tr><td colspan="5">Sem lotes ativos para esse perfil.</td></tr>`;
         } else {
           groups.forEach(g => profileLoanLotRegistry.set(String(g.emprestimoId), g));
           tbodyLots.innerHTML = groups.map(g => {
