@@ -598,7 +598,8 @@
     refreshLoanHint();
 
     function profileName(row){
-      const candidate = row?.full_name || row?.name || row?.nome || row?.display_name || row?.surname || row?.sobrenome || row?.email || '—';
+      const full = [row?.first_name, row?.last_name].map((v) => String(v || '').trim()).filter(Boolean).join(' ');
+      const candidate = full || row?.full_name || row?.name || row?.nome || row?.display_name || row?.surname || row?.sobrenome || row?.email || '—';
       return String(candidate);
     }
     function firstExistingKey(obj, candidates){
@@ -931,6 +932,93 @@
 
       activeLoans.sort((a,b) => String(a.due_date || '').localeCompare(String(b.due_date || '')) || String(a.sub_id).localeCompare(String(b.sub_id)));
       activeBatches.sort((a,b) => Number(a.batch_label) - Number(b.batch_label));
+    }
+
+
+    function renderReservationTable(){
+      const tbody = $('tbodyRes');
+      if (!tbody) return;
+      $('chipResCount').textContent = `Reservas ativas: ${activeReservations.length}`;
+
+      if (!activeReservations.length){
+        tbody.innerHTML = '<tr><td colspan="8">Sem reservas ativas no momento.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = activeReservations.map((r) => {
+        const checked = selectedReservaIds.has(r.id) ? 'checked' : '';
+        return `
+          <tr data-reserva-row="${esc(r.id)}">
+            <td><input type="checkbox" data-reserva-check="${esc(r.id)}" ${checked} aria-label="Selecionar ${esc(r.sub_id)}"></td>
+            <td class="mono">${esc(r.sub_id)}</td>
+            <td>${esc(r.user_name)}${r.user_email && r.user_email !== '—' ? `<br><span class="mini subtle">${esc(r.user_email)}</span>` : ''}</td>
+            <td>${esc(r.titulo)}${r.autor ? `<br><span class="mini subtle">${esc(r.autor)}</span>` : ''}</td>
+            <td class="mono">${esc(r.bib_ref || '—')}</td>
+            <td class="mono">${esc(r.rotulo || '—')}</td>
+            <td>${esc(fmtDateTime(r.reserva_em))}</td>
+            <td>${esc(fmtDate(r.validade))}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderLoansTable(){
+      const tbody = $('tbodyLoans');
+      if (!tbody) return;
+      $('chipLoanCount').textContent = `Empréstimos ativos: ${activeLoans.length}`;
+
+      if (!activeLoans.length){
+        tbody.innerHTML = '<tr><td colspan="9">Sem empréstimos ativos no momento.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = activeLoans.map((l) => `
+        <tr>
+          <td class="mono">${esc(l.sub_id)}</td>
+          <td class="mono">#${esc(l.batch_label)}</td>
+          <td>${esc(l.user_name)}${l.user_email && l.user_email !== '—' ? `<br><span class="mini subtle">${esc(l.user_email)}</span>` : ''}</td>
+          <td>${esc(l.titulo)}${l.autor ? `<br><span class="mini subtle">${esc(l.autor)}</span>` : ''}</td>
+          <td class="mono">${esc(l.bib_ref || '—')}</td>
+          <td>${esc(fmtDate(l.checkout_date))}</td>
+          <td>${esc(fmtDate(l.due_date))}</td>
+          <td><span class="pill ${esc(l.status_class || 'ok')}">${esc(l.status_text || 'Em curso')}</span></td>
+          <td>
+            <div class="actions" style="margin-top:0">
+              ${l.can_renew ? `<button class="btn mini" type="button" data-renew-loan="${esc(l.loan_id)}">Renovar</button>` : ''}
+              <button class="btn mini" type="button" data-return-loan="${esc(l.loan_id)}">Registrar devolução</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderBatchTable(){
+      const tbody = $('tbodyBatches');
+      if (!tbody) return;
+      $('chipBatchCount').textContent = `Lotes ativos: ${activeBatches.length}`;
+
+      if (!activeBatches.length){
+        tbody.innerHTML = '<tr><td colspan="8">Sem lotes ativos no momento.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = activeBatches.map((b) => `
+        <tr>
+          <td class="mono">#${esc(b.batch_label)}</td>
+          <td>${esc(b.user_name)}${b.user_email && b.user_email !== '—' ? `<br><span class="mini subtle">${esc(b.user_email)}</span>` : ''}</td>
+          <td>${esc(b.quantity)}</td>
+          <td class="mono">${esc((b.sub_ids || []).join(', '))}</td>
+          <td class="mono">${esc((b.bib_refs || []).join(', '))}</td>
+          <td>${esc(fmtDate(b.checkout_date))}</td>
+          <td>${esc(fmtDate(b.due_date))}</td>
+          <td><span class="pill ${esc(b.status_class || 'ok')}">${esc(b.status_text || 'Em curso')}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCounts(){
+      $('chipResCount').textContent = `Reservas ativas: ${activeReservations.length}`;
+      $('chipLoanCount').textContent = `Empréstimos ativos: ${activeLoans.length}`;
+      $('chipBatchCount').textContent = `Lotes ativos: ${activeBatches.length}`;
     }
 
 
@@ -1427,51 +1515,45 @@
     async function cancelReservations(reservationIds){
       const ids = Array.from(new Set((reservationIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
       if (!ids.length) return setStatus('statusRes', 'Selecione pelo menos 1 livro reservado.', 'warn');
-
-      const rows = activeReservations.filter((r) => ids.includes(r.id));
-      if (!rows.length) return setStatus('statusRes', 'As reservas selecionadas já não estão ativas.', 'warn');
-
       $('btnCancelarSelecionados').disabled = true;
       try {
+        const rows = activeReservations.filter((r) => ids.includes(r.id));
+        if (!rows.length) return setStatus('statusRes', 'As reservas selecionadas já não estão ativas.', 'warn');
+
         const v2Rows = rows.filter((r) => r.source === 'v2');
         const oldRows = rows.filter((r) => r.source !== 'v2');
+        let total = 0;
 
         if (v2Rows.length) {
           const grouped = groupBy(v2Rows, (r) => r.reserva_id);
           for (const [reservaId, items] of grouped.entries()) {
-            const lineNos = items.map((i) => Number(i.line_no)).filter((n) => Number.isFinite(n) && n > 0);
-            if (!lineNos.length) continue;
-
+            const lineNos = items.map((i) => Number(i.line_no));
             const rpc = await supabase.rpc('fn_v2_cancel_reserva_linhas_as_biblioteca', {
               p_reserva_id: Number(reservaId),
               p_line_nos: lineNos,
               p_notes: 'Cancelamento registrado pela biblioteca no painel.'
             });
             if (rpc.error) throw rpc.error;
+            total += Number(rpc.data || 0) || 0;
           }
         }
 
         if (oldRows.length) {
-          const oldIds = oldRows.map((r) => Number(r.reserva_id)).filter((v) => Number.isFinite(v) && v > 0);
-          if (oldIds.length) {
-            const payload = {
-              status: 'cancelled_by_staff_temp',
-              cancelled_at: nowISO(),
-              cancelled_by: session.user.id,
-              cancelled_by_role: 'biblioteca',
-              cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
-            };
-            const { error } = await supabase
-              .from('reservas')
-              .update(payload)
-              .in('id', oldIds)
-              .eq('status', 'pending');
-            if (error) throw error;
-          }
+          const payload = {
+            status: 'cancelled_by_staff_temp',
+            cancelled_at: nowISO(),
+            cancelled_by: session.user.id,
+            cancelled_by_role: 'staff',
+            cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
+          };
+          const oldIds = oldRows.map((r) => Number(r.reserva_id));
+          const { data, error } = await supabase.from('reservas').update(payload).in('id', oldIds).eq('status', 'pending').select('id');
+          if (error) throw error;
+          total += (data || []).length;
         }
 
         selectedReservaIds = new Set([...selectedReservaIds].filter((id) => !ids.includes(id)));
-        setStatus('statusRes', `Livro(s) cancelado(s): ${rows.length}.`, 'ok');
+        setStatus('statusRes', `Livro(s) cancelado(s): ${total}.`, 'ok');
         await refreshCollections({silent:true});
       } catch (e) {
         setStatus('statusRes', e.message || String(e), 'bad', false);
