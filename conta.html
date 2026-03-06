@@ -369,27 +369,35 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
           </section>
         </section>
 
-        <!-- RESERVAR -->
+
+        <!-- RESERVAS -->
         <section id="tab-reservar" class="tab-panel" data-tab="reservar" role="tabpanel">
           <div class="panel-head">
-            <h2>Reservar livro</h2>
+            <h2>Reservas</h2>
             <p class="small">
-              No catálogo, clique em <b>copiar referência</b> e cole aqui a referência BibLivre.
-              Sua reserva será enviada para a biblioteca (para combinar a retirada).
+              Cole uma ou várias referências BibLivre separadas por vírgula. A reserva será criada na nova lógica e você poderá cancelá-la livro por livro.
             </p>
           </div>
 
           <form id="reserveForm" class="row" style="justify-content:flex-start;">
-            <input type="text" id="bibRef" placeholder="Ex.: BIBLIVRE-000123" style="max-width:380px;" required />
+            <input type="text" id="bibRef" placeholder="Ex.: 0000124, 0000138" style="max-width:520px;" required />
             <button type="submit">Reservar</button>
           </form>
           <p id="reserveMsg" class="msg" aria-live="polite"></p>
+
+          <hr />
+
+          <section aria-label="Reservas ativas">
+            <h3 style="margin:0 0 8px;">Reservas ativas</h3>
+            <div id="activeReservations"></div>
+          </section>
         </section>
 
         <!-- EM CURSO -->
         <section id="tab-curso" class="tab-panel" data-tab="curso" role="tabpanel">
           <div class="panel-head">
             <h2>Empréstimos em curso</h2>
+            <p class="small">Visualização por ID e sub-ID, com prazos previstos e situação item por item.</p>
           </div>
           <div id="loans"></div>
           <p id="loanMsg" class="msg" aria-live="polite"></p>
@@ -399,16 +407,18 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         <section id="tab-historico" class="tab-panel" data-tab="historico" role="tabpanel">
           <div class="panel-head">
             <h2>Histórico</h2>
+            <p class="small">Empréstimos já encerrados e reservas já convertidas, canceladas ou expiradas.</p>
           </div>
           <div id="history"></div>
         </section>
 
-        
+
 </div>
     </div>
   </main>
 
   <script type="module">
+
     import { supabase } from "./js/auth.js";
     import { CONFIG } from "./js/config.js";
 
@@ -722,7 +732,148 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
       togglePwBtn.textContent = "Mostrar senha";
     });
 
-    // Reserve
+
+    // Prefer RPC/library flag if available
+    try {
+      const { data: libFlag } = await supabase.rpc("fn_v2_is_biblioteca");
+      if (!!libFlag) {
+        isLibrarian = true;
+        const go = document.getElementById("goPainelBiblio");
+        if (go) { go.href = ROUTES.PAINEL; go.style.display = "inline-flex"; }
+      }
+    } catch (e) {
+      console.warn("fn_v2_is_biblioteca unavailable:", e);
+    }
+
+    function esc(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function fmtDateOnly(v) {
+      if (!v) return "—";
+      const d = new Date(v);
+      if (!isNaN(d)) return d.toISOString().slice(0, 10);
+      return String(v).slice(0, 10);
+    }
+
+    function fmtDateTime(v) {
+      if (!v) return "—";
+      const d = new Date(v);
+      if (!isNaN(d)) return d.toISOString().slice(0, 19).replace("T", " ");
+      return String(v);
+    }
+
+    function parseBibRefs(raw) {
+      return Array.from(new Set(
+        String(raw || "")
+          .split(",")
+          .map(x => x.trim())
+          .filter(Boolean)
+      ));
+    }
+
+    async function renderActiveReservations() {
+      const el = document.getElementById("activeReservations");
+      el.textContent = "Carregando...";
+
+      let data = null;
+      let error = null;
+
+      const q = await supabase
+        .from("v_reserva_itens_v2_ui")
+        .select("reserva_id, sub_id, item_status, titulo, bib_ref, rotulo, reserva_created_at, expires_at, cancelled_at, converted_at")
+        .eq("user_id", session.user.id)
+        .eq("item_status", "ativa")
+        .order("reserva_id", { ascending: false })
+        .order("sub_id", { ascending: true });
+
+      data = q.data;
+      error = q.error;
+
+      if (error) {
+        console.error("renderActiveReservations error:", error);
+        el.innerHTML = "<p>Não foi possível carregar as reservas ativas.</p>";
+        return;
+      }
+
+      if (!data || !data.length) {
+        el.innerHTML = "<p>Você não tem reservas ativas.</p>";
+        return;
+      }
+
+      const rows = data.map(r => `
+        <tr>
+          <td>#${esc(r.reserva_id)}</td>
+          <td>${esc(r.sub_id)}</td>
+          <td>${esc(r.titulo || "Livro")}</td>
+          <td>${esc(r.bib_ref || "—")}</td>
+          <td>${esc(r.rotulo || "—")}</td>
+          <td>${esc(r.item_status || "—")}</td>
+          <td>${esc(fmtDateTime(r.reserva_created_at))}</td>
+          <td>${esc(fmtDateTime(r.expires_at))}</td>
+          <td>
+            <button type="button" class="secondary mini-btn" data-cancel-reserva="${esc(r.reserva_id)}" data-line-no="${esc((r.sub_id || '').split('.').pop())}">
+              Cancelar
+            </button>
+          </td>
+        </tr>
+      `).join("");
+
+      el.innerHTML = `
+        <div class="table-scroll">
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Sub-ID</th>
+                <th>Livro</th>
+                <th>Referência</th>
+                <th>Rótulo</th>
+                <th>Status</th>
+                <th>Criada em</th>
+                <th>Validade</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+
+      el.querySelectorAll("[data-cancel-reserva]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const reservaId = Number(btn.getAttribute("data-cancel-reserva"));
+          const lineNo = Number(btn.getAttribute("data-line-no"));
+          const reserveMsg = document.getElementById("reserveMsg");
+          reserveMsg.textContent = "Cancelando reserva...";
+          btn.setAttribute("disabled", "disabled");
+
+          const { data, error } = await supabase.rpc("fn_v2_cancel_reserva_linhas_as_leitor", {
+            p_reserva_id: reservaId,
+            p_line_nos: [lineNo],
+            p_notes: "Cancelamento feito na conta do leitor."
+          });
+
+          if (error) {
+            console.error("cancel reserva error:", error);
+            reserveMsg.textContent = "Erro ao cancelar: " + error.message;
+          } else {
+            reserveMsg.textContent = "Reserva cancelada.";
+            await renderActiveReservations();
+            await renderHistory();
+          }
+
+          btn.removeAttribute("disabled");
+        });
+      });
+    }
+
+    // Reserve (v2)
     document.getElementById("reserveForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const reserveMsg = document.getElementById("reserveMsg");
@@ -733,201 +884,254 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         return;
       }
 
-      const bib_ref = document.getElementById("bibRef").value.trim();
-      if (!bib_ref) {
-        reserveMsg.textContent = "Cole a referência BibLivre para reservar.";
+      const refs = parseBibRefs(document.getElementById("bibRef").value);
+      if (!refs.length) {
+        reserveMsg.textContent = "Cole ao menos uma referência BibLivre.";
+        return;
+      }
+      if (refs.length > 5) {
+        reserveMsg.textContent = "Você pode reservar no máximo 5 referências por vez.";
         return;
       }
 
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) {
-        reserveMsg.textContent = "Sessão inválida — faça login de novo.";
+      const { error, data } = await supabase.rpc("fn_v2_create_reserva_by_bib_refs", {
+        p_user_id: session.user.id,
+        p_bib_refs: refs,
+        p_expires_at: null,
+        p_notes: "Reserva criada pela conta do leitor."
+      });
+
+      if (error) {
+        console.error("fn_v2_create_reserva_by_bib_refs error:", error);
+        reserveMsg.textContent = "Erro ao reservar: " + error.message;
         return;
       }
 
-      const { error: insErr } = await supabase
-        .from("reservas")
-        .insert([{ bib_ref, user_id: user.id }]);
-
-      if (insErr) {
-        const em = String(insErr.message || "");
-        if (/duplicate|unique|já existe|violates/i.test(em)) {
-          reserveMsg.textContent = "Você já tem uma reserva ativa para este item.";
-        } else {
-          reserveMsg.textContent = "Erro ao reservar: " + insErr.message;
-        }
-        return;
-      }
-
-      reserveMsg.textContent = "Reserva registrada e enviada para a biblioteca. Em breve entraremos em contato para combinar a retirada.";
+      reserveMsg.textContent = `Reserva #${data} registrada com ${refs.length} item(ns).`;
       document.getElementById("bibRef").value = "";
+      await renderActiveReservations();
+      await renderHistory();
     });
 
-    function showEmpty(el, msg) {
-      el.innerHTML = `<p>${msg}</p>`;
-    }
-
-    
-    
-        async function renderLoans() {
+    async function renderLoans() {
       const el = document.getElementById("loans");
       const loanMsg = document.getElementById("loanMsg");
       if (loanMsg) loanMsg.textContent = "";
-
       el.textContent = "Carregando...";
 
-      // Try the richer view first (preferred). If it doesn't exist yet, fall back to old query.
-      let data = null;
-      let error = null;
-
-      const qView = await supabase
-        .from("v_loans_detalhes")
-        .select("loan_id, user_id, due_date, checkout_date, returned_date, extended_once, days_overdue, days_until_due, loan_status, can_renew, formal_notice_sent_at, restriction_effective_on, last_reminder_stage, last_reminder_sent_at, book")
+      // Prefer v2 itemized loans
+      const qV2 = await supabase
+        .from("v_emprestimo_itens_v2_ui")
+        .select("emprestimo_id, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, returned_at, item_status, emprestimo_status")
         .eq("user_id", session.user.id)
-        .eq("is_active", true)
-        .order("due_date", { ascending: true });
+        .eq("item_status", "aberto")
+        .order("emprestimo_id", { ascending: false })
+        .order("sub_id", { ascending: true });
 
-      if (!qView.error) {
-        data = qView.data || [];
-      } else {
-        // fallback: minimal fields from loans
-        const qOld = await supabase
-          .from("loans")
-          .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
-          .eq("user_id", session.user.id)
-          .is("returned_date", null)
-          .order("due_date", { ascending: true });
+      if (!qV2.error) {
+        const data = qV2.data || [];
+        if (!data.length) {
+          el.innerHTML = "<p>Não há empréstimos em curso.</p>";
+          return;
+        }
 
-        data = (qOld.data || []).map(l => ({
-          loan_id: l.id,
-          due_date: l.due_date,
-          checkout_date: l.checkout_date,
-          returned_date: l.returned_date,
-          extended_once: l.extended_once,
-          days_overdue: (() => {
-            const due = new Date(l.due_date + "T00:00:00");
-            const today = new Date();
-            const diff = Math.floor((today - due) / (1000 * 60 * 60 * 24));
-            return diff > 0 ? diff : 0;
-          })(),
-          days_until_due: (() => {
-            const due = new Date(l.due_date + "T00:00:00");
-            const today = new Date();
-            const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-            return diff > 0 ? diff : 0;
-          })(),
-          loan_status: null,
-          can_renew: (!l.extended_once) && (new Date(l.due_date + "T00:00:00") >= new Date()) && !userIsRestricted,
-          formal_notice_sent_at: null,
-          restriction_effective_on: null,
-          last_reminder_stage: null,
-          book: { titulo: l.books?.titulo, autor: l.books?.autor }
-        }));
+        const rows = data.map(r => `
+          <tr>
+            <td>#${esc(r.emprestimo_id)}</td>
+            <td>${esc(r.sub_id)}</td>
+            <td>${esc(r.titulo || "Livro")}${r.autor ? `<br><small>${esc(r.autor)}</small>` : ""}</td>
+            <td>${esc(r.bib_ref || "—")}</td>
+            <td>${esc(r.rotulo || "—")}</td>
+            <td>${esc(r.item_status || "—")}</td>
+            <td>${esc(fmtDateTime(r.emprestimo_created_at))}</td>
+            <td>${esc(fmtDateOnly(r.due_at))}</td>
+            <td>${esc(fmtDateTime(r.returned_at))}</td>
+          </tr>
+        `).join("");
+
+        el.innerHTML = `
+          <div class="table-scroll">
+            <table class="list-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Sub-ID</th>
+                  <th>Livro</th>
+                  <th>Referência</th>
+                  <th>Rótulo</th>
+                  <th>Status</th>
+                  <th>Saída em</th>
+                  <th>Prazo</th>
+                  <th>Devolução efetiva</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        `;
+        return;
       }
 
-      if (!data || !data.length) {
+      // Fallback old logic if v2 not available
+      console.warn("v_emprestimo_itens_v2_ui unavailable, fallback to old loans", qV2.error);
+
+      const qOld = await supabase
+        .from("loans")
+        .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
+        .eq("user_id", session.user.id)
+        .is("returned_date", null)
+        .order("due_date", { ascending: true });
+
+      if (qOld.error) {
+        console.error("renderLoans fallback error:", qOld.error);
         el.innerHTML = "<p>Não há empréstimos em curso.</p>";
         return;
       }
 
-      function fmtDateOnly(d) {
-        // expects ISO date or timestamp; returns YYYY-MM-DD
-        const dt = new Date(d);
-        if (!isNaN(dt)) return dt.toISOString().slice(0, 10);
-        return String(d || "");
+      const data = qOld.data || [];
+      if (!data.length) {
+        el.innerHTML = "<p>Não há empréstimos em curso.</p>";
+        return;
       }
 
-      const rows = data.map(l => {
-        const book = l.book || {};
-        const titulo = book.titulo || "Livro";
-        const autor = book.autor || "";
+      const rows = data.map(l => `
+        <tr>
+          <td>#${esc(l.id)}</td>
+          <td>—</td>
+          <td>${esc(l.books?.titulo || "Livro")}${l.books?.autor ? `<br><small>${esc(l.books.autor)}</small>` : ""}</td>
+          <td>—</td>
+          <td>—</td>
+          <td>em curso</td>
+          <td>${esc(fmtDateOnly(l.checkout_date))}</td>
+          <td>${esc(fmtDateOnly(l.due_date))}</td>
+          <td>${esc(fmtDateOnly(l.returned_date))}</td>
+        </tr>
+      `).join("");
 
-        const dueTxt = l.due_date ? fmtDateOnly(l.due_date) : "—";
-        const overdue = Number(l.days_overdue || 0);
-
-        let statusLine = "";
-        if (overdue > 0) {
-          statusLine = ` <span class="tag-muted">— ATRASO: ${overdue} dia(s)</span>`;
-        } else {
-          statusLine = ` <span class="tag-muted">— faltam ${Number(l.days_until_due || 0)} dia(s)</span>`;
-        }
-
-        let remindLine = "";
-        if (overdue > 0) {
-          if (l.formal_notice_sent_at) {
-            const aviso = fmtDateOnly(l.formal_notice_sent_at);
-            const restr = l.restriction_effective_on ? fmtDateOnly(l.restriction_effective_on) : "";
-            remindLine = `<div><small>Aviso formal enviado em ${aviso}${restr ? ` — restrição a partir de ${restr}` : ""}.</small></div>`;
-          } else if (l.last_reminder_stage) {
-            remindLine = `<div><small>Lembrete enviado (etapa ${l.last_reminder_stage}).</small></div>`;
-          } else {
-            remindLine = `<div><small>Atraso detectado — você receberá lembretes por e-mail.</small></div>`;
-          }
-        }
-
-        const canRenew = !!l.can_renew && !userIsRestricted;
-        const actionHtml = canRenew
-          ? `<span class="loan-actions">
-               <button type="button" class="secondary mini-btn" data-renew-loan="${l.loan_id}">Renovar (uma única vez)</button>
-             </span>`
-          : `<span class="loan-actions"><span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada: cada empréstimo pode ser renovado apenas uma vez" : (overdue > 0 ? "Renovação indisponível: empréstimo em atraso" : "Renovação indisponível"))}</span></span>`;
-
-        return `
-          <li>
-            <b>#${l.loan_id}</b> — ${titulo}${autor ? ` (${autor})` : ""} — devolução: <b>${dueTxt}</b>${statusLine}
-            ${actionHtml}
-            ${remindLine}
-          </li>
-        `;
-      });
-
-      el.innerHTML = `<ul>${rows.join("")}</ul>`;
-
-      async function doRenew(loanId) {
-        if (loanMsg) loanMsg.textContent = "Processando renovação...";
-        try {
-          // Preferred RPC name (regimento-aligned)
-          let res = await supabase.rpc("renew_loan", { p_loan_id: loanId });
-
-          // Backward compat: fall back to old RPC if the new one doesn't exist yet
-          if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ""))) {
-            res = await supabase.rpc("extend_loan_once", { p_loan_id: loanId });
-          }
-
-          if (res.error) {
-            console.error("renew/extend rpc error:", res.error);
-            if (loanMsg) loanMsg.textContent = "Erro ao renovar: " + res.error.message;
-            return;
-          }
-
-          const row = Array.isArray(res.data) ? res.data[0] : res.data;
-          const newDue = row?.due_date || row?.new_due_date;
-          const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
-          if (loanMsg) loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
-
-          await renderLoans();
-          await renderHistory();
-        } catch (e) {
-          console.error("doRenew fatal:", e);
-          if (loanMsg) loanMsg.textContent = "Falha ao renovar. Tente novamente.";
-        }
-      }
-
-      el.querySelectorAll("[data-renew-loan]").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const loanId = Number(btn.getAttribute("data-renew-loan"));
-          if (!loanId) return;
-          btn.setAttribute("disabled", "disabled");
-          await doRenew(loanId);
-          btn.removeAttribute("disabled");
-        });
-      });
+      el.innerHTML = `
+        <div class="table-scroll">
+          <table class="list-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Sub-ID</th>
+                <th>Livro</th>
+                <th>Referência</th>
+                <th>Rótulo</th>
+                <th>Status</th>
+                <th>Saída em</th>
+                <th>Prazo</th>
+                <th>Devolução efetiva</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
     }
 
     async function renderHistory() {
       const el = document.getElementById("history");
       el.textContent = "Carregando...";
 
+      // Prefer v2 history
+      const qLoans = await supabase
+        .from("v_emprestimo_itens_v2_ui")
+        .select("emprestimo_id, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, returned_at, item_status")
+        .eq("user_id", session.user.id)
+        .neq("item_status", "aberto")
+        .order("emprestimo_id", { ascending: false })
+        .order("sub_id", { ascending: true });
+
+      const qRes = await supabase
+        .from("v_reserva_itens_v2_ui")
+        .select("reserva_id, sub_id, titulo, bib_ref, rotulo, item_status, reserva_created_at, expires_at, converted_at, cancelled_at")
+        .eq("user_id", session.user.id)
+        .neq("item_status", "ativa")
+        .order("reserva_id", { ascending: false })
+        .order("sub_id", { ascending: true });
+
+      if (!qLoans.error && !qRes.error) {
+        const loans = qLoans.data || [];
+        const reservations = qRes.data || [];
+
+        const loansHtml = loans.length ? `
+          <h3>Empréstimos anteriores</h3>
+          <div class="table-scroll">
+            <table class="list-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Sub-ID</th>
+                  <th>Livro</th>
+                  <th>Referência</th>
+                  <th>Rótulo</th>
+                  <th>Status</th>
+                  <th>Saída em</th>
+                  <th>Prazo</th>
+                  <th>Devolução efetiva</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${loans.map(r => `
+                  <tr>
+                    <td>#${esc(r.emprestimo_id)}</td>
+                    <td>${esc(r.sub_id)}</td>
+                    <td>${esc(r.titulo || "Livro")}${r.autor ? `<br><small>${esc(r.autor)}</small>` : ""}</td>
+                    <td>${esc(r.bib_ref || "—")}</td>
+                    <td>${esc(r.rotulo || "—")}</td>
+                    <td>${esc(r.item_status || "—")}</td>
+                    <td>${esc(fmtDateTime(r.emprestimo_created_at))}</td>
+                    <td>${esc(fmtDateOnly(r.due_at))}</td>
+                    <td>${esc(fmtDateTime(r.returned_at))}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `<h3>Empréstimos anteriores</h3><p>Não há histórico de empréstimos encerrados.</p>`;
+
+        const reservationsHtml = reservations.length ? `
+          <h3 style="margin-top:18px;">Reservas anteriores</h3>
+          <div class="table-scroll">
+            <table class="list-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Sub-ID</th>
+                  <th>Livro</th>
+                  <th>Referência</th>
+                  <th>Rótulo</th>
+                  <th>Status</th>
+                  <th>Criada em</th>
+                  <th>Validade</th>
+                  <th>Conversão / cancelamento</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${reservations.map(r => `
+                  <tr>
+                    <td>#${esc(r.reserva_id)}</td>
+                    <td>${esc(r.sub_id)}</td>
+                    <td>${esc(r.titulo || "Livro")}</td>
+                    <td>${esc(r.bib_ref || "—")}</td>
+                    <td>${esc(r.rotulo || "—")}</td>
+                    <td>${esc(r.item_status || "—")}</td>
+                    <td>${esc(fmtDateTime(r.reserva_created_at))}</td>
+                    <td>${esc(fmtDateTime(r.expires_at))}</td>
+                    <td>${esc(fmtDateTime(r.converted_at || r.cancelled_at))}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `<h3 style="margin-top:18px;">Reservas anteriores</h3><p>Não há histórico de reservas encerradas.</p>`;
+
+        el.innerHTML = loansHtml + reservationsHtml;
+        return;
+      }
+
+      // Fallback old history
       const { data, error } = await supabase
         .from("loans")
         .select("id, due_date, checkout_date, returned_date, books(titulo, autor)")
@@ -936,62 +1140,23 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         .limit(50);
 
       if (error) {
-        console.error("renderHistory error:", error);
-        return showEmpty(el, "Não há histórico de empréstimos.");
+        console.error("renderHistory fallback error:", error);
+        el.innerHTML = "<p>Não há histórico de empréstimos.</p>";
+        return;
       }
 
       const rows = (data || []).map(l => {
         const titulo = l.books?.titulo || "Livro";
-        const status = l.returned_date ? `retornado: ${l.returned_date}` : "em curso";
-        return `<li>#${l.id} — ${titulo} — ${status}</li>`;
+        const status = l.returned_date ? `retornado: ${fmtDateOnly(l.returned_date)}` : "em curso";
+        return `<li>#${esc(l.id)} — ${esc(titulo)} — ${esc(status)}</li>`;
       });
 
       el.innerHTML = rows.length ? `<ul>${rows.join("")}</ul>` : "<p>Não há histórico de empréstimos.</p>";
     }
 
-    const returnForm = document.getElementById("returnForm");
-    if (returnForm) {
-      returnForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const returnMsg = document.getElementById("returnMsg");
-        if (returnMsg) returnMsg.textContent = "";
-
-        if (!isLibrarian) {
-          if (returnMsg) returnMsg.textContent = "Acesso restrito a bibliotecários.";
-          return;
-        }
-
-        const loanId = parseInt((document.getElementById("returnLoanId").value || "").trim(), 10);
-        if (!loanId) {
-          if (returnMsg) returnMsg.textContent = "Informe o ID do empréstimo.";
-          return;
-        }
-
-        if (returnMsg) returnMsg.textContent = "Registrando devolução...";
-
-        const { data, error } = await supabase.rpc("mark_loan_returned", { p_loan_id: loanId });
-
-        if (error) {
-          console.error("mark_loan_returned error:", error);
-          if (returnMsg) returnMsg.textContent = "Erro ao registrar devolução: " + error.message;
-          return;
-        }
-
-        const row = Array.isArray(data) ? data[0] : data;
-        const ok = row?.ok === true;
-        const msg = row?.message || (ok ? "Devolução registrada." : "Não foi possível registrar devolução.");
-
-        if (returnMsg) returnMsg.textContent = msg;
-
-        // Atualiza listas (do usuário logado)
-        await renderLoans();
-        await renderHistory();
-      });
-    }
-
-
+    await renderActiveReservations();
     await renderLoans();
     await renderHistory();
-  </script>
+</script>
 </body>
 </html>
