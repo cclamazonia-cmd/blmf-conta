@@ -651,9 +651,17 @@
       return data;
     }
 
+    function normalizeIdList(values){
+      return Array.from(new Set((values || [])
+        .filter(v => v !== null && v !== undefined && String(v).trim() !== "" && String(v).trim().toLowerCase() !== "null" && String(v).trim().toLowerCase() !== "undefined")
+        .map(v => String(v).trim())
+      ));
+    }
+
     async function loadUsersByIds(userIds){
-      if (!userIds.length) return new Map();
-      const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", userIds);
+      const ids = normalizeIdList(userIds);
+      if (!ids.length) return new Map();
+      const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", ids);
       if (error) throw error;
       return new Map((data || []).map(x => [String(x.id), x]));
     }
@@ -878,19 +886,35 @@
         tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`;
         return active;
       }
-      const userMap = await loadUsersByIds(Array.from(new Set(active.map(r => String(r.user_id)).filter(Boolean))));
-      tbody.innerHTML = active.map(r => `
-        <tr>
-          <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${Number(r.reserva_id)}" data-line-no="${Number(r.line_no)}"></td>
-          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-          <td>${renderWho(userMap, r.user_id)}</td>
-          <td>${safeHtml(r.titulo || "—")}</td>
-          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-          <td>#${Number(r.reserva_id)}</td>
-          <td>${formatDate(r.expires_at)}</td>
-        </tr>
-      `).join("");
+      try {
+        const userMap = await loadUsersByIds(active.map(r => r.user_id));
+        tbody.innerHTML = active.map(r => `
+          <tr>
+            <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${Number(r.reserva_id)}" data-line-no="${Number(r.line_no)}"></td>
+            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+            <td>${renderWho(userMap, r.user_id)}</td>
+            <td>${safeHtml(r.titulo || "—")}</td>
+            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+            <td>#${Number(r.reserva_id)}</td>
+            <td>${formatDate(r.expires_at)}</td>
+          </tr>
+        `).join("");
+      } catch (e) {
+        tbody.innerHTML = active.map(r => `
+          <tr>
+            <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${Number(r.reserva_id)}" data-line-no="${Number(r.line_no)}"></td>
+            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+            <td>—</td>
+            <td>${safeHtml(r.titulo || "—")}</td>
+            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+            <td>#${Number(r.reserva_id)}</td>
+            <td>${formatDate(r.expires_at)}</td>
+          </tr>
+        `).join("");
+        if (!options.quiet) setStatus("statusRes", "Alguns perfis não puderam ser resolvidos, mas a lista ativa foi exibida mesmo assim.", "warn");
+      }
       return active;
     }
 
@@ -918,67 +942,92 @@
         tbodyBatches.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos por lote.</td></tr>`;
         return active;
       }
-      const userMap = await loadUsersByIds(Array.from(new Set(active.map(r => String(r.user_id)).filter(Boolean))));
-      tbody.innerHTML = active.map(r => `
-        <tr>
-          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-          <td>${renderWho(userMap, r.user_id)}</td>
-          <td>${safeHtml(r.titulo || "—")}</td>
-          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-          <td>#${Number(r.emprestimo_id)}</td>
-          <td>${formatDate(r.due_at)}</td>
-          <td>${safeHtml(r.emprestimo_status || r.item_status || "aberto")}</td>
-        </tr>
-      `).join("");
-      renderLoanBatchRows(active, userMap);
+      try {
+        const userMap = await loadUsersByIds(active.map(r => r.user_id));
+        tbody.innerHTML = active.map(r => `
+          <tr>
+            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+            <td>${renderWho(userMap, r.user_id)}</td>
+            <td>${safeHtml(r.titulo || "—")}</td>
+            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+            <td>#${Number(r.emprestimo_id)}</td>
+            <td>${formatDate(r.due_at)}</td>
+            <td>${safeHtml(r.emprestimo_status || r.item_status || "aberto")}</td>
+          </tr>
+        `).join("");
+        renderLoanBatchRows(active, userMap);
+      } catch (e) {
+        tbody.innerHTML = active.map(r => `
+          <tr>
+            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+            <td>—</td>
+            <td>${safeHtml(r.titulo || "—")}</td>
+            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+            <td>#${Number(r.emprestimo_id)}</td>
+            <td>${formatDate(r.due_at)}</td>
+            <td>${safeHtml(r.emprestimo_status || r.item_status || "aberto")}</td>
+          </tr>
+        `).join("");
+        renderLoanBatchRows(active, new Map());
+        if (!options.quiet) setStatus("statusLoans", "Alguns perfis não puderam ser resolvidos, mas os empréstimos ativos foram exibidos mesmo assim.", "warn");
+      }
       return active;
     }
 
     async function loadProfileReservations(userId){
       const tbody = $("tbodyPerfilReservas");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { rows } = await loadMergedReservaRows(userId);
-      const active = rows.filter(reservationIsReallyActive);
-      if (!active.length){
-        tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas para esse perfil.</td></tr>`;
-        return;
+      try {
+        const { rows } = await loadMergedReservaRows(userId);
+        const active = rows.filter(reservationIsReallyActive);
+        if (!active.length){
+          tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas para esse perfil.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = active.map(r => `
+          <tr>
+            <td>#${Number(r.reserva_id)}</td>
+            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+            <td>${safeHtml(r.titulo || "—")}</td>
+            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+            <td>${safeHtml(r.item_status || r.status || "ativa")}</td>
+            <td>${formatDateTime(r.reserva_created_at || r.created_at)}</td>
+            <td>${formatDateTime(r.expires_at)}</td>
+          </tr>
+        `).join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8">Não consegui montar a lista de reservas ativas deste perfil.</td></tr>`;
       }
-      tbody.innerHTML = active.map(r => `
-        <tr>
-          <td>#${Number(r.reserva_id)}</td>
-          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-          <td>${safeHtml(r.titulo || "—")}</td>
-          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-          <td>${safeHtml(r.item_status || r.status || "ativa")}</td>
-          <td>${formatDateTime(r.reserva_created_at || r.created_at)}</td>
-          <td>${formatDateTime(r.expires_at)}</td>
-        </tr>
-      `).join("");
     }
 
     async function loadProfileLoans(userId){
       const tbody = $("tbodyPerfilEmprestimos");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { rows } = await loadMergedLoanRows(userId);
-      const active = rows.filter(loanIsReallyActive);
-      if (!active.length){
-        tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>`;
-        return;
+      try {
+        const { rows } = await loadMergedLoanRows(userId);
+        const active = rows.filter(loanIsReallyActive);
+        if (!active.length){
+          tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = active.map(r => `
+          <tr>
+            <td>#${Number(r.emprestimo_id)}</td>
+            <td class="mono">${safeHtml(r.sub_id || "—")}</td>
+            <td>${safeHtml(r.titulo || "—")}</td>
+            <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
+            <td class="mono">${safeHtml(r.rotulo || "—")}</td>
+            <td>${safeHtml(r.item_status || r.emprestimo_status || "aberto")}</td>
+            <td>${formatDateTime(r.created_at)}</td>
+            <td>${formatDateTime(r.due_at)}</td>
+          </tr>
+        `).join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8">Não consegui montar a lista de empréstimos ativos deste perfil.</td></tr>`;
       }
-      tbody.innerHTML = active.map(r => `
-        <tr>
-          <td>#${Number(r.emprestimo_id)}</td>
-          <td class="mono">${safeHtml(r.sub_id || "—")}</td>
-          <td>${safeHtml(r.titulo || "—")}</td>
-          <td class="mono">${safeHtml(r.bib_ref || "—")}</td>
-          <td class="mono">${safeHtml(r.rotulo || "—")}</td>
-          <td>${safeHtml(r.item_status || r.emprestimo_status || "aberto")}</td>
-          <td>${formatDateTime(r.created_at)}</td>
-          <td>${formatDateTime(r.due_at)}</td>
-        </tr>
-      `).join("");
     }
 
     function detectProfileColumns(data){
