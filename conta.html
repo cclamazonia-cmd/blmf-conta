@@ -819,11 +819,27 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
       });
     }
 
-    async function tryRenewCandidates(loanId) {
+    async function tryRenewV2(loanId) {
       const candidates = [
+        ["fn_v2_extend_emprestimo_once", { p_emprestimo_id: loanId }],
         ["fn_v2_renew_emprestimo", { p_emprestimo_id: loanId }],
         ["renew_emprestimo_v2", { p_emprestimo_id: loanId }],
-        ["extend_loan_once_v2", { p_emprestimo_id: loanId }],
+        ["extend_loan_once_v2", { p_emprestimo_id: loanId }]
+      ];
+      let lastErr = null;
+      for (const [fn, args] of candidates) {
+        const res = await supabase.rpc(fn, args);
+        if (!res.error) return res;
+        lastErr = res.error;
+        if (!/function|does not exist|não existe|No function matches/i.test(String(res.error.message || ""))) {
+          return res;
+        }
+      }
+      return { error: lastErr, data: null };
+    }
+
+    async function tryRenewOld(loanId) {
+      const candidates = [
         ["renew_loan", { p_loan_id: loanId }],
         ["extend_loan_once", { p_loan_id: loanId }]
       ];
@@ -852,10 +868,10 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
         .order("line_no", { ascending: true });
 
       const oldQ = await supabase
-        .from("v_loans_detalhes")
-        .select("loan_id, user_id, due_date, checkout_date, returned_date, extended_once, days_overdue, days_until_due, loan_status, can_renew, formal_notice_sent_at, restriction_effective_on, last_reminder_stage, last_reminder_sent_at, book")
+        .from("loans")
+        .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
         .eq("user_id", session.user.id)
-        .eq("is_active", true)
+        .is("returned_date", null)
         .order("due_date", { ascending: true });
 
       let sections = [];
@@ -880,16 +896,21 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
 
       if (!oldQ.error && (oldQ.data || []).length) {
         const rows = oldQ.data.map((l) => {
-          const book = l.book || {};
-          const title = book.titulo || "Livro";
-          const author = book.autor || "";
-          const overdue = Number(l.days_overdue || 0);
-          const statusLine = overdue > 0 ? `Atraso: ${overdue} dia(s)` : `Faltam ${Number(l.days_until_due || 0)} dia(s)`;
-          const actionHtml = (!!l.can_renew && !userIsRestricted)
-            ? `<button type="button" class="secondary mini-btn" data-renew-old="${l.loan_id}">Renovar (uma única vez)</button>`
+          const title = l.books?.titulo || "Livro";
+          const author = l.books?.autor || "";
+          const dueDate = l.due_date ? new Date(l.due_date) : null;
+          const today = new Date();
+          const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const due0 = dueDate ? new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()) : null;
+          const diffDays = due0 ? Math.round((due0 - today0) / 86400000) : 0;
+          const overdue = diffDays < 0 ? Math.abs(diffDays) : 0;
+          const statusLine = overdue > 0 ? `Atraso: ${overdue} dia(s)` : `Faltam ${Math.max(diffDays, 0)} dia(s)`;
+          const canRenew = !userIsRestricted && !l.extended_once && overdue === 0;
+          const actionHtml = canRenew
+            ? `<button type="button" class="secondary mini-btn" data-renew-old="${l.id}">Renovar (uma única vez)</button>`
             : `<span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada" : (overdue > 0 ? "Renovação indisponível: atraso" : "Renovação indisponível"))}</span>`;
           return `<tr>
-            <td>#${l.loan_id}</td>
+            <td>#${l.id}</td>
             <td class="mono">—</td>
             <td>${escapeHtml(title)}${author ? `<br><small>${escapeHtml(author)}</small>` : ""}</td>
             <td class="mono">—</td>
@@ -901,23 +922,6 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
           </tr>`;
         }).join("");
         sections.push(`<div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Outros empréstimos</h3></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
-      } else {
-        const qOldBare = await supabase
-          .from("loans")
-          .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
-          .eq("user_id", session.user.id)
-          .is("returned_date", null)
-          .order("due_date", { ascending: true });
-        if (!qOldBare.error && (qOldBare.data || []).length) {
-          const rows = qOldBare.data.map((l) => {
-            const title = l.books?.titulo || "Livro";
-            const author = l.books?.autor || "";
-            return `<tr>
-              <td>#${l.id}</td><td class="mono">—</td><td>${escapeHtml(title)}${author ? `<br><small>${escapeHtml(author)}</small>` : ""}</td><td class="mono">—</td><td class="mono">—</td><td>${escapeHtml(fmtDateOnly(l.checkout_date))}</td><td><b>${escapeHtml(fmtDateOnly(l.due_date))}</b></td><td>Em curso</td><td>${!userIsRestricted && !l.extended_once ? `<button type="button" class="secondary mini-btn" data-renew-old="${l.id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">${userIsRestricted ? 'Renovação bloqueada: cadastro restrito' : 'Renovação indisponível'}</span>`}</td>
-            </tr>`;
-          }).join("");
-          sections.push(`<div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Outros empréstimos</h3></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
-        }
       }
 
       if (!sections.length) {
@@ -926,13 +930,34 @@ button:hover, button:focus, .secondary:hover, .secondary:focus, .tab-btn:hover, 
       }
       loansEl.innerHTML = sections.join("");
 
-      loansEl.querySelectorAll("[data-renew-old], [data-renew-v2]").forEach((btn) => {
+      loansEl.querySelectorAll("[data-renew-v2]").forEach((btn) => {
         btn.addEventListener("click", async () => {
-          const loanId = Number(btn.getAttribute("data-renew-old") || btn.getAttribute("data-renew-v2"));
+          const loanId = Number(btn.getAttribute("data-renew-v2"));
           if (!loanId) return;
           btn.disabled = true;
           if (loanMsg) loanMsg.textContent = "Processando renovação...";
-          const res = await tryRenewCandidates(loanId);
+          const res = await tryRenewV2(loanId);
+          if (res.error) {
+            loanMsg.textContent = "Erro ao renovar: " + res.error.message;
+            btn.disabled = false;
+            return;
+          }
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+          const newDue = row?.due_at || row?.due_date || row?.new_due_date;
+          const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
+          loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
+          await renderLoans();
+          await renderHistory();
+        });
+      });
+
+      loansEl.querySelectorAll("[data-renew-old]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const loanId = Number(btn.getAttribute("data-renew-old"));
+          if (!loanId) return;
+          btn.disabled = true;
+          if (loanMsg) loanMsg.textContent = "Processando renovação...";
+          const res = await tryRenewOld(loanId);
           if (res.error) {
             loanMsg.textContent = "Erro ao renovar: " + res.error.message;
             btn.disabled = false;
