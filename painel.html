@@ -175,28 +175,26 @@
 
       <div class="card">
         <h2 style="margin:0 0 10px">Reservas ativas</h2>
-        <div class="mini">Seleciona exatamente os livros que a pessoa retirou ou que a biblioteca precisa cancelar. A conversão em empréstimo é feita livro por livro.</div>
+        <div class="mini">Listagem automática das reservas pedidas, com ações diretas por item.</div>
         <div class="sep"></div>
         <div class="tableWrap">
           <table>
             <thead>
               <tr>
-                <th>Selecionar</th>
-                <th>Sub-ID</th>
-                <th>Leitor(a/e)</th>
+                <th>ID</th>
+                <th>Data</th>
                 <th>Livro</th>
+                <th>Leitor(a/e)</th>
                 <th>Referência</th>
                 <th>Rótulo</th>
-                <th>Reserva</th>
-                <th>Validade</th>
+                <th>Status</th>
+                <th>Ação</th>
               </tr>
             </thead>
             <tbody id="tbodyRes"><tr><td colspan="8">Carregando…</td></tr></tbody>
           </table>
         </div>
         <div class="actions">
-          <button class="btn primary" id="btnConfirmarSelecionados" type="button">Confirmar retirada (selecionados)</button>
-          <button class="btn" id="btnCancelarSelecionados" type="button">Cancelar (selecionados)</button>
           <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
         </div>
         <div class="status" id="statusRes"></div>
@@ -316,7 +314,7 @@
                       <th>Status</th>
                       <th>Criada em</th>
                       <th>Validade</th>
-                      <th>Conversão / cancelamento</th>
+                      <th>Ação / fim</th>
                     </tr>
                   </thead>
                   <tbody id="tbodyPerfilReservas"><tr><td colspan="9">Carregando…</td></tr></tbody>
@@ -352,7 +350,7 @@
     </div>
   </div>
 
-  <script type="module">
+    <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     const GH_BASE = location.origin;
@@ -372,13 +370,21 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
+    const RESERVA_SOURCES = ["v_reserva_itens_v2_ui", "v_reservas_detalhes", "reservas"];
+    const LOAN_SOURCES = ["v_emprestimo_itens_v2_ui", "v_emprestimos_detalhes", "v_emprestimos_ui", "emprestimo_itens"];
+
     function $(id){ return document.getElementById(id); }
 
     let editingProfileId = null;
+    let editingProfileEmail = "";
     let editingKnownColumns = {};
+    const cachedUsers = new Map();
+    const reservaRowRegistry = new Map();
+    const perfilReservaRowRegistry = new Map();
 
     function setStatus(id, msg, cls="") {
       const el = $(id);
+      if (!el) return;
       el.className = "status" + (cls ? " " + cls : "");
       el.textContent = msg || "";
     }
@@ -417,10 +423,219 @@
     refreshLoanHint();
 
     function firstExistingKey(obj, candidates){
+      if (!obj) return null;
       for (const k of candidates){
         if (Object.prototype.hasOwnProperty.call(obj, k)) return k;
       }
       return null;
+    }
+
+    function pick(obj, candidates, fallback = null){
+      if (!obj) return fallback;
+      for (const key of candidates){
+        if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") return obj[key];
+      }
+      return fallback;
+    }
+
+    function esc(value){
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function fmtDateTime(value){
+      if (!value) return "—";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return esc(String(value));
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mm = String(d.getMinutes()).padStart(2,"0");
+      return `${y}-${m}-${day} ${hh}:${mm}`;
+    }
+
+    function fmtDate(value){
+      if (!value) return "—";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return esc(String(value)).slice(0,10) || "—";
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function lowerText(value){ return String(value || "").trim().toLowerCase(); }
+
+    function isReservaFinalStatus(status){
+      const s = lowerText(status);
+      return ["fulfilled","convertida","converted","concluida","concluída","cancelled","canceled","cancelada","cancelado"].includes(s);
+    }
+
+    function isReservaAtivaStatus(status){
+      const s = lowerText(status);
+      if (!s) return true;
+      if (isReservaFinalStatus(s)) return false;
+      return ["pending","pendente","ativa","active","reservada","solicitada","requested"].includes(s) || !isReservaFinalStatus(s);
+    }
+
+    function isLoanOpenStatus(status){
+      const s = lowerText(status);
+      if (!s) return true;
+      return ["aberto","open","ativo","ativa","borrowed","emprestado","pending_return"].includes(s) || !["returned","devolvido","fechado","closed","cancelled","cancelado","cancelada"].includes(s);
+    }
+
+    function makeReservaKey(row){
+      return `${row.reservaId || "?"}:${row.lineNo || 0}:${row.bibRef || ""}`;
+    }
+
+    function makeLoanKey(row){
+      return `${row.emprestimoId || "?"}:${row.lineNo || 0}:${row.bibRef || ""}`;
+    }
+
+    function normalizeReservaRow(raw){
+      const reservaId = Number(pick(raw, ["reserva_id", "id"], 0)) || 0;
+      const lineNoRaw = pick(raw, ["line_no", "item_no", "linha_no"], null);
+      const lineNo = lineNoRaw == null || lineNoRaw === "" ? null : Number(lineNoRaw);
+      const userId = pick(raw, ["user_id", "profile_id", "reader_id"], null);
+      const status = pick(raw, ["item_status", "status"], "");
+      const titulo = pick(raw, ["titulo", "title", "book_title", "livro_titulo"], "—");
+      const bibRef = pick(raw, ["bib_ref", "reference", "ref"], "—");
+      const rotulo = pick(raw, ["rotulo", "tombo", "label", "exemplar_tombo", "lote"], "—");
+      const createdAt = pick(raw, ["reserva_created_at", "reserva_em", "created_at"], null);
+      const expiresAt = pick(raw, ["expires_at", "valid_until", "validade"], null);
+      const convertedAt = pick(raw, ["converted_at", "fulfilled_at"], null);
+      const cancelledAt = pick(raw, ["cancelled_at"], null);
+      const subId = pick(raw, ["sub_id"], lineNo ? `${reservaId}.${lineNo}` : `#${reservaId}`);
+      return {
+        source: raw.__source || "",
+        raw,
+        reservaId,
+        lineNo,
+        subId,
+        userId,
+        userName: pick(raw, ["full_name", "nome", "name"], ""),
+        userEmail: pick(raw, ["email", "reader_email"], ""),
+        titulo,
+        bibRef,
+        rotulo,
+        status,
+        createdAt,
+        expiresAt,
+        convertedAt,
+        cancelledAt,
+      };
+    }
+
+    function normalizeLoanRow(raw){
+      const emprestimoId = Number(pick(raw, ["emprestimo_id", "loan_id", "id"], 0)) || 0;
+      const lineNoRaw = pick(raw, ["line_no", "item_no", "linha_no"], null);
+      const lineNo = lineNoRaw == null || lineNoRaw === "" ? null : Number(lineNoRaw);
+      const userId = pick(raw, ["user_id", "profile_id", "reader_id"], null);
+      const subId = pick(raw, ["sub_id"], lineNo ? `${emprestimoId}.${lineNo}` : `#${emprestimoId}`);
+      return {
+        source: raw.__source || "",
+        raw,
+        emprestimoId,
+        lineNo,
+        subId,
+        userId,
+        userName: pick(raw, ["full_name", "nome", "name"], ""),
+        userEmail: pick(raw, ["email", "reader_email"], ""),
+        titulo: pick(raw, ["titulo", "title", "book_title", "livro_titulo"], "—"),
+        bibRef: pick(raw, ["bib_ref", "reference", "ref"], "—"),
+        rotulo: pick(raw, ["rotulo", "tombo", "label", "exemplar_tombo", "lote"], "—"),
+        itemStatus: pick(raw, ["item_status", "status", "emprestimo_status", "loan_status"], ""),
+        emprestimoStatus: pick(raw, ["emprestimo_status", "loan_status", "status"], ""),
+        createdAt: pick(raw, ["emprestimo_created_at", "created_at", "loaned_at", "saida_em"], null),
+        dueAt: pick(raw, ["due_at", "prevista_devolucao", "data_prevista"], null),
+        returnedAt: pick(raw, ["returned_at", "devolucao_em", "effective_return_at", "returned_on"], null),
+      };
+    }
+
+    function dedupeRows(rows, keyFn){
+      const map = new Map();
+      for (const row of rows){
+        const key = keyFn(row);
+        const prev = map.get(key);
+        if (!prev){
+          map.set(key, row);
+          continue;
+        }
+        const prevScore = Number(!!prev.userName) + Number(!!prev.userEmail) + Number(prev.titulo && prev.titulo !== "—") + Number(prev.rotulo && prev.rotulo !== "—");
+        const rowScore = Number(!!row.userName) + Number(!!row.userEmail) + Number(row.titulo && row.titulo !== "—") + Number(row.rotulo && row.rotulo !== "—");
+        if (rowScore >= prevScore) map.set(key, { ...prev, ...row });
+      }
+      return Array.from(map.values());
+    }
+
+    async function fetchFromCandidates(candidates, limit = 1000){
+      const out = [];
+      for (const source of candidates){
+        try{
+          const { data, error } = await supabase.from(source).select("*").limit(limit);
+          if (error) continue;
+          for (const row of (data || [])) out.push({ ...row, __source: source });
+        } catch (_) {}
+      }
+      return out;
+    }
+
+    async function loadUsersByIds(userIds){
+      const ids = Array.from(new Set((userIds || []).map(x => String(x || "")).filter(Boolean)));
+      const missing = ids.filter(id => !cachedUsers.has(id));
+      if (missing.length){
+        const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", missing);
+        if (!error){
+          for (const row of (data || [])) cachedUsers.set(String(row.id), row);
+        }
+      }
+      const map = new Map();
+      for (const id of ids){
+        if (cachedUsers.has(id)) map.set(id, cachedUsers.get(id));
+      }
+      return map;
+    }
+
+    async function enrichUsers(rows){
+      const need = rows.filter(r => r.userId && (!r.userName || !r.userEmail)).map(r => r.userId);
+      const userMap = await loadUsersByIds(need);
+      for (const row of rows){
+        const extra = row.userId ? userMap.get(String(row.userId)) : null;
+        if (extra){
+          if (!row.userName) row.userName = extra.full_name || "";
+          if (!row.userEmail) row.userEmail = extra.email || "";
+        }
+      }
+      return rows;
+    }
+
+    async function fetchReservaRows(){
+      const raw = await fetchFromCandidates(RESERVA_SOURCES, 1000);
+      const rows = dedupeRows(raw.map(normalizeReservaRow).filter(r => r.reservaId), makeReservaKey);
+      await enrichUsers(rows);
+      rows.sort((a, b) => {
+        const ad = new Date(a.createdAt || 0).getTime();
+        const bd = new Date(b.createdAt || 0).getTime();
+        return bd - ad || b.reservaId - a.reservaId || (a.lineNo || 0) - (b.lineNo || 0);
+      });
+      return rows;
+    }
+
+    async function fetchLoanRows(){
+      const raw = await fetchFromCandidates(LOAN_SOURCES, 1000);
+      const rows = dedupeRows(raw.map(normalizeLoanRow).filter(r => r.emprestimoId), makeLoanKey);
+      await enrichUsers(rows);
+      rows.sort((a, b) => {
+        const ad = new Date(a.createdAt || 0).getTime();
+        const bd = new Date(b.createdAt || 0).getTime();
+        return bd - ad || b.emprestimoId - a.emprestimoId || (a.lineNo || 0) - (b.lineNo || 0);
+      });
+      return rows;
     }
 
     function showTab(name){
@@ -464,6 +679,127 @@
       return data;
     }
 
+    async function refreshAllLists(){
+      await Promise.all([loadReservasAtivas(), loadEmprestimosAbertos()]);
+      if (editingProfileId){
+        await Promise.all([loadProfileReservations(editingProfileId), loadProfileLoans(editingProfileId)]);
+      }
+    }
+
+    async function tryRpc(name, args){
+      try{
+        const { data, error } = await supabase.rpc(name, args);
+        if (error) return { ok:false, error };
+        return { ok:true, data };
+      } catch (error) {
+        return { ok:false, error };
+      }
+    }
+
+    async function confirmReservationRow(row, targetStatusId = "statusRes"){
+      const label = row.lineNo ? `${row.reservaId}.${row.lineNo}` : `#${row.reservaId}`;
+      setStatus(targetStatusId, "");
+
+      const rpcAttempts = [];
+      if (row.lineNo != null){
+        rpcAttempts.push(["fn_v2_convert_reserva_linhas_to_emprestimo", {
+          p_reserva_id: Number(row.reservaId),
+          p_line_nos: [Number(row.lineNo)],
+          p_due_at: null,
+          p_notes: "Retirada presencial confirmada no painel."
+        }]);
+      }
+      rpcAttempts.push(["fn_v2_convert_reserva_to_emprestimo", {
+        p_reserva_id: Number(row.reservaId),
+        p_due_at: null,
+        p_notes: "Retirada presencial confirmada no painel."
+      }]);
+      rpcAttempts.push(["fn_convert_reserva_to_emprestimo", {
+        p_reserva_id: Number(row.reservaId),
+        p_due_at: null,
+        p_notes: "Retirada presencial confirmada no painel."
+      }]);
+
+      for (const [rpcName, rpcArgs] of rpcAttempts){
+        const result = await tryRpc(rpcName, rpcArgs);
+        if (result.ok){
+          setStatus(targetStatusId, `Retirada confirmada para a reserva ${label}.`, "ok");
+          await refreshAllLists();
+          return;
+        }
+      }
+
+      if (!row.userId || !row.bibRef || row.bibRef === "—"){
+        throw new Error("Não encontrei dados suficientes para converter esta reserva em empréstimo.");
+      }
+
+      const { data: loanId, error: createErr } = await supabase.rpc("fn_v2_create_emprestimo_by_bib_refs", {
+        p_user_id: row.userId,
+        p_bib_refs: [row.bibRef],
+        p_due_at: null,
+        p_notes: "Retirada presencial confirmada no painel."
+      });
+      if (createErr) throw createErr;
+
+      const { error: updateErr } = await supabase
+        .from("reservas")
+        .update({
+          status: "fulfilled",
+          fulfilled_at: new Date().toISOString(),
+          fulfilled_loan_id: Number(loanId || 0) || null
+        })
+        .eq("id", row.reservaId);
+      if (updateErr) throw updateErr;
+
+      setStatus(targetStatusId, `Retirada confirmada para a reserva ${label}.`, "ok");
+      await refreshAllLists();
+    }
+
+    async function cancelReservationRow(row, targetStatusId = "statusRes"){
+      const label = row.lineNo ? `${row.reservaId}.${row.lineNo}` : `#${row.reservaId}`;
+      setStatus(targetStatusId, "");
+
+      const rpcAttempts = [];
+      if (row.lineNo != null){
+        rpcAttempts.push(["fn_v2_cancel_reserva_linhas_as_biblioteca", {
+          p_reserva_id: Number(row.reservaId),
+          p_line_nos: [Number(row.lineNo)],
+          p_notes: "Cancelamento registrado pela biblioteca no painel."
+        }]);
+      }
+      rpcAttempts.push(["fn_v2_cancel_reserva_as_biblioteca", {
+        p_reserva_id: Number(row.reservaId),
+        p_notes: "Cancelamento registrado pela biblioteca no painel."
+      }]);
+      rpcAttempts.push(["fn_cancel_reserva_as_biblioteca", {
+        p_reserva_id: Number(row.reservaId),
+        p_notes: "Cancelamento registrado pela biblioteca no painel."
+      }]);
+
+      for (const [rpcName, rpcArgs] of rpcAttempts){
+        const result = await tryRpc(rpcName, rpcArgs);
+        if (result.ok){
+          setStatus(targetStatusId, `Reserva ${label} cancelada.`, "ok");
+          await refreshAllLists();
+          return;
+        }
+      }
+
+      const { error: updateErr } = await supabase
+        .from("reservas")
+        .update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancelled_by_role: "biblioteca",
+          cancelled_reason: "Cancelamento registrado no painel."
+        })
+        .eq("id", row.reservaId);
+      if (updateErr) throw updateErr;
+
+      setStatus(targetStatusId, `Reserva ${label} cancelada.`, "ok");
+      await refreshAllLists();
+    }
+
     $("btnRegistrarSaida").addEventListener("click", async () => {
       setStatus("statusSaida", "");
       const email = $("borrowerEmail").value.trim().toLowerCase();
@@ -484,7 +820,7 @@
         setStatus("statusSaida", `Empréstimo ${data} registrado com ${refs.length} livro(s).`, "ok");
         $("bibRefs").value = "";
         refreshLoanHint();
-        await loadEmprestimosAbertos();
+        await refreshAllLists();
       } catch (e) {
         setStatus("statusSaida", e.message || String(e), "bad");
       } finally {
@@ -504,7 +840,7 @@
         });
         if (error) throw error;
         setStatus("statusDev", `Devolução total registrada. Itens processados: ${data}.`, "ok");
-        await loadEmprestimosAbertos();
+        await refreshAllLists();
       } catch (e) {
         setStatus("statusDev", e.message || String(e), "bad");
       } finally {
@@ -535,7 +871,7 @@
           total += Number(data || 0);
         }
         setStatus("statusDev", `Devolução parcial registrada. Itens processados: ${total}.`, "ok");
-        await loadEmprestimosAbertos();
+        await refreshAllLists();
       } catch (e) {
         setStatus("statusDev", e.message || String(e), "bad");
       } finally {
@@ -543,179 +879,162 @@
       }
     });
 
-    function getSelectedReservaRows(){
-      return Array.from(document.querySelectorAll("input[data-reserva-item]:checked")).map(el => ({
-        reserva_id: Number(el.getAttribute("data-reserva-id")),
-        line_no: Number(el.getAttribute("data-line-no"))
-      }));
-    }
-
-    $("btnConfirmarSelecionados").addEventListener("click", async () => {
-      setStatus("statusRes", "");
-      const rows = getSelectedReservaRows();
-      if (!rows.length) return setStatus("statusRes", "Selecione pelo menos 1 livro reservado.", "warn");
-      const groups = groupBy(rows, x => x.reserva_id);
-
-      $("btnConfirmarSelecionados").disabled = true;
-      try{
-        const created = [];
-        for (const [reservaId, items] of groups.entries()){
-          const lineNos = items.map(i => i.line_no);
-          const { data, error } = await supabase.rpc("fn_v2_convert_reserva_linhas_to_emprestimo", {
-            p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_due_at: null, p_notes: "Retirada presencial confirmada no painel."
-          });
-          if (error) throw error;
-          created.push(data);
-        }
-        setStatus("statusRes", `Retirada confirmada. Empréstimo(s) criado(s): ${created.join(", ")}.`, "ok");
-        await loadReservasAtivas();
-        await loadEmprestimosAbertos();
-      } catch (e) {
-        setStatus("statusRes", e.message || String(e), "bad");
-      } finally {
-        $("btnConfirmarSelecionados").disabled = false;
-      }
-    });
-
-    $("btnCancelarSelecionados").addEventListener("click", async () => {
-      setStatus("statusRes", "");
-      const rows = getSelectedReservaRows();
-      if (!rows.length) return setStatus("statusRes", "Selecione pelo menos 1 livro reservado.", "warn");
-      const groups = groupBy(rows, x => x.reserva_id);
-
-      $("btnCancelarSelecionados").disabled = true;
-      try{
-        let total = 0;
-        for (const [reservaId, items] of groups.entries()){
-          const lineNos = items.map(i => i.line_no);
-          const { data, error } = await supabase.rpc("fn_v2_cancel_reserva_linhas_as_biblioteca", {
-            p_reserva_id: Number(reservaId), p_line_nos: lineNos, p_notes: "Cancelamento registrado pela biblioteca no painel."
-          });
-          if (error) throw error;
-          total += Number(data || 0);
-        }
-        setStatus("statusRes", `Livro(s) cancelado(s): ${total}.`, "ok");
-        await loadReservasAtivas();
-      } catch (e) {
-        setStatus("statusRes", e.message || String(e), "bad");
-      } finally {
-        $("btnCancelarSelecionados").disabled = false;
-      }
-    });
-
-    async function loadUsersByIds(userIds){
-      if (!userIds.length) return new Map();
-      const { data, error } = await supabase.from("profiles").select("id,full_name,email").in("id", userIds);
-      if (error) throw error;
-      return new Map((data || []).map(x => [String(x.id), x]));
-    }
-
     async function loadReservasAtivas(){
       setStatus("statusRes", "");
+      reservaRowRegistry.clear();
       const tbody = $("tbodyRes");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_reserva_itens_v2_ui").select("*").eq("item_status", "ativa").order("reserva_id", { ascending: true }).order("line_no", { ascending: true }).limit(500);
-      if (error){ tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar reservas.</td></tr>`; return setStatus("statusRes", error.message, "bad"); }
-      if (!data?.length){ tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`; return; }
-
-      const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
-      tbody.innerHTML = data.map(r => {
-        const u = userMap.get(String(r.user_id)) || {};
-        const who = `${u.full_name || "—"}<br><span class="mini subtle">${u.email || "—"}</span>`;
-        const expires = r.expires_at ? String(r.expires_at).slice(0,10) : "—";
-        return `<tr>
-          <td><input type="checkbox" data-reserva-item="1" data-reserva-id="${r.reserva_id}" data-line-no="${r.line_no}"></td>
-          <td class="mono">${r.sub_id}</td>
-          <td>${who}</td>
-          <td>${r.titulo || "—"}</td>
-          <td class="mono">${r.bib_ref || "—"}</td>
-          <td class="mono">${r.rotulo || "—"}</td>
-          <td>#${r.reserva_id}</td>
-          <td>${expires}</td>
-        </tr>`;
-      }).join("");
+      try{
+        const rows = (await fetchReservaRows()).filter(r => isReservaAtivaStatus(r.status));
+        if (!rows.length){
+          tbody.innerHTML = `<tr><td colspan="8">Sem reservas ativas.</td></tr>`;
+          return;
+        }
+        rows.forEach(r => reservaRowRegistry.set(makeReservaKey(r), r));
+        tbody.innerHTML = rows.map(r => {
+          const who = `${esc(r.userName || "—")}<br><span class="mini subtle">${esc(r.userEmail || "—")}</span>`;
+          const actionBtns = `
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+              <button class="btn primary" type="button" data-role="confirm-reserva" data-key="${esc(makeReservaKey(r))}">Confirmar retirada</button>
+              <button class="btn" type="button" data-role="cancel-reserva" data-key="${esc(makeReservaKey(r))}">Cancelar</button>
+            </div>`;
+          return `<tr>
+            <td>#${r.reservaId}</td>
+            <td>${fmtDateTime(r.createdAt)}</td>
+            <td>${esc(r.titulo || "—")}</td>
+            <td>${who}</td>
+            <td class="mono">${esc(r.bibRef || "—")}</td>
+            <td class="mono">${esc(r.rotulo || "—")}</td>
+            <td>${esc(r.status || "—")}</td>
+            <td>${actionBtns}</td>
+          </tr>`;
+        }).join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar reservas.</td></tr>`;
+        setStatus("statusRes", e.message || String(e), "bad");
+      }
     }
 
     async function loadEmprestimosAbertos(){
       setStatus("statusLoans", "");
       const tbody = $("tbodyLoans");
       tbody.innerHTML = `<tr><td colspan="8">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("item_status", "aberto").order("emprestimo_id", { ascending: true }).order("line_no", { ascending: true }).limit(500);
-      if (error){ tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar empréstimos.</td></tr>`; return setStatus("statusLoans", error.message, "bad"); }
-      if (!data?.length){ tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos abertos.</td></tr>`; return; }
-
-      const userMap = await loadUsersByIds(Array.from(new Set(data.map(r => String(r.user_id)))));
-      tbody.innerHTML = data.map(r => {
-        const u = userMap.get(String(r.user_id)) || {};
-        const who = `${u.full_name || "—"}<br><span class="mini subtle">${u.email || "—"}</span>`;
-        return `<tr>
-          <td class="mono">${r.sub_id}</td>
-          <td>${who}</td>
-          <td>${r.titulo || "—"}</td>
-          <td class="mono">${r.bib_ref || "—"}</td>
-          <td class="mono">${r.rotulo || "—"}</td>
-          <td>#${r.emprestimo_id}</td>
-          <td>${r.due_at || "—"}</td>
-          <td>${r.emprestimo_status || "—"}</td>
-        </tr>`;
-      }).join("");
+      try{
+        const rows = (await fetchLoanRows()).filter(r => isLoanOpenStatus(r.itemStatus || r.emprestimoStatus));
+        if (!rows.length){
+          tbody.innerHTML = `<tr><td colspan="8">Sem empréstimos abertos.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(r => {
+          const who = `${esc(r.userName || "—")}<br><span class="mini subtle">${esc(r.userEmail || "—")}</span>`;
+          return `<tr>
+            <td class="mono">${esc(r.subId || "—")}</td>
+            <td>${who}</td>
+            <td>${esc(r.titulo || "—")}</td>
+            <td class="mono">${esc(r.bibRef || "—")}</td>
+            <td class="mono">${esc(r.rotulo || "—")}</td>
+            <td>#${r.emprestimoId}</td>
+            <td>${fmtDate(r.dueAt)}</td>
+            <td>${esc(r.itemStatus || r.emprestimoStatus || "—")}</td>
+          </tr>`;
+        }).join("");
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8">Erro ao carregar empréstimos.</td></tr>`;
+        setStatus("statusLoans", e.message || String(e), "bad");
+      }
     }
 
     async function loadProfileReservations(userId){
+      perfilReservaRowRegistry.clear();
       const tbody = $("tbodyPerfilReservas");
       tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_reserva_itens_v2_ui").select("*").eq("user_id", userId).order("reserva_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
-      if (error){
+      try{
+        const rows = (await fetchReservaRows()).filter(r => String(r.userId || "") === String(userId || ""));
+        if (!rows.length){
+          tbody.innerHTML = `<tr><td colspan="9">Sem reservas para esse perfil.</td></tr>`;
+          return;
+        }
+        rows.forEach(r => perfilReservaRowRegistry.set(makeReservaKey(r), r));
+        tbody.innerHTML = rows.map(r => {
+          const finalStamp = r.convertedAt ? fmtDateTime(r.convertedAt) : (r.cancelledAt ? fmtDateTime(r.cancelledAt) : "—");
+          const actionCell = isReservaAtivaStatus(r.status)
+            ? `<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+                 <button class="btn primary" type="button" data-role="confirm-reserva-perfil" data-key="${esc(makeReservaKey(r))}">Confirmar retirada</button>
+                 <button class="btn" type="button" data-role="cancel-reserva-perfil" data-key="${esc(makeReservaKey(r))}">Cancelar</button>
+               </div>`
+            : esc(finalStamp);
+          return `<tr>
+            <td>#${r.reservaId}</td>
+            <td class="mono">${esc(r.subId || "—")}</td>
+            <td>${esc(r.titulo || "—")}</td>
+            <td class="mono">${esc(r.bibRef || "—")}</td>
+            <td class="mono">${esc(r.rotulo || "—")}</td>
+            <td>${esc(r.status || "—")}</td>
+            <td>${fmtDateTime(r.createdAt)}</td>
+            <td>${fmtDateTime(r.expiresAt)}</td>
+            <td>${actionCell}</td>
+          </tr>`;
+        }).join("");
+      } catch (e) {
         tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar reservas.</td></tr>`;
-        return;
       }
-      if (!data?.length){
-        tbody.innerHTML = `<tr><td colspan="9">Sem reservas para esse perfil.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = data.map(r => {
-        const endAction = r.converted_at ? String(r.converted_at).slice(0,19).replace("T"," ") : (r.cancelled_at ? String(r.cancelled_at).slice(0,19).replace("T"," ") : "—");
-        return `<tr>
-          <td>#${r.reserva_id}</td>
-          <td class="mono">${r.sub_id}</td>
-          <td>${r.titulo || "—"}</td>
-          <td class="mono">${r.bib_ref || "—"}</td>
-          <td class="mono">${r.rotulo || "—"}</td>
-          <td>${r.item_status || "—"}</td>
-          <td>${r.reserva_created_at ? String(r.reserva_created_at).slice(0,19).replace("T"," ") : "—"}</td>
-          <td>${r.expires_at ? String(r.expires_at).slice(0,19).replace("T"," ") : "—"}</td>
-          <td>${endAction}</td>
-        </tr>`;
-      }).join("");
     }
 
     async function loadProfileLoans(userId){
       const tbody = $("tbodyPerfilEmprestimos");
       tbody.innerHTML = `<tr><td colspan="9">Carregando…</td></tr>`;
-      const { data, error } = await supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("user_id", userId).order("emprestimo_id", { ascending:false }).order("line_no", { ascending:true }).limit(500);
-      if (error){
+      try{
+        const rows = (await fetchLoanRows()).filter(r => String(r.userId || "") === String(userId || ""));
+        if (!rows.length){
+          tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos para esse perfil.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(r => `<tr>
+          <td>#${r.emprestimoId}</td>
+          <td class="mono">${esc(r.subId || "—")}</td>
+          <td>${esc(r.titulo || "—")}</td>
+          <td class="mono">${esc(r.bibRef || "—")}</td>
+          <td class="mono">${esc(r.rotulo || "—")}</td>
+          <td>${esc(r.itemStatus || r.emprestimoStatus || "—")}</td>
+          <td>${fmtDateTime(r.createdAt)}</td>
+          <td>${fmtDate(r.dueAt)}</td>
+          <td>${fmtDateTime(r.returnedAt)}</td>
+        </tr>`).join("");
+      } catch (e) {
         tbody.innerHTML = `<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>`;
-        return;
       }
-      if (!data?.length){
-        tbody.innerHTML = `<tr><td colspan="9">Sem empréstimos para esse perfil.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = data.map(r => `<tr>
-        <td>#${r.emprestimo_id}</td>
-        <td class="mono">${r.sub_id}</td>
-        <td>${r.titulo || "—"}</td>
-        <td class="mono">${r.bib_ref || "—"}</td>
-        <td class="mono">${r.rotulo || "—"}</td>
-        <td>${r.item_status || "—"}</td>
-        <td>${r.emprestimo_created_at ? String(r.emprestimo_created_at).slice(0,19).replace("T"," ") : "—"}</td>
-        <td>${r.due_at || "—"}</td>
-        <td>${r.returned_at ? String(r.returned_at).slice(0,19).replace("T"," ") : "—"}</td>
-      </tr>`).join("");
     }
 
     $("btnRecarregarRes").addEventListener("click", loadReservasAtivas);
     $("btnRecarregarLoans").addEventListener("click", loadEmprestimosAbertos);
+
+    document.addEventListener("click", async (event) => {
+      const btn = event.target.closest("button[data-role]");
+      if (!btn) return;
+      const role = btn.getAttribute("data-role");
+      const key = btn.getAttribute("data-key") || "";
+      try{
+        btn.disabled = true;
+        if (role === "confirm-reserva"){
+          const row = reservaRowRegistry.get(key);
+          if (row) await confirmReservationRow(row, "statusRes");
+        } else if (role === "cancel-reserva"){
+          const row = reservaRowRegistry.get(key);
+          if (row) await cancelReservationRow(row, "statusRes");
+        } else if (role === "confirm-reserva-perfil"){
+          const row = perfilReservaRowRegistry.get(key);
+          if (row) await confirmReservationRow(row, "statusPerfil");
+        } else if (role === "cancel-reserva-perfil"){
+          const row = perfilReservaRowRegistry.get(key);
+          if (row) await cancelReservationRow(row, "statusPerfil");
+        }
+      } catch (e) {
+        const target = role.includes("perfil") ? "statusPerfil" : "statusRes";
+        setStatus(target, e.message || String(e), "bad");
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     $("btnBuscarPerfil").addEventListener("click", async () => {
       setStatus("statusPerfil", "");
@@ -729,6 +1048,7 @@
         if (!data?.id) return setStatus("statusPerfil", "Não encontrei esse e-mail no cadastro.", "warn");
 
         editingProfileId = data.id;
+        editingProfileEmail = data.email || email;
         editingKnownColumns = {
           surname: firstExistingKey(data, ["surname","sobrenome","last_name","lastname"]),
           phone: firstExistingKey(data, ["phone","telefone"]),
@@ -751,8 +1071,7 @@
 
         $("profileArea").classList.remove("hidden");
         showTab("Dados");
-        await loadProfileReservations(editingProfileId);
-        await loadProfileLoans(editingProfileId);
+        await Promise.all([loadProfileReservations(editingProfileId), loadProfileLoans(editingProfileId)]);
         setStatus("statusPerfil", "Perfil carregado.", "ok");
       } catch (e) {
         setStatus("statusPerfil", e.message || String(e), "bad");
@@ -800,10 +1119,10 @@
       await fillHeader(session);
       const ok = await requireBibliotecaOrRedirect();
       if (ok){
-        await loadReservasAtivas();
-        await loadEmprestimosAbertos();
+        await refreshAllLists();
       }
     }
   </script>
+
 </body>
 </html>
