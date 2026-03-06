@@ -1184,10 +1184,25 @@
       }
     }
 
-    async function markLoansReturned(loanIds){
+    async function markLoansReturned(loanIds, note='Devolução registrada no painel.'){
       const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
       if (!ids.length) return 0;
-      const { data, error } = await supabase.from('loans').update({ returned_date: todayISO() }).in('id', ids).is('returned_date', null).select('id');
+
+      const rpc = await supabase.rpc('fn_return_loans_by_ids', {
+        p_loan_ids: ids,
+        p_notes: note
+      });
+      if (!rpc.error) return Number(rpc.data || 0) || 0;
+
+      const msg = String(rpc.error?.message || '');
+      if (!/function|not exist|não existe/i.test(msg)) throw rpc.error;
+
+      const { data, error } = await supabase
+        .from('loans')
+        .update({ returned_date: todayISO() })
+        .in('id', ids)
+        .is('returned_date', null)
+        .select('id');
       if (error) throw error;
       return (data || []).length;
     }
