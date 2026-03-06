@@ -131,7 +131,7 @@
     </div>
 
     <div class="hero">
-      <h1>Painel (biblioteca)</h1>
+      <h1>Painel (gestão bibliotecária)</h1>
       <p id="helloLine">Carregando…</p>
       <div class="chips">
         <span class="chip" id="chipFuncao">Função: —</span>
@@ -246,6 +246,50 @@
         </div>
         <div class="status" id="statusLoans"></div>
       </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 10px">Gerir cadastro</h2>
+        <div class="row">
+          <div>
+            <label for="searchEmail">Buscar por e-mail</label>
+            <input class="input" id="searchEmail" type="email" placeholder="leitor@exemplo.org">
+            <div class="actions">
+              <button class="btn" id="btnBuscarPerfil" type="button">Buscar</button>
+            </div>
+          </div>
+          <div>
+            <label for="editSurname">Sobrenome (patronímico)</label>
+            <input class="input" id="editSurname" type="text">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <div>
+            <label for="editPhone">Telefone</label>
+            <input class="input" id="editPhone" type="text">
+          </div>
+          <div>
+            <label for="editCountry">País</label>
+            <input class="input" id="editCountry" type="text">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <div>
+            <label for="editLibrarian">Função bibliotecária</label>
+            <select class="select" id="editLibrarian">
+              <option value="false">Não</option>
+              <option value="true">Sim</option>
+            </select>
+            <div class="hint">Use apenas se a pessoa atuar também na gestão bibliotecária.</div>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn primary" id="btnSalvarPerfil" type="button" style="width:100%">Salvar alterações</button>
+          </div>
+        </div>
+
+        <div class="status" id="statusPerfil"></div>
+      </div>
     </div>
   </div>
 
@@ -271,6 +315,8 @@
     });
 
     const $ = (id) => document.getElementById(id);
+    let editingProfileId = null;
+    let editingKnownColumns = {};
 
     function setStatus(id, msg, cls="") {
       const el = $(id);
@@ -279,13 +325,11 @@
     }
 
     function parseRefs(raw){
-      const items = (raw || "").split(",").map(s => s.trim()).filter(Boolean);
-      return Array.from(new Set(items));
+      return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean)));
     }
 
     function parseSubIds(raw){
-      const items = (raw || "").split(",").map(s => s.trim()).filter(Boolean);
-      return Array.from(new Set(items));
+      return Array.from(new Set((raw || "").split(",").map(s => s.trim()).filter(Boolean)));
     }
 
     function groupBy(items, keyFn){
@@ -353,7 +397,7 @@
     async function fillHeader(session){
       const { data } = await supabase.rpc("fn_v2_is_biblioteca");
       $("chipEmail").textContent = "E-mail: " + (session.user.email || "—");
-      $("chipFuncao").textContent = "Função: " + (data ? "biblioteca e leitor(a/e)" : "leitor(a/e)");
+      $("chipFuncao").textContent = "Função: " + (data ? "bibliotecário(a/e) e leitor(a/e)" : "leitor(a/e)");
       $("helloLine").textContent = "Olá.";
     }
 
@@ -362,6 +406,13 @@
       if (error) throw error;
       if (!data?.id) throw new Error("E-mail não encontrado no cadastro.");
       return data;
+    }
+
+    function firstExistingKey(obj, candidates){
+      for (const k of candidates){
+        if (Object.prototype.hasOwnProperty.call(obj, k)) return k;
+      }
+      return null;
     }
 
     $("btnRegistrarSaida").addEventListener("click", async () => {
@@ -425,7 +476,7 @@
 
       const parsed = subIds.map(s => {
         const m = s.match(/^(\d+)\.(\d+)$/);
-        return m ? { raw:s, emprestimo_id:Number(m[1]), line_no:Number(m[2]) } : null;
+        return m ? { emprestimo_id:Number(m[1]), line_no:Number(m[2]) } : null;
       });
 
       if (parsed.some(x => !x)) return setStatus("statusDev", "Formato inválido. Use, por exemplo: 154.2", "warn");
@@ -608,6 +659,64 @@
 
     $("btnRecarregarRes").addEventListener("click", loadReservasAtivas);
     $("btnRecarregarLoans").addEventListener("click", loadEmprestimosAbertos);
+
+    $("btnBuscarPerfil").addEventListener("click", async () => {
+      setStatus("statusPerfil", "");
+      const email = $("searchEmail").value.trim().toLowerCase();
+      if (!email) return setStatus("statusPerfil", "Informe um e-mail.", "warn");
+
+      $("btnBuscarPerfil").disabled = true;
+      try{
+        const { data, error } = await supabase.from("profiles").select("*").eq("email", email).maybeSingle();
+        if (error) throw error;
+        if (!data?.id) return setStatus("statusPerfil", "Não encontrei esse e-mail no cadastro.", "warn");
+
+        editingProfileId = data.id;
+        editingKnownColumns = {
+          surname: firstExistingKey(data, ["surname","sobrenome","last_name","lastname"]),
+          phone: firstExistingKey(data, ["phone","telefone"]),
+          country: firstExistingKey(data, ["country","pais","país"]),
+          is_librarian: firstExistingKey(data, ["is_librarian","bibliotecario","is_bibliotecario"])
+        };
+
+        $("editSurname").value = editingKnownColumns.surname ? (data[editingKnownColumns.surname] || "") : "";
+        $("editPhone").value = editingKnownColumns.phone ? (data[editingKnownColumns.phone] || "") : "";
+        $("editCountry").value = editingKnownColumns.country ? (data[editingKnownColumns.country] || "") : "";
+        $("editLibrarian").value = editingKnownColumns.is_librarian ? String(!!data[editingKnownColumns.is_librarian]) : "false";
+
+        setStatus("statusPerfil", "Cadastro carregado.", "ok");
+      } catch (e) {
+        setStatus("statusPerfil", e.message || String(e), "bad");
+      } finally {
+        $("btnBuscarPerfil").disabled = false;
+      }
+    });
+
+    $("btnSalvarPerfil").addEventListener("click", async () => {
+      setStatus("statusPerfil", "");
+      if (!editingProfileId) return setStatus("statusPerfil", "Busque um cadastro primeiro.", "warn");
+
+      const payload = {};
+      if (editingKnownColumns.surname) payload[editingKnownColumns.surname] = $("editSurname").value.trim();
+      if (editingKnownColumns.phone) payload[editingKnownColumns.phone] = $("editPhone").value.trim();
+      if (editingKnownColumns.country) payload[editingKnownColumns.country] = $("editCountry").value.trim();
+      if (editingKnownColumns.is_librarian) payload[editingKnownColumns.is_librarian] = ($("editLibrarian").value === "true");
+
+      if (!Object.keys(payload).length) {
+        return setStatus("statusPerfil", "Nenhum campo compatível foi encontrado para atualização.", "warn");
+      }
+
+      $("btnSalvarPerfil").disabled = true;
+      try{
+        const { error } = await supabase.from("profiles").update(payload).eq("id", editingProfileId);
+        if (error) throw error;
+        setStatus("statusPerfil", "Alterações salvas.", "ok");
+      } catch (e) {
+        setStatus("statusPerfil", e.message || String(e), "bad");
+      } finally {
+        $("btnSalvarPerfil").disabled = false;
+      }
+    });
 
     $("btnSair").addEventListener("click", async () => {
       $("btnSair").disabled = true;
