@@ -203,9 +203,6 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
       <label for="addr1">Endereço 1</label>
       <input type="text" id="addr1" autocomplete="address-line1" />
 
-      <label for="bairro">Bairro</label>
-      <input type="text" id="bairro" autocomplete="address-level3" />
-
       <label for="addr2">Complemento / referência</label>
       <input type="text" id="addr2" autocomplete="address-line2" />
 
@@ -219,10 +216,13 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
           <input type="text" id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" />
         </div>
         <div>
-          <label for="city">Cidade</label>
-          <input type="text" id="city" autocomplete="address-level2" />
+          <label for="bairro">Bairro</label>
+          <input type="text" id="bairro" autocomplete="address-level3" />
         </div>
       </div>
+
+      <label for="city">Cidade</label>
+      <input type="text" id="city" autocomplete="address-level2" />
 
       <div class="grid2">
         <div>
