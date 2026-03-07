@@ -198,6 +198,28 @@
     .mobile-section + .mobile-section{
       margin-top:16px;
     }
+    .history-list,
+    .history-list ul{
+      margin:0;
+      padding-left:18px;
+    }
+    .history-list > li + li{
+      margin-top:10px;
+    }
+    .history-list li{
+      line-height:1.4;
+    }
+    .history-children{
+      margin-top:6px !important;
+      padding-left:20px !important;
+    }
+    .history-children > li + li{
+      margin-top:5px;
+    }
+    .history-ref{
+      display:inline-block;
+      min-width:78px;
+    }
     @media (max-width: 760px){
       .desktop-only{ display:none !important; }
       .mobile-only{ display:block !important; }
@@ -1286,7 +1308,7 @@ button[type="submit"] *,
       historyEl.textContent = "Carregando...";
 
       const [v2Loans, oldLoans, v2Reservas, oldReservas] = await Promise.all([
-        supabase.from("v_emprestimo_itens_v2_ui_fix").select("emprestimo_id, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
+        supabase.from("v_emprestimo_itens_v2_ui_fix").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
         supabase.from("loans").select("id, due_date, checkout_date, returned_date, books(titulo, autor)").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(100),
         supabase.from("v_reserva_itens_v2_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
         supabase.from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(100)
@@ -1315,11 +1337,47 @@ button[type="submit"] *,
       }
 
       if (!v2Loans.error) {
+        const loanGroups = new Map();
         for (const l of (v2Loans.data || [])) {
-          const status = l.returned_at ? `retornado em ${fmtDateTime(l.returned_at)}` : `em curso — devolução ${fmtDateOnly(l.due_at)}`;
+          const key = String(l.emprestimo_id);
+          if (!loanGroups.has(key)) {
+            loanGroups.set(key, {
+              emprestimo_id: l.emprestimo_id,
+              when: l.returned_at || l.emprestimo_created_at || l.due_at,
+              created_at: l.emprestimo_created_at,
+              due_at: l.due_at,
+              rows: []
+            });
+          }
+          const group = loanGroups.get(key);
+          if (String(l.returned_at || l.emprestimo_created_at || l.due_at || '') > String(group.when || '')) {
+            group.when = l.returned_at || l.emprestimo_created_at || l.due_at;
+          }
+          group.rows.push(l);
+        }
+
+        for (const group of loanGroups.values()) {
+          group.rows.sort((a, b) => {
+            const an = Number(a.line_no ?? String(a.sub_id || '').split('.').pop());
+            const bn = Number(b.line_no ?? String(b.sub_id || '').split('.').pop());
+            return (Number.isFinite(an) ? an : 9999) - (Number.isFinite(bn) ? bn : 9999);
+          });
+          const allReturned = group.rows.length > 0 && group.rows.every((r) => !!r.returned_at);
+          const latestReturnedAt = allReturned
+            ? group.rows.map((r) => r.returned_at).filter(Boolean).sort().slice(-1)[0]
+            : null;
+          const lotStatus = allReturned
+            ? `retornado em ${fmtDateTime(latestReturnedAt)}`
+            : `em curso — devolução ${fmtDateOnly(group.due_at)}`;
+          const children = group.rows.map((l) => {
+            const itemStatus = l.returned_at ? `retornado em ${fmtDateTime(l.returned_at)}` : `devolução ${fmtDateOnly(l.due_at)}`;
+            const ref = l.bib_ref ? `<span class="history-ref mono">${escapeHtml(l.bib_ref)}</span>` : `<span class="history-ref mono">${escapeHtml(l.sub_id || '—')}</span>`;
+            const rotulo = l.rotulo ? ` — rótulo ${escapeHtml(l.rotulo)}` : "";
+            return `<li>${ref} — ${escapeHtml(l.titulo || 'Livro')} — ${escapeHtml(itemStatus)}${rotulo}</li>`;
+          }).join("");
           items.push({
-            when: l.returned_at || l.emprestimo_created_at || l.due_at,
-            html: `<li><b>Empréstimo #${escapeHtml(l.emprestimo_id)}</b> — <span class="mono">${escapeHtml(l.sub_id)}</span> — ${escapeHtml(l.titulo || 'Livro')} — ${escapeHtml(status)}</li>`
+            when: group.when,
+            html: `<li><b>Empréstimo #${escapeHtml(group.emprestimo_id)}</b> — ${escapeHtml(lotStatus)}<ul class="history-children">${children}</ul></li>`
           });
         }
       }
@@ -1336,7 +1394,7 @@ button[type="submit"] *,
       }
 
       items.sort((a,b) => String(b.when || '').localeCompare(String(a.when || '')));
-      historyEl.innerHTML = items.length ? `<ul>${items.map((x) => x.html).join("")}</ul>` : "<p>Não há histórico.</p>";
+      historyEl.innerHTML = items.length ? `<ul class="history-list">${items.map((x) => x.html).join("")}</ul>` : "<p>Não há histórico.</p>";
     }
 
     $("profileForm")?.addEventListener("submit", async (e) => {
