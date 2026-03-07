@@ -88,6 +88,18 @@ input:focus, select:focus, textarea:focus{
 button:hover, button:focus, .secondary:hover, .secondary:focus{
   border-color: rgba(225,29,47,.55) !important;
 }
+
+    .reqMark{
+      color:#ff8f8f;
+      font-weight:700;
+      margin-left:4px;
+    }
+    .requiredLegend{
+      color:#f0f0f0;
+      font-size:.92rem;
+      margin:8px 0 14px;
+    }
+
 </style>
 </head>
 
@@ -144,26 +156,27 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
     </details>
 
     <p class="hint">
-      Preencha os campos abaixo para criar sua conta. Campos obrigatórios devem ser preenchidos.
+      Preencha os campos abaixo para criar sua conta.
     </p>
+    <p class="requiredLegend"><span class="reqMark">*</span> Campo obrigatório</p>
 
     <form id="cadastroForm" novalidate>
       <div class="grid2">
         <div>
-          <label for="firstName">Nome</label>
+          <label for="firstName">Nome <span class="reqMark">*</span></label>
           <input type="text" id="firstName" autocomplete="given-name" required />
         </div>
         <div>
-          <label for="lastName">Sobrenome</label>
+          <label for="lastName">Sobrenome <span class="reqMark">*</span></label>
           <input type="text" id="lastName" autocomplete="family-name" required />
         </div>
       </div>
 
-      <label for="email">E-mail</label>
+      <label for="email">E-mail <span class="reqMark">*</span></label>
       <input type="email" id="email" autocomplete="email" required />
 
-      <label for="phone">Telefone</label>
-      <input type="tel" id="phone" autocomplete="tel" placeholder="+55 (xx) xxxxx-xxxx" />
+      <label for="phone">Telefone <span class="reqMark">*</span></label>
+      <input type="tel" id="phone" autocomplete="tel" placeholder="+55 (xx) xxxxx-xxxx" required />
 
       <label for="gender">Gênero</label>
       <select id="gender">
@@ -180,7 +193,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
       <h2 style="margin: 0 0 10px;">Endereço</h2>
 
       <label for="addr1">Endereço 1</label>
-      <input type="text" id="addr1" autocomplete="address-line1" required />
+      <input type="text" id="addr1" autocomplete="address-line1" />
 
       <label for="addr2">Endereço 2</label>
       <input type="text" id="addr2" autocomplete="address-line2" />
@@ -192,18 +205,18 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
         </div>
         <div>
           <label for="cep">CEP</label>
-          <input type="text" id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" required />
+          <input type="text" id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" />
         </div>
         <div>
           <label for="city">Cidade</label>
-          <input type="text" id="city" autocomplete="address-level2" required />
+          <input type="text" id="city" autocomplete="address-level2" />
         </div>
       </div>
 
       <div class="grid2">
         <div>
           <label for="state">Estado</label>
-          <select id="state" required>
+          <select id="state">
             <option value="">— selecione —</option>
             <option value="NSA">Não se aplica (NSA)</option>
             <option value="AC">Acre (AC)</option>
@@ -238,7 +251,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
 
         <div>
           <label for="country">País</label>
-          <select id="country" required>
+          <select id="country">
             <option value="Brasil">Brasil</option>
             <option value="">— selecione —</option>
             <option value="Argentina">Argentina</option>
@@ -262,14 +275,14 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
       <label class="checkbox" for="acceptRules">
         <input type="checkbox" id="acceptRules" required />
         <span>
-          Eu li e aceito o <a id="regLink" href="#" rel="noopener">Regimento</a> da Biblioteca (empréstimos, prazos, prorrogações e atrasos).
+          Eu li e aceito o <a id="regLink" href="#" rel="noopener">Regimento</a> da Biblioteca (empréstimos, prazos, prorrogações e atrasos). <span class="reqMark">*</span>
         </span>
       </label>
 
       <label class="checkbox" for="consent">
         <input type="checkbox" id="consent" required />
         <span>
-          Eu aceito que meu endereço de e-mail seja usado para o envio de informações sobre minha conta:
+          Eu aceito que meu endereço de e-mail seja usado para o envio de informações sobre minha conta: <span class="reqMark">*</span>
           <b>reservas</b>, <b>empréstimos</b>, <b>prorrogações</b>, <b>devoluções</b> e <b>avisos de atraso</b>.
         </span>
       </label>
