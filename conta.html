@@ -878,6 +878,60 @@ button[type="submit"] *,
       ));
     }
 
+    function explainPasswordUpdateError(error) {
+      const raw = String(error?.message || "").toLowerCase().trim();
+      if (!raw) return "Não foi possível alterar sua senha agora. Tente novamente.";
+
+      if (
+        raw.includes("same password") ||
+        raw.includes("same as the old password") ||
+        raw.includes("should be different") ||
+        raw.includes("password should be different")
+      ) {
+        return "Escolha uma senha diferente da atual.";
+      }
+
+      if (
+        raw.includes("session") ||
+        raw.includes("jwt") ||
+        raw.includes("token") ||
+        raw.includes("login") ||
+        raw.includes("reauth") ||
+        raw.includes("expired") ||
+        raw.includes("not authenticated") ||
+        raw.includes("authentication")
+      ) {
+        return "Sua sessão expirou. Saia e entre novamente para alterar a senha.";
+      }
+
+      if (
+        raw.includes("weak password") ||
+        raw.includes("password strength") ||
+        raw.includes("password is too short")
+      ) {
+        return "Sua nova senha não foi aceita. Use uma senha mais forte, com pelo menos 10 caracteres.";
+      }
+
+      if (
+        raw.includes("network") ||
+        raw.includes("fetch") ||
+        raw.includes("failed to fetch") ||
+        raw.includes("load failed")
+      ) {
+        return "Não foi possível conectar ao sistema agora. Tente novamente em instantes.";
+      }
+
+      if (
+        raw.includes("rate limit") ||
+        raw.includes("too many requests") ||
+        raw.includes("too many attempts")
+      ) {
+        return "Houve muitas tentativas em pouco tempo. Aguarde um pouco e tente novamente.";
+      }
+
+      return "Não foi possível alterar sua senha agora. Tente novamente. Se o problema continuar, saia e entre de novo.";
+    }
+
     function setActiveTab(key, { pushHash = true } = {}) {
       tabButtons.forEach((btn) => {
         const active = btn.dataset.tab === key;
@@ -1685,7 +1739,7 @@ button[type="submit"] *,
       if (!p1 || p1.length < 10) { pwMsg.textContent = "A senha deve ter pelo menos 10 caracteres."; return; }
       if (p1 !== p2) { pwMsg.textContent = "As senhas não coincidem."; return; }
       const { error } = await supabase.auth.updateUser({ password: p1 });
-      if (error) { pwMsg.textContent = "Erro ao alterar senha: " + error.message + " (se necessário, faça login novamente)."; return; }
+      if (error) { pwMsg.textContent = explainPasswordUpdateError(error); return; }
       const { error: profErr } = await supabase.from("profiles").update({ must_change_password: false, password_changed_at: new Date().toISOString() }).eq("id", session.user.id);
       pwMsg.textContent = profErr ? "Senha alterada. (Aviso: não foi possível atualizar o status no perfil.)" : "Senha alterada com sucesso.";
       enforcePasswordChangeUI(false);
