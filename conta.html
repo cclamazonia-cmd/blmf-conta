@@ -22,6 +22,11 @@
       background: rgba(27,27,27,0.92);
       backdrop-filter: blur(2px);
     }
+    main.card{
+      width:min(1600px, 96vw);
+      max-width:min(1600px, 96vw);
+      margin:24px auto;
+    }
     .brand { display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
     .brand img { width:82px; height:82px; object-fit:contain; margin-top:0; flex:0 0 auto; }
     .subtitle { margin:6px 0 0; color:#cfcfcf; font-size:.95rem; line-height:1.3; }
@@ -951,7 +956,7 @@ button[type="submit"] *,
 
       const oldQ = await supabase
         .from("loans")
-        .select("id, due_date, checkout_date, returned_date, extended_once, books(titulo, autor)")
+        .select("id, due_date, checkout_date, returned_date, extended_once, books(bib_ref, titulo, autor)")
         .eq("user_id", session.user.id)
         .is("returned_date", null)
         .order("due_date", { ascending: true });
@@ -978,8 +983,10 @@ button[type="submit"] *,
 
       if (!oldQ.error && (oldQ.data || []).length) {
         const rows = oldQ.data.map((l) => {
-          const title = l.books?.titulo || "Livro";
-          const author = l.books?.autor || "";
+          const book = Array.isArray(l.books) ? l.books[0] : l.books;
+          const title = book?.titulo || "Livro";
+          const author = book?.autor || "";
+          const bibRef = book?.bib_ref || "";
           const dueDate = l.due_date ? new Date(l.due_date) : null;
           const today = new Date();
           const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -995,7 +1002,7 @@ button[type="submit"] *,
             <td>#${l.id}</td>
             <td class="mono">—</td>
             <td>${escapeHtml(title)}${author ? `<br><small>${escapeHtml(author)}</small>` : ""}</td>
-            <td class="mono">—</td>
+            <td class="mono">${escapeHtml(bibRef || "—")}</td>
             <td class="mono">—</td>
             <td>${escapeHtml(fmtDateOnly(l.checkout_date))}</td>
             <td><b>${escapeHtml(fmtDateOnly(l.due_date))}</b></td>
