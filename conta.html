@@ -88,21 +88,27 @@
       .tabs-nav{
         width:100%;
         display:grid;
-        grid-template-columns:repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap:10px;
         overflow:visible;
-        padding-bottom:0;
+        padding-bottom: 0;
       }
       .tab-btn{
         width:100%;
+        min-height:56px;
         white-space:normal;
-        flex: 1 1 auto;
+        flex: initial;
+        display:flex;
+        align-items:center;
+        justify-content:center;
         text-align:center;
-        min-height:54px;
+        font-weight:700;
+        line-height:1.2;
+        padding:12px 10px;
       }
       .tab-btn .hint{ display:none; }
     }
-    @media (max-width: 520px){
+    @media (max-width: 420px){
       .tabs-nav{ grid-template-columns:1fr; }
     }
 
@@ -137,14 +143,88 @@
 
   
     .table-scroll{ width:100%; overflow-x:auto; }
-    .history-list{ list-style:none; padding:0; margin:0; display:grid; gap:10px; }
-    .history-entry{ border:1px solid rgba(255,255,255,0.14); border-radius:12px; padding:10px 12px; background:rgba(0,0,0,0.16); }
-    .history-entry-head{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
-    .history-entry-title{ font-weight:700; }
-    .history-entry-meta{ color:#cfcfcf; font-size:.92rem; }
-    .history-sublist{ list-style:none; margin:8px 0 0 0; padding-left:16px; border-left:2px solid rgba(255,255,255,0.14); display:grid; gap:6px; }
-    .history-subitem{ color:#f3f3f3; }
-    .history-subitem small{ color:#cfcfcf; display:block; }
+
+
+    .mobile-only{ display:none; }
+    .mobile-cards{ display:none; }
+    .mobile-card{
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:14px;
+      padding:12px;
+      background: rgba(0,0,0,0.20);
+      box-shadow: 0 6px 16px rgba(0,0,0,.16);
+    }
+    .mobile-card h4{
+      margin:0 0 4px;
+      font-size:1rem;
+      line-height:1.25;
+    }
+    .mobile-card .author{
+      margin:0 0 10px;
+      color:#cfcfcf;
+      font-size:.93rem;
+      line-height:1.3;
+    }
+    .mobile-kv{
+      display:grid;
+      grid-template-columns:minmax(86px,108px) 1fr;
+      gap:6px 10px;
+      align-items:start;
+    }
+    .mobile-kv .k{
+      color:#cfcfcf;
+      font-size:.88rem;
+      line-height:1.25;
+    }
+    .mobile-kv .v{
+      min-width:0;
+      word-break:break-word;
+      line-height:1.3;
+    }
+    .mobile-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+    .mobile-actions > *{
+      flex:1 1 auto;
+    }
+    .mobile-actions .tag-muted{
+      display:block;
+      width:100%;
+      margin:0;
+    }
+    .mobile-section + .mobile-section{
+      margin-top:16px;
+    }
+    .history-list,
+    .history-list ul{
+      margin:0;
+      padding-left:18px;
+    }
+    .history-list > li + li{
+      margin-top:10px;
+    }
+    .history-list li{
+      line-height:1.4;
+    }
+    .history-children{
+      margin-top:6px !important;
+      padding-left:20px !important;
+    }
+    .history-children > li + li{
+      margin-top:5px;
+    }
+    .history-ref{
+      display:inline-block;
+      min-width:78px;
+    }
+    @media (max-width: 760px){
+      .desktop-only{ display:none !important; }
+      .mobile-only{ display:block !important; }
+      .mobile-cards{ display:grid; gap:12px; margin-top:10px; }
+    }
 
     .header-actions{
       display:flex;
@@ -510,6 +590,7 @@ button[type="submit"] *,
             <h2>Histórico</h2>
           </div>
           <div id="history"></div>
+          <p id="historyMsg" class="msg" aria-live="polite"></p>
         </section>
 
         
@@ -549,6 +630,7 @@ button[type="submit"] *,
     const activeReserveMsg = $("activeReserveMsg");
     const loanMsg = $("loanMsg");
     const historyEl = $("history");
+    const historyMsg = $("historyMsg");
     const loansEl = $("loans");
     const activeReservationsEl = $("activeReservations");
 
@@ -853,16 +935,40 @@ button[type="submit"] *,
             <td><button type="button" class="secondary mini-btn" data-cancel-v2="${r.reserva_id}|${r.line_no}">Cancelar</button></td>
           </tr>`;
         }).join("");
+        const mobileCards = v2.data.map((r) => {
+          const rotulo = r.rotulo || rotulosMap.get(String(r.bib_ref || "").trim()) || "—";
+          const validade = r.expires_at || addDays(r.reserva_created_at || Date.now(), 14);
+          return `
+            <article class="mobile-card">
+              <h4>${escapeHtml(r.titulo || "Livro")}</h4>
+              ${r.autor ? `<p class="author">${escapeHtml(r.autor)}</p>` : ""}
+              <div class="mobile-kv">
+                <div class="k">Lote</div><div class="v">#${escapeHtml(r.reserva_id)}</div>
+                <div class="k">Livro</div><div class="v mono">${escapeHtml(r.sub_id)}</div>
+                <div class="k">Referência</div><div class="v mono">${escapeHtml(r.bib_ref || "—")}</div>
+                <div class="k">Rótulo</div><div class="v mono">${escapeHtml(rotulo)}</div>
+                <div class="k">Criada em</div><div class="v">${escapeHtml(fmtDateOnly(r.reserva_created_at))}</div>
+                <div class="k">Validade</div><div class="v"><b>${escapeHtml(fmtDateOnly(validade))}</b></div>
+                <div class="k">Situação</div><div class="v">${escapeHtml(reservationStatusLabel(r.item_status, r))}</div>
+              </div>
+              <div class="mobile-actions">
+                <button type="button" class="secondary mini-btn" data-cancel-v2="${r.reserva_id}|${r.line_no}">Cancelar</button>
+              </div>
+            </article>`;
+        }).join("");
 
         activeReservationsEl.innerHTML = `
-          <div class="table-scroll">
-            <table class="list-table">
-              <thead>
-                <tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Criada em</th><th>Validade</th><th>Situação</th><th>Ação</th></tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>`;
+          <div class="desktop-only">
+            <div class="table-scroll">
+              <table class="list-table">
+                <thead>
+                  <tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Criada em</th><th>Validade</th><th>Situação</th><th>Ação</th></tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+          <div class="mobile-only mobile-cards">${mobileCards}</div>`;
 
         activeReservationsEl.querySelectorAll("[data-cancel-v2]").forEach((btn) => {
           btn.addEventListener("click", async () => {
@@ -919,16 +1025,44 @@ button[type="submit"] *,
             <td>${canCancel ? `<button type="button" class="secondary mini-btn" data-cancel-old="${r.id}">Cancelar</button>` : `<span class="tag-muted">Sem ação</span>`}</td>
           </tr>`;
       }).join("");
+      const mobileCards = oldRes.data.map((r) => {
+        const book = booksMap.get(String(r.bib_ref)) || {};
+        const title = book.titulo || `Referência ${r.bib_ref}`;
+        const author = book.autor || "";
+        const rotulo = rotulosMap.get(String(r.bib_ref || "").trim()) || "—";
+        const validade = addDays(r.created_at || Date.now(), 14);
+        const canCancel = String(r.status || "") === "pending";
+        return `
+          <article class="mobile-card">
+            <h4>${escapeHtml(title)}</h4>
+            ${author ? `<p class="author">${escapeHtml(author)}</p>` : ""}
+            <div class="mobile-kv">
+              <div class="k">Lote</div><div class="v">#${escapeHtml(r.id)}</div>
+              <div class="k">Livro</div><div class="v mono">—</div>
+              <div class="k">Referência</div><div class="v mono">${escapeHtml(r.bib_ref || "—")}</div>
+              <div class="k">Rótulo</div><div class="v mono">${escapeHtml(rotulo)}</div>
+              <div class="k">Criada em</div><div class="v">${escapeHtml(fmtDateOnly(r.created_at))}</div>
+              <div class="k">Validade</div><div class="v"><b>${escapeHtml(fmtDateOnly(validade))}</b></div>
+              <div class="k">Situação</div><div class="v">${escapeHtml(reservationStatusLabel(r.status, r))}${r.cancelled_reason ? `<br><small>${escapeHtml(r.cancelled_reason)}</small>` : ""}</div>
+            </div>
+            <div class="mobile-actions">
+              ${canCancel ? `<button type="button" class="secondary mini-btn" data-cancel-old="${r.id}">Cancelar</button>` : `<span class="tag-muted">Sem ação</span>`}
+            </div>
+          </article>`;
+      }).join("");
 
       activeReservationsEl.innerHTML = `
-        <div class="table-scroll">
-          <table class="list-table">
-            <thead>
-              <tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Criada em</th><th>Validade</th><th>Situação</th><th>Ação</th></tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>`;
+        <div class="desktop-only">
+          <div class="table-scroll">
+            <table class="list-table">
+              <thead>
+                <tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Criada em</th><th>Validade</th><th>Situação</th><th>Ação</th></tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="mobile-only mobile-cards">${mobileCards}</div>`;
 
       activeReservationsEl.querySelectorAll("[data-cancel-old]").forEach((btn) => {
         btn.addEventListener("click", async () => {
@@ -1009,6 +1143,14 @@ button[type="submit"] *,
 
       let sections = [];
 
+      if (v2.error || oldQ.error) {
+        console.error("renderLoans errors", { v2: v2.error, oldQ: oldQ.error });
+        const msgs = [];
+        if (v2.error) msgs.push("v2: " + (v2.error.message || JSON.stringify(v2.error)));
+        if (oldQ.error) msgs.push("loans: " + (oldQ.error.message || JSON.stringify(oldQ.error)));
+        if (loanMsg) loanMsg.textContent = "Diagnóstico empréstimos — " + msgs.join(" | ");
+      }
+
       if (!v2.error && (v2.data || []).length) {
         const rows = v2.data.map((r) => {
           const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
@@ -1024,7 +1166,25 @@ button[type="submit"] *,
             <td>${renewBtn}</td>
           </tr>`;
         }).join("");
-        sections.push(`<div class="panel-head"><h3 style="margin:0 0 6px;">Empréstimos por lote</h3><p class="small" style="margin:0;">Visualização por lote e por livro, com prazos previstos e situação detalhada. Cada empréstimo só pode ser renovado uma única vez.</p></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+        const mobileCards = v2.data.map((r) => {
+          const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+          return `
+            <article class="mobile-card">
+              <h4>${escapeHtml(r.titulo || "Livro")}</h4>
+              ${r.autor ? `<p class="author">${escapeHtml(r.autor)}</p>` : ""}
+              <div class="mobile-kv">
+                <div class="k">Lote</div><div class="v">#${escapeHtml(r.emprestimo_id)}</div>
+                <div class="k">Livro</div><div class="v mono">${escapeHtml(r.sub_id)}</div>
+                <div class="k">Referência</div><div class="v mono">${escapeHtml(r.bib_ref || "—")}</div>
+                <div class="k">Rótulo</div><div class="v mono">${escapeHtml(r.rotulo || "—")}</div>
+                <div class="k">Saída em</div><div class="v">${escapeHtml(fmtDateOnly(r.emprestimo_created_at))}</div>
+                <div class="k">Prazo</div><div class="v"><b>${escapeHtml(fmtDateOnly(r.due_at))}</b></div>
+                <div class="k">Situação</div><div class="v">${escapeHtml(r.item_status || "—")}</div>
+              </div>
+              <div class="mobile-actions">${renewBtn}</div>
+            </article>`;
+        }).join("");
+        sections.push(`<section class="mobile-section"><div class="panel-head"><h3 style="margin:0 0 6px;">Empréstimos por lote</h3><p class="small" style="margin:0;">Visualização por lote e por livro, com prazos previstos e situação detalhada. Cada empréstimo só pode ser renovado uma única vez.</p></div><div class="desktop-only"><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="mobile-only mobile-cards">${mobileCards}</div></section>`);
       }
 
       if (!oldQ.error && (oldQ.data || []).length) {
@@ -1056,7 +1216,39 @@ button[type="submit"] *,
             <td>${actionHtml}</td>
           </tr>`;
         }).join("");
-        sections.push(`<div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Outros empréstimos</h3></div><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+        const mobileCards = oldQ.data.map((l) => {
+          const book = Array.isArray(l.books) ? l.books[0] : l.books;
+          const title = book?.titulo || "Livro";
+          const author = book?.autor || "";
+          const bibRef = book?.bib_ref || "";
+          const dueDate = l.due_date ? new Date(l.due_date) : null;
+          const today = new Date();
+          const today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const due0 = dueDate ? new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()) : null;
+          const diffDays = due0 ? Math.round((due0 - today0) / 86400000) : 0;
+          const overdue = diffDays < 0 ? Math.abs(diffDays) : 0;
+          const statusLine = overdue > 0 ? `Atraso: ${overdue} dia(s)` : `Faltam ${Math.max(diffDays, 0)} dia(s)`;
+          const canRenew = !userIsRestricted && !l.extended_once && overdue === 0;
+          const actionHtml = canRenew
+            ? `<button type="button" class="secondary mini-btn" data-renew-old="${l.id}">Renovar (uma única vez)</button>`
+            : `<span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada" : (overdue > 0 ? "Renovação indisponível: atraso" : "Renovação indisponível"))}</span>`;
+          return `
+            <article class="mobile-card">
+              <h4>${escapeHtml(title)}</h4>
+              ${author ? `<p class="author">${escapeHtml(author)}</p>` : ""}
+              <div class="mobile-kv">
+                <div class="k">Lote</div><div class="v">#${escapeHtml(l.id)}</div>
+                <div class="k">Livro</div><div class="v mono">—</div>
+                <div class="k">Referência</div><div class="v mono">${escapeHtml(bibRef || "—")}</div>
+                <div class="k">Rótulo</div><div class="v mono">—</div>
+                <div class="k">Saída em</div><div class="v">${escapeHtml(fmtDateOnly(l.checkout_date))}</div>
+                <div class="k">Prazo</div><div class="v"><b>${escapeHtml(fmtDateOnly(l.due_date))}</b></div>
+                <div class="k">Situação</div><div class="v">${escapeHtml(statusLine)}</div>
+              </div>
+              <div class="mobile-actions">${actionHtml}</div>
+            </article>`;
+        }).join("");
+        sections.push(`<section class="mobile-section"><div class="panel-head" style="margin-top:${sections.length ? '16px' : '0'};"><h3 style="margin:0 0 6px;">Outros empréstimos</h3></div><div class="desktop-only"><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="mobile-only mobile-cards">${mobileCards}</div></section>`);
       }
 
       if (!sections.length) {
@@ -1124,21 +1316,32 @@ button[type="submit"] *,
 
     async function renderHistory() {
       historyEl.textContent = "Carregando...";
+      if (historyMsg) historyMsg.textContent = "";
 
       const [v2Loans, oldLoans, v2Reservas, oldReservas] = await Promise.all([
-        supabase.from("v_emprestimo_itens_v2_ui_fix").select("emprestimo_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(300),
+        supabase.from("v_emprestimo_itens_v2_ui_fix").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
         supabase.from("loans").select("id, batch_id, due_date, checkout_date, returned_date, books(bib_ref, titulo, autor)").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(300),
-        supabase.from("v_reserva_itens_v2_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(300),
-        supabase.from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(200)
+        supabase.from("v_reserva_itens_v2_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
+        supabase.from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(100)
       ]);
 
       const items = [];
+
+      if (v2Loans.error || oldLoans.error || v2Reservas.error || oldReservas.error) {
+        console.error("renderHistory errors", { v2Loans: v2Loans.error, oldLoans: oldLoans.error, v2Reservas: v2Reservas.error, oldReservas: oldReservas.error });
+        const msgs = [];
+        if (v2Loans.error) msgs.push("v2 empréstimos: " + (v2Loans.error.message || JSON.stringify(v2Loans.error)));
+        if (oldLoans.error) msgs.push("loans antigos: " + (oldLoans.error.message || JSON.stringify(oldLoans.error)));
+        if (v2Reservas.error) msgs.push("v2 reservas: " + (v2Reservas.error.message || JSON.stringify(v2Reservas.error)));
+        if (oldReservas.error) msgs.push("reservas antigas: " + (oldReservas.error.message || JSON.stringify(oldReservas.error)));
+        if (historyMsg) historyMsg.textContent = "Diagnóstico histórico — " + msgs.join(" | ");
+      }
 
       if (!v2Reservas.error) {
         for (const r of (v2Reservas.data || [])) {
           items.push({
             when: r.cancelled_at || r.converted_at || r.reserva_created_at,
-            html: `<div class="history-entry"><div class="history-entry-head"><div class="history-entry-title">Reserva #${escapeHtml(r.reserva_id)}</div><div class="history-entry-meta">${escapeHtml(reservationStatusLabel(r.item_status, r))}</div></div><div class="history-entry-meta"><span class="mono">${escapeHtml(r.sub_id || '—')}</span>${r.bib_ref ? ` · ref. ${escapeHtml(r.bib_ref)}` : ''}</div><div>${escapeHtml(r.titulo || 'Livro')}${r.autor ? `<small>${escapeHtml(r.autor)}</small>` : ''}</div></div>`
+            html: `<li><b>Reserva #${escapeHtml(r.reserva_id)}</b> — <span class="mono">${escapeHtml(r.sub_id)}</span> — ${escapeHtml(r.titulo || 'Livro')} — ${escapeHtml(reservationStatusLabel(r.item_status, r))}</li>`
           });
         }
       }
@@ -1149,56 +1352,107 @@ button[type="submit"] *,
           const book = booksMap.get(String(r.bib_ref)) || {};
           items.push({
             when: r.cancelled_at || r.fulfilled_at || r.created_at,
-            html: `<div class="history-entry"><div class="history-entry-head"><div class="history-entry-title">Reserva #${escapeHtml(r.id)}</div><div class="history-entry-meta">${escapeHtml(reservationStatusLabel(r.status, r))}</div></div><div>${escapeHtml(book.titulo || ('Referência ' + r.bib_ref))}</div><div class="history-entry-meta">${r.bib_ref ? `ref. ${escapeHtml(r.bib_ref)}` : ''}</div></div>`
+            html: `<li><b>Reserva #${escapeHtml(r.id)}</b> — ${escapeHtml(book.titulo || ('Referência ' + r.bib_ref))} — ${escapeHtml(reservationStatusLabel(r.status, r))}</li>`
           });
         }
       }
 
       if (!v2Loans.error) {
-        const groups = new Map();
+        const loanGroups = new Map();
         for (const l of (v2Loans.data || [])) {
           const key = String(l.emprestimo_id);
-          if (!groups.has(key)) {
-            groups.set(key, { id: l.emprestimo_id, created_at: l.emprestimo_created_at, due_at: l.due_at, lines: [] });
+          if (!loanGroups.has(key)) {
+            loanGroups.set(key, {
+              emprestimo_id: l.emprestimo_id,
+              when: l.returned_at || l.emprestimo_created_at || l.due_at,
+              created_at: l.emprestimo_created_at,
+              due_at: l.due_at,
+              rows: []
+            });
           }
-          groups.get(key).lines.push(l);
+          const group = loanGroups.get(key);
+          if (String(l.returned_at || l.emprestimo_created_at || l.due_at || '') > String(group.when || '')) {
+            group.when = l.returned_at || l.emprestimo_created_at || l.due_at;
+          }
+          group.rows.push(l);
         }
-        for (const g of groups.values()) {
-          g.lines.sort((a,b) => Number(a.line_no || 0) - Number(b.line_no || 0) || String(a.sub_id || '').localeCompare(String(b.sub_id || '')));
-          const allReturned = g.lines.every((x) => !!x.returned_at);
-          const returnedAt = allReturned ? g.lines.map((x) => x.returned_at).filter(Boolean).sort().slice(-1)[0] : null;
-          const headStatus = allReturned ? `Devolvido em ${fmtDateTime(returnedAt)}` : `Em curso — devolução ${fmtDateOnly(g.due_at)}`;
+
+        for (const group of loanGroups.values()) {
+          group.rows.sort((a, b) => {
+            const an = Number(a.line_no ?? String(a.sub_id || '').split('.').pop());
+            const bn = Number(b.line_no ?? String(b.sub_id || '').split('.').pop());
+            return (Number.isFinite(an) ? an : 9999) - (Number.isFinite(bn) ? bn : 9999);
+          });
+          const allReturned = group.rows.length > 0 && group.rows.every((r) => !!r.returned_at);
+          const latestReturnedAt = allReturned
+            ? group.rows.map((r) => r.returned_at).filter(Boolean).sort().slice(-1)[0]
+            : null;
+          const lotStatus = allReturned
+            ? `retornado em ${fmtDateTime(latestReturnedAt)}`
+            : `em curso — devolução ${fmtDateOnly(group.due_at)}`;
+          const children = group.rows.map((l) => {
+            const itemStatus = l.returned_at ? `retornado em ${fmtDateTime(l.returned_at)}` : `devolução ${fmtDateOnly(l.due_at)}`;
+            const ref = l.bib_ref ? `<span class="history-ref mono">${escapeHtml(l.bib_ref)}</span>` : `<span class="history-ref mono">${escapeHtml(l.sub_id || '—')}</span>`;
+            const rotulo = l.rotulo ? ` — rótulo ${escapeHtml(l.rotulo)}` : "";
+            return `<li>${ref} — ${escapeHtml(l.titulo || 'Livro')} — ${escapeHtml(itemStatus)}${rotulo}</li>`;
+          }).join("");
           items.push({
-            when: returnedAt || g.created_at || g.due_at,
-            html: `<div class="history-entry"><div class="history-entry-head"><div class="history-entry-title">Empréstimo #${escapeHtml(g.id)}</div><div class="history-entry-meta">${escapeHtml(headStatus)}</div></div><div class="history-entry-meta">Lote v2 · ${escapeHtml(fmtDateTime(g.created_at))}</div><ul class="history-sublist">${g.lines.map((l) => `<li class="history-subitem"><span class="mono">${escapeHtml(l.sub_id || `${l.emprestimo_id}.${l.line_no || 1}`)}</span>${l.bib_ref ? ` · ref. ${escapeHtml(l.bib_ref)}` : ''} — ${escapeHtml(l.titulo || 'Livro')}${l.autor ? `<small>${escapeHtml(l.autor)}</small>` : ''}</li>`).join("")}</ul></div>`
+            when: group.when,
+            html: `<li><b>Empréstimo #${escapeHtml(group.emprestimo_id)}</b> — ${escapeHtml(lotStatus)}<ul class="history-children">${children}</ul></li>`
           });
         }
       }
 
       if (!oldLoans.error) {
-        const groups = new Map();
+        const oldLoanGroups = new Map();
         for (const l of (oldLoans.data || [])) {
-          const key = l.batch_id ? String(l.batch_id) : `single-${l.id}`;
-          if (!groups.has(key)) {
-            groups.set(key, { key, label: l.batch_id ? `Lote antigo #${l.id}` : `Empréstimo #${l.id}`, checkout_date: l.checkout_date, lines: [] });
+          const book = Array.isArray(l.books) ? l.books[0] : l.books;
+          const batchKey = l.batch_id ? String(l.batch_id) : `single-${l.id}`;
+          if (!oldLoanGroups.has(batchKey)) {
+            oldLoanGroups.set(batchKey, {
+              batch_id: l.batch_id || null,
+              label: l.batch_id ? `lote ${String(l.batch_id).slice(0, 8)}` : `empréstimo ${l.id}`,
+              when: l.returned_date || l.checkout_date || l.due_date,
+              due_at: l.due_date,
+              rows: []
+            });
           }
-          groups.get(key).lines.push(l);
+          const group = oldLoanGroups.get(batchKey);
+          if (String(l.returned_date || l.checkout_date || l.due_date || '') > String(group.when || '')) {
+            group.when = l.returned_date || l.checkout_date || l.due_date;
+          }
+          group.rows.push({ ...l, _book: book || null });
         }
-        for (const g of groups.values()) {
-          g.lines.sort((a,b) => Number(a.id) - Number(b.id));
-          const allReturned = g.lines.every((x) => !!x.returned_date);
-          const returnedAt = allReturned ? g.lines.map((x) => x.returned_date).filter(Boolean).sort().slice(-1)[0] : null;
-          const dueLatest = g.lines.map((x) => x.due_date).filter(Boolean).sort().slice(-1)[0] || null;
-          const headStatus = allReturned ? `Devolvido em ${fmtDateOnly(returnedAt)}` : `Em curso — devolução ${fmtDateOnly(dueLatest)}`;
+
+        for (const group of oldLoanGroups.values()) {
+          group.rows.sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
+          const allReturned = group.rows.length > 0 && group.rows.every((r) => !!r.returned_date);
+          const latestReturnedAt = allReturned
+            ? group.rows.map((r) => r.returned_date).filter(Boolean).sort().slice(-1)[0]
+            : null;
+          const latestDueAt = group.rows.map((r) => r.due_date).filter(Boolean).sort().slice(-1)[0] || group.due_at;
+          const lotStatus = allReturned
+            ? `retornado em ${fmtDateTime(latestReturnedAt)}`
+            : `em curso — devolução ${fmtDateOnly(latestDueAt)}`;
+          const children = group.rows.map((l) => {
+            const itemStatus = l.returned_date ? `retornado em ${fmtDateTime(l.returned_date)}` : `devolução ${fmtDateOnly(l.due_date)}`;
+            const refValue = l._book?.bib_ref || '—';
+            const title = l._book?.titulo || 'Livro';
+            const ref = `<span class="history-ref mono">${escapeHtml(refValue)}</span>`;
+            return `<li>${ref} — ${escapeHtml(title)} — ${escapeHtml(itemStatus)}</li>`;
+          }).join("");
+          const heading = group.batch_id
+            ? `Empréstimo (modelo antigo) — ${group.label}`
+            : `Empréstimo #${group.rows[0]?.id ?? '—'}`;
           items.push({
-            when: returnedAt || g.checkout_date || dueLatest,
-            html: `<div class="history-entry"><div class="history-entry-head"><div class="history-entry-title">${escapeHtml(g.label)}</div><div class="history-entry-meta">${escapeHtml(headStatus)}</div></div><div class="history-entry-meta">Modelo antigo · ${escapeHtml(fmtDateOnly(g.checkout_date))}</div><ul class="history-sublist">${g.lines.map((l) => { const book = Array.isArray(l.books) ? l.books[0] : l.books; return `<li class="history-subitem">${book?.bib_ref ? `ref. ${escapeHtml(book.bib_ref)} — ` : ''}${escapeHtml(book?.titulo || 'Livro')}${book?.autor ? `<small>${escapeHtml(book.autor)}</small>` : ''}</li>`; }).join("")}</ul></div>`
+            when: group.when,
+            html: `<li><b>${escapeHtml(heading)}</b> — ${escapeHtml(lotStatus)}<ul class="history-children">${children}</ul></li>`
           });
         }
       }
 
       items.sort((a,b) => String(b.when || '').localeCompare(String(a.when || '')));
-      historyEl.innerHTML = items.length ? `<div class="history-list">${items.map((x) => x.html).join("")}</div>` : "<p>Não há histórico.</p>";
+      historyEl.innerHTML = items.length ? `<ul class="history-list">${items.map((x) => x.html).join("")}</ul>` : "<p>Não há histórico.</p>";
     }
 
     $("profileForm")?.addEventListener("submit", async (e) => {
