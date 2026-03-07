@@ -611,7 +611,22 @@
     refreshLoanHint();
 
     function profileName(row){
-      const candidate = row?.full_name || row?.name || row?.nome || row?.display_name || row?.surname || row?.sobrenome || row?.email || '—';
+      const first = String(row?.first_name || '').trim();
+      const last  = String(row?.last_name || '').trim();
+      const full  = [first, last].filter(Boolean).join(' ').trim();
+
+      const candidate =
+        row?.user_nome ||
+        full ||
+        row?.full_name ||
+        row?.name ||
+        row?.nome ||
+        row?.display_name ||
+        row?.surname ||
+        row?.sobrenome ||
+        row?.email ||
+        '—';
+
       return String(candidate);
     }
     function firstExistingKey(obj, candidates){
@@ -709,10 +724,10 @@
 
       if (!qv2.error && (qv2.data || []).length) {
         const rows = qv2.data || [];
-        const profilesMap = await loadProfilesByIds(rows.map((r) => r.user_id));
 
         activeReservations = rows.map((r) => {
-          const user = profilesMap.get(String(r.user_id)) || {};
+          const fallbackName = [r.first_name, r.last_name].filter(Boolean).join(' ').trim();
+
           return {
             id: Number(`${r.reserva_id}${String(r.line_no).padStart(2, '0')}`),
             reserva_id: Number(r.reserva_id),
@@ -720,8 +735,8 @@
             line_no: Number(r.line_no),
             source: 'v2',
             user_id: r.user_id,
-            user_name: profileName(user),
-            user_email: user.email || '—',
+            user_name: r.user_nome || fallbackName || r.user_email || '—',
+            user_email: r.user_email || '—',
             bib_ref: r.bib_ref,
             titulo: r.titulo || `Referência ${r.bib_ref}`,
             autor: r.autor || '',
