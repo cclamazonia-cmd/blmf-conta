@@ -880,6 +880,55 @@ button[type="submit"] *,
       return s || "—";
     }
 
+    function loanSubId(row) {
+      const sub = row?.sub_id;
+      if (sub != null && String(sub).trim()) return String(sub).trim();
+      const emp = row?.emprestimo_id ?? row?.loan_id ?? row?.id ?? "";
+      const line = row?.line_no ?? row?.line ?? row?.item_no ?? "";
+      if (emp !== "" && line !== "") return `${emp}.${line}`;
+      return emp !== "" ? String(emp) : "—";
+    }
+
+    function pickBookTitle(row) {
+      const books = Array.isArray(row?.books) ? row.books[0] : row?.books;
+      return row?.titulo || row?.title || row?.book_title || books?.titulo || "";
+    }
+
+    function pickBookAuthor(row) {
+      const books = Array.isArray(row?.books) ? row.books[0] : row?.books;
+      return row?.autor || row?.author || row?.book_author || books?.autor || "";
+    }
+
+    function pickBibRef(row) {
+      const books = Array.isArray(row?.books) ? row.books[0] : row?.books;
+      return row?.bib_ref || books?.bib_ref || "";
+    }
+
+    function loanWhen(row) {
+      return row?.returned_at || row?.returned_date || row?.checkout_date || row?.emprestimo_created_at || row?.created_at || row?.due_at || row?.due_date || "";
+    }
+
+    function loanDueDate(row) {
+      return row?.due_at || row?.due_date || "";
+    }
+
+    function loanReturnedDate(row) {
+      return row?.returned_at || row?.returned_date || "";
+    }
+
+    function dedupeHistoryLoans(rows) {
+      const seen = new Set();
+      const out = [];
+      for (const row of (rows || [])) {
+        const loanId = row?.emprestimo_id ?? row?.loan_id ?? row?.id ?? "";
+        const key = [loanId, loanSubId(row), pickBibRef(row), loanReturnedDate(row), loanWhen(row)].join("|");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(row);
+      }
+      return out;
+    }
+
     async function renderActiveReservations() {
       if (!activeReservationsEl) return;
       if (activeReserveMsg) activeReserveMsg.textContent = "";
@@ -1285,11 +1334,13 @@ button[type="submit"] *,
     async function renderHistory() {
       historyEl.textContent = "Carregando...";
 
-      const [v2Loans, oldLoans, v2Reservas, oldReservas] = await Promise.all([
-        supabase.from("v_emprestimo_itens_v2_ui").select("emprestimo_id, line_no, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
-        supabase.from("loans").select("id, due_date, checkout_date, returned_date, books(titulo, autor)").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(100),
-        supabase.from("v_reserva_itens_v2_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
-        supabase.from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(100)
+      const [v2LoansUI, v2LoansDetails, oldLoansView, oldLoans, v2Reservas, oldReservas] = await Promise.all([
+        supabase.from("v_emprestimo_itens_v2_ui").select("*").eq("user_id", session.user.id).range(0, 999),
+        supabase.from("v_emprestimo_itens_v2_detalhes").select("*").eq("user_id", session.user.id).range(0, 999),
+        supabase.from("v_loans_detalhes").select("*").eq("user_id", session.user.id).range(0, 999),
+        supabase.from("loans").select("id, user_id, due_date, checkout_date, returned_date, bib_ref, books(bib_ref, titulo, autor)").eq("user_id", session.user.id).range(0, 999),
+        supabase.from("v_reserva_itens_v2_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").range(0, 999),
+        supabase.from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").range(0, 999)
       ]);
 
       const items = [];
@@ -1314,25 +1365,29 @@ button[type="submit"] *,
         }
       }
 
-      if (!v2Loans.error) {
-        for (const l of (v2Loans.data || [])) {
-          const status = l.returned_at ? `retornado em ${fmtDateTime(l.returned_at)}` : `em curso — devolução ${fmtDateOnly(l.due_at)}`;
-          items.push({
-            when: l.returned_at || l.emprestimo_created_at || l.due_at,
-            html: `<li><b>Empréstimo #${escapeHtml(l.emprestimo_id)}</b> — <span class="mono">${escapeHtml(loanSubId(l))}</span> — ${escapeHtml(l.titulo || 'Livro')} — ${escapeHtml(status)}</li>`
-          });
-        }
-      }
+      const rawLoanRows = [
+        ...(!v2LoansUI.error ? (v2LoansUI.data || []) : []),
+        ...(!v2LoansDetails.error ? (v2LoansDetails.data || []) : []),
+        ...(!oldLoansView.error ? (oldLoansView.data || []) : []),
+        ...(!oldLoans.error ? (oldLoans.data || []) : [])
+      ];
 
-      if (!oldLoans.error) {
-        for (const l of (oldLoans.data || [])) {
-          const title = l.books?.titulo || 'Livro';
-          const status = l.returned_date ? `retornado em ${fmtDateOnly(l.returned_date)}` : `em curso — devolução ${fmtDateOnly(l.due_date)}`;
-          items.push({
-            when: l.returned_date || l.checkout_date || l.due_date,
-            html: `<li><b>Empréstimo #${escapeHtml(l.id)}</b> — ${escapeHtml(title)} — ${escapeHtml(status)}</li>`
-          });
-        }
+      const mergedLoans = dedupeHistoryLoans(rawLoanRows);
+      const bibRefsToResolve = mergedLoans.map((r) => pickBibRef(r)).filter((r, i, arr) => r && arr.indexOf(r) === i && !pickBookTitle(mergedLoans.find((x) => pickBibRef(x) === r && pickBookTitle(x)) || {}));
+      const booksMap = await fetchBooksMapByBibRefs(bibRefsToResolve);
+
+      for (const l of mergedLoans) {
+        const bibRef = pickBibRef(l);
+        const fallbackBook = booksMap.get(String(bibRef || "")) || {};
+        const title = pickBookTitle(l) || fallbackBook.titulo || (bibRef ? `Referência ${bibRef}` : 'Livro');
+        const returnedAt = loanReturnedDate(l);
+        const dueAt = loanDueDate(l);
+        const loanId = l.emprestimo_id ?? l.loan_id ?? l.id ?? "—";
+        const status = returnedAt ? `retornado em ${fmtDateTime(returnedAt)}` : `em curso — devolução ${fmtDateOnly(dueAt)}`;
+        items.push({
+          when: returnedAt || loanWhen(l),
+          html: `<li><b>Empréstimo #${escapeHtml(loanId)}</b> — <span class="mono">${escapeHtml(loanSubId(l))}</span> — ${escapeHtml(title)} — ${escapeHtml(status)}</li>`
+        });
       }
 
       items.sort((a,b) => String(b.when || '').localeCompare(String(a.when || '')));
