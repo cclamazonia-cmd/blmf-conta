@@ -976,7 +976,7 @@
     async function loadProfilesByIds(userIds){
       const ids = Array.from(new Set((userIds || []).map((v) => String(v || '').trim()).filter(Boolean)));
       if (!ids.length) return new Map();
-      const { data, error } = await supabase.from('profiles').select('*').in('id', ids);
+      const { data, error } = await supabase.schema('api').from('profiles').select('*').in('id', ids);
       if (error) throw error;
       return new Map((data || []).map((row) => [String(row.id), row]));
     }
@@ -984,7 +984,7 @@
     async function loadBooksByBibRefs(refs){
       const clean = Array.from(new Set((refs || []).map((r) => String(r || '').trim()).filter(Boolean)));
       if (!clean.length) return new Map();
-      const { data, error } = await supabase.from('books').select('id,bib_ref,titulo,autor,editora,ano,loanable').in('bib_ref', clean);
+      const { data, error } = await supabase.schema('api').from('books_public').select('id,bib_ref,titulo,autor,editora,ano,loanable').in('bib_ref', clean);
       if (error) throw error;
       return new Map((data || []).map((row) => [String(row.bib_ref), row]));
     }
@@ -1009,7 +1009,8 @@
 
     async function fetchActiveReservations(){
       const qv2 = await supabase
-        .from('v_reserva_itens_v2_ui')
+        .schema('api')
+        .from('reserva_itens_ui')
         .select('*')
         .eq('item_status', 'ativa')
         .order('reserva_id', { ascending:false })
@@ -1050,6 +1051,7 @@
 
       // fallback ancien modèle
       const { data, error } = await supabase
+        .schema('api')
         .from('reservas')
         .select('id,bib_ref,user_id,created_at,status,fulfilled_at,fulfilled_loan_id,fulfilled_by,cancelled_at,cancelled_by,reserva_em,cancelled_by_role,cancelled_reason')
         .eq('status', 'pending')
@@ -1096,7 +1098,8 @@
 
     async function fetchActiveLoans(){
       const qv2 = await supabase
-        .from('v_emprestimo_itens_v2_ui')
+        .schema('api')
+        .from('emprestimo_itens_ui')
         .select('*')
         .eq('item_status', 'aberto')
         .order('due_at', { ascending:true })
@@ -1168,8 +1171,9 @@
       let data = null;
       let error = null;
       const q = await supabase
-        .from('loans')
-        .select('id,user_id,book_id,checkout_date,due_date,returned_date,created_at,batch_id,batch_size,extended_once,extended_at,reminder_sent_at,books(id,bib_ref,titulo,autor)')
+        .schema('api')
+        .from('loans_detalhes')
+        .select('id,user_id,book_id,checkout_date,due_date,returned_date,created_at,batch_id,batch_size,extended_once,extended_at,reminder_sent_at,books')
         .is('returned_date', null)
         .order('created_at', { ascending:false })
         .limit(800);
@@ -1443,7 +1447,7 @@
     }
 
     async function loadProfileByEmail(email){
-      const { data, error } = await supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+      const { data, error } = await supabase.schema('api').from('profiles').select('*').eq('email', email).maybeSingle();
       if (error) throw error;
       if (!data?.id) throw new Error('Não encontrei esse e-mail no cadastro.');
       editingProfileId = data.id;
@@ -1500,7 +1504,7 @@
     }
 
     async function findUserByEmail(email){
-      const { data, error } = await supabase.from('profiles').select('id,email').eq('email', email).maybeSingle();
+      const { data, error } = await supabase.schema('api').from('profiles').select('id,email').eq('email', email).maybeSingle();
       if (error) throw error;
       if (!data?.id) throw new Error('E-mail não encontrado no cadastro.');
       return data;
@@ -1516,7 +1520,8 @@
       const clean = Array.from(new Set((refs || []).map((r) => String(r || '').trim()).filter(Boolean)));
       if (!clean.length) throw new Error('Nenhum livro informado para o empréstimo.');
       const { data, error } = await supabase
-        .from('books')
+        .schema('api')
+        .from('books_public')
         .select('id,bib_ref,titulo,loanable')
         .in('bib_ref', clean);
       if (error) throw error;
@@ -1533,6 +1538,7 @@
       const ids = Array.from(new Set((bookIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
       if (!ids.length) return;
       const { data, error } = await supabase
+        .schema('api')
         .from('loans')
         .select('id,book_id,user_id')
         .in('book_id', ids)
@@ -1548,6 +1554,7 @@
 
     async function countOpenLoansForUser(userId){
       const { count, error } = await supabase
+        .schema('api')
         .from('loans')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
@@ -1594,6 +1601,7 @@
       if (!isMissingFunctionError(rpcRes.error)) throw rpcRes.error;
 
       const { data: reserva, error: reservaError } = await supabase
+        .schema('api')
         .from('reservas')
         .select('id,bib_ref,user_id,status,fulfilled_at,cancelled_at')
         .eq('id', reservaId)
