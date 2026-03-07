@@ -159,6 +159,12 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
       Preencha os campos abaixo para criar sua conta.
     </p>
     <p class="requiredLegend"><span class="reqMark">*</span> Campo obrigatório</p>
+    <p class="hint">
+      Campos obrigatórios: <b>Nome</b>, <b>Sobrenome</b>, <b>E-mail</b>, <b>Telefone</b> e as duas caixas de confirmação.
+    </p>
+    <p class="hint">
+      Todos os campos de endereço são opcionais, inclusive <b>Estado</b> e <b>País</b>.
+    </p>
 
     <form id="cadastroForm" novalidate>
       <div class="grid2">
@@ -180,6 +186,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
 
       <label for="gender">Gênero</label>
       <select id="gender">
+
         <option value="">—</option>
         <option value="feminino">Feminino</option>
         <option value="masculino">Masculino</option>
@@ -187,6 +194,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
         <option value="não informar">Prefiro não informar</option>
         <option value="outro">Outro</option>
       </select>
+      <p class="hint" style="margin-top:6px;">Campo opcional.</p>
 
       <hr />
 
@@ -288,7 +296,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
       </label>
 
       <p id="requiredMsg" class="required" style="display:none;">
-        Você precisa marcar as caixas obrigatórias para enviar o cadastro.
+        Para enviar o cadastro, preencha Nome, Sobrenome, E-mail e Telefone, e marque as duas caixas obrigatórias.
       </p>
 
       <button type="submit">Enviar cadastro</button>
@@ -315,6 +323,10 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
 
     const consent = document.getElementById("consent");
     const acceptRules = document.getElementById("acceptRules");
+    const firstName = document.getElementById("firstName");
+    const lastName = document.getElementById("lastName");
+    const email = document.getElementById("email");
+    const phone = document.getElementById("phone");
 
     function validateCheckboxes() {
       const ok = consent.checked && acceptRules.checked;
@@ -331,6 +343,26 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
         validateCheckboxes();
       });
     }
+    for (const [field, message] of [
+      [firstName, "Preencha o nome."],
+      [lastName, "Preencha o sobrenome."],
+      [email, "Preencha um e-mail válido."],
+      [phone, "Preencha o telefone."]
+    ]) {
+      field.addEventListener("invalid", () => {
+        if (field.validity.valueMissing) {
+          field.setCustomValidity(message);
+        } else if (field === email && field.validity.typeMismatch) {
+          field.setCustomValidity("Preencha um e-mail válido.");
+        } else {
+          field.setCustomValidity("");
+        }
+      });
+      field.addEventListener("input", () => {
+        field.setCustomValidity("");
+      });
+    }
+
 
     document.getElementById("back").addEventListener("click", () => {
       window.location.href = "./cadastro.html";
