@@ -527,6 +527,7 @@
     let editingProfileRow = null;
     let editingKnownColumns = {};
     let refreshTimer = null;
+    let refreshSerial = 0;
 
     function clearStatus(id){
       const el = $(id);
@@ -772,10 +773,6 @@
 
 
     async function fetchActiveLoans(){
-      activeLoans = [];
-      activeBatches = [];
-
-      // flux v2
       const qv2 = await supabase
         .from('v_emprestimo_itens_v2_ui')
         .select('*')
@@ -785,13 +782,11 @@
         .order('line_no', { ascending:true })
         .limit(800);
 
-      if (qv2.error) throw qv2.error;
+      if (!qv2.error && (qv2.data || []).length) {
+        const rows = qv2.data || [];
+        const profilesMap = await loadProfilesByIds(rows.map((r) => r.user_id));
 
-      const v2Rows = qv2.data || [];
-      if (v2Rows.length) {
-        const profilesMap = await loadProfilesByIds(v2Rows.map((r) => r.user_id));
-
-        const v2Loans = v2Rows.map((r) => {
+        const mappedV2Loans = rows.map((r) => {
           const user = profilesMap.get(String(r.user_id)) || {};
           const due = r.due_at ? new Date(String(r.due_at) + 'T00:00:00') : null;
           const today = new Date(todayISO() + 'T00:00:00');
@@ -822,129 +817,128 @@
           };
         });
 
-        activeLoans.push(...v2Loans);
+        activeLoans = dedupeBy(mappedV2Loans, (x) => `${x.source}|${x.emprestimo_id}|${x.line_no}|${x.sub_id}`);
 
-        const v2Groups = groupBy(v2Loans, (x) => x.emprestimo_id);
-        activeBatches.push(...Array.from(v2Groups.entries()).map(([emprestimoId, items]) => ({
+        const groups = groupBy(activeLoans, (x) => x.emprestimo_id);
+        activeBatches = Array.from(groups.entries()).map(([emprestimoId, items]) => ({
           batch_key: `v2-${emprestimoId}`,
           batch_label: String(emprestimoId),
           user_id: items[0]?.user_id || null,
           user_name: items[0]?.user_name || '—',
           user_email: items[0]?.user_email || '—',
           quantity: items.length,
-          sub_ids: items.map((x) => x.sub_id),
-          bib_refs: items.map((x) => x.bib_ref),
+          sub_ids: dedupeBy(items.map((x) => x.sub_id), (x) => x),
+          bib_refs: dedupeBy(items.map((x) => x.bib_ref), (x) => x),
           checkout_date: items[0]?.checkout_date || null,
           due_date: items[0]?.due_date || null,
           status_text: items.some((x) => x.status_class === 'bad') ? 'Com atraso' : (items.some((x) => x.extended_once) ? 'Renovado' : 'Em curso'),
           status_class: items.some((x) => x.status_class === 'bad') ? 'bad' : (items.some((x) => x.extended_once) ? 'warn' : 'ok'),
           can_renew: items.every((x) => !!x.can_renew),
           source: 'v2',
-          loan_ids: items.map((x) => x.loan_id),
+          loan_ids: dedupeBy(items.map((x) => x.loan_id), (x) => x),
           emprestimo_id: Number(emprestimoId),
-        })));
+        }));
+
+        return;
       }
 
-      // ancien modèle : on le charge aussi, même s'il existe déjà des prêts v2
-      const qOld = await supabase
+      // fallback ancien modèle
+      let data = null;
+      let error = null;
+      const q = await supabase
         .from('loans')
         .select('id,user_id,book_id,checkout_date,due_date,returned_date,created_at,batch_id,batch_size,extended_once,extended_at,reminder_sent_at,books(id,bib_ref,titulo,autor)')
         .is('returned_date', null)
         .order('created_at', { ascending:false })
         .limit(800);
 
-      if (qOld.error) throw qOld.error;
+      data = q.data; error = q.error;
+      if (error) throw error;
 
-      const oldRows = qOld.data || [];
-      if (oldRows.length) {
-        const profilesMap = await loadProfilesByIds(oldRows.map((r) => r.user_id));
-        const groups = new Map();
-
-        for (const row of oldRows){
-          const batchKey = row.batch_id || `single-${row.id}`;
-          if (!groups.has(batchKey)) groups.set(batchKey, []);
-          groups.get(batchKey).push(row);
-        }
-
-        for (const [batchKey, items] of groups.entries()){
-          items.sort((a,b) => Number(a.id) - Number(b.id));
-          const lotLabel = String(Math.min(...items.map((x) => Number(x.id))));
-          const user = profilesMap.get(String(items[0]?.user_id || '')) || {};
-          const dueDates = items.map((x) => x.due_date).filter(Boolean).sort();
-          const checkouts = items.map((x) => x.checkout_date).filter(Boolean).sort();
-          const subIds = [];
-          const refs = [];
-
-          items.forEach((row, idx) => {
-            const book = extractBook(row) || {};
-            const due = row.due_date ? new Date(String(row.due_date) + 'T00:00:00') : null;
-            const today = new Date(todayISO() + 'T00:00:00');
-            const overdueDays = due ? Math.floor((today - due) / 86400000) : 0;
-            const statusText = overdueDays > 0 ? `Atrasado (${overdueDays} dia(s))` : (row.extended_once ? 'Renovado' : 'Em curso');
-            const statusClass = overdueDays > 0 ? 'bad' : (row.extended_once ? 'warn' : 'ok');
-            const subId = `${lotLabel}.${idx + 1}`;
-            subIds.push(subId);
-            if (book.bib_ref) refs.push(book.bib_ref);
-            activeLoans.push({
-              id: Number(row.id),
-              loan_id: Number(row.id),
-              source: 'old',
-              batch_key: batchKey,
-              batch_label: lotLabel,
-              sub_id: subId,
-              line_no: idx + 1,
-              user_id: row.user_id,
-              user_name: profileName(user),
-              user_email: user.email || '—',
-              titulo: book.titulo || 'Livro',
-              autor: book.autor || '',
-              bib_ref: book.bib_ref || '—',
-              checkout_date: row.checkout_date,
-              due_date: row.due_date,
-              returned_date: row.returned_date,
-              extended_once: !!row.extended_once,
-              can_renew: !row.extended_once && overdueDays <= 0,
-              status_text: statusText,
-              status_class: statusClass,
-              raw: row,
-            });
-          });
-
-          const isOverdue = items.some((row) => {
-            const due = row.due_date ? new Date(String(row.due_date) + 'T00:00:00') : null;
-            return due && due < new Date(todayISO() + 'T00:00:00');
-          });
-
-          activeBatches.push({
-            batch_key: batchKey,
-            batch_label: lotLabel,
-            user_id: items[0]?.user_id || null,
-            user_name: profileName(user),
-            user_email: user.email || '—',
-            quantity: items.length,
-            sub_ids: subIds,
-            bib_refs: refs,
-            checkout_date: checkouts[0] || null,
-            due_date: dueDates[dueDates.length - 1] || dueDates[0] || null,
-            status_text: isOverdue ? 'Com atraso' : (items.some((x) => !!x.extended_once) ? 'Renovado' : 'Em curso'),
-            status_class: isOverdue ? 'bad' : (items.some((x) => !!x.extended_once) ? 'warn' : 'ok'),
-            can_renew: items.every((x) => !x.extended_once) && !isOverdue,
-            source: 'old',
-            loan_ids: items.map((x) => Number(x.id)),
-          });
-        }
+      const rows = data || [];
+      const profilesMap = await loadProfilesByIds(rows.map((r) => r.user_id));
+      const groups = new Map();
+      for (const row of rows){
+        const batchKey = row.batch_id || `single-${row.id}`;
+        if (!groups.has(batchKey)) groups.set(batchKey, []);
+        groups.get(batchKey).push(row);
       }
 
-      activeLoans.sort((a,b) =>
-        String(a.due_date || '').localeCompare(String(b.due_date || '')) ||
-        String(a.batch_label || '').localeCompare(String(b.batch_label || '')) ||
-        String(a.sub_id || '').localeCompare(String(b.sub_id || ''))
-      );
-      activeBatches.sort((a,b) =>
-        String(a.due_date || '').localeCompare(String(b.due_date || '')) ||
-        String(a.batch_label || '').localeCompare(String(b.batch_label || ''))
-      );
+      activeLoans = [];
+      activeBatches = [];
+
+      for (const [batchKey, items] of groups.entries()){
+        items.sort((a,b) => Number(a.id) - Number(b.id));
+        const lotLabel = String(Math.min(...items.map((x) => Number(x.id))));
+        const user = profilesMap.get(String(items[0]?.user_id || '')) || {};
+        const dueDates = items.map((x) => x.due_date).filter(Boolean).sort();
+        const checkouts = items.map((x) => x.checkout_date).filter(Boolean).sort();
+        const subIds = [];
+        const refs = [];
+
+        items.forEach((row, idx) => {
+          const book = extractBook(row) || {};
+          const due = row.due_date ? new Date(String(row.due_date) + 'T00:00:00') : null;
+          const today = new Date(todayISO() + 'T00:00:00');
+          const overdueDays = due ? Math.floor((today - due) / 86400000) : 0;
+          const statusText = overdueDays > 0 ? `Atrasado (${overdueDays} dia(s))` : (row.extended_once ? 'Renovado' : 'Em curso');
+          const statusClass = overdueDays > 0 ? 'bad' : (row.extended_once ? 'warn' : 'ok');
+          const subId = `${lotLabel}.${idx + 1}`;
+          subIds.push(subId);
+          if (book.bib_ref) refs.push(book.bib_ref);
+          activeLoans.push({
+            id: Number(row.id),
+            loan_id: Number(row.id),
+            source: 'old',
+            batch_key: batchKey,
+            batch_label: lotLabel,
+            sub_id: subId,
+            line_no: idx + 1,
+            user_id: row.user_id,
+            user_name: profileName(user),
+            user_email: user.email || '—',
+            titulo: book.titulo || 'Livro',
+            autor: book.autor || '',
+            bib_ref: book.bib_ref || '—',
+            checkout_date: row.checkout_date,
+            due_date: row.due_date,
+            returned_date: row.returned_date,
+            extended_once: !!row.extended_once,
+            can_renew: !row.extended_once && overdueDays <= 0,
+            status_text: statusText,
+            status_class: statusClass,
+            raw: row,
+          });
+        });
+
+        const isOverdue = items.some((row) => {
+          const due = row.due_date ? new Date(String(row.due_date) + 'T00:00:00') : null;
+          return due && due < new Date(todayISO() + 'T00:00:00');
+        });
+
+        activeBatches.push({
+          batch_key: batchKey,
+          batch_label: lotLabel,
+          user_id: items[0]?.user_id || null,
+          user_name: profileName(user),
+          user_email: user.email || '—',
+          quantity: items.length,
+          sub_ids: subIds,
+          bib_refs: refs,
+          checkout_date: checkouts[0] || null,
+          due_date: dueDates[dueDates.length - 1] || dueDates[0] || null,
+          status_text: isOverdue ? 'Com atraso' : (items.some((x) => !!x.extended_once) ? 'Renovado' : 'Em curso'),
+          status_class: isOverdue ? 'bad' : (items.some((x) => !!x.extended_once) ? 'warn' : 'ok'),
+          can_renew: items.every((x) => !x.extended_once) && !isOverdue,
+          source: 'old',
+          loan_ids: items.map((x) => Number(x.id)),
+        });
+      }
+
+      activeLoans.sort((a,b) => String(a.due_date || '').localeCompare(String(b.due_date || '')) || String(a.sub_id).localeCompare(String(b.sub_id)));
+      activeBatches.sort((a,b) => Number(a.batch_label) - Number(b.batch_label));
     }
+
 
     function renderCounts(){
       setChip('chipResCount', `Reservas ativas: ${activeReservations.length}`);
@@ -976,11 +970,12 @@
 
     function renderLoansTable(){
       const tbody = $('tbodyLoans');
-      if (!activeLoans.length){
+      const rows = dedupeBy(activeLoans, (l) => `${l.source || 'x'}|${l.emprestimo_id || l.loan_id}|${l.line_no || 0}|${l.sub_id || ''}`);
+      if (!rows.length){
         tbody.innerHTML = '<tr><td colspan="9">Sem empréstimos ativos.</td></tr>';
         return;
       }
-      tbody.innerHTML = activeLoans.map((l) => {
+      tbody.innerHTML = rows.map((l) => {
         const renewBtn = l.source === 'v2'
           ? `<button class="btn mini" type="button" data-renew-emp-v2="${esc(l.emprestimo_id)}">Renovar</button>`
           : `<button class="btn mini" type="button" data-renew-loan="${esc(l.loan_id)}" ${l.can_renew ? '' : 'disabled'}>Renovar</button>`;
@@ -1004,11 +999,12 @@
 
     function renderBatchTable(){
       const tbody = $('tbodyBatches');
-      if (!activeBatches.length){
+      const rows = dedupeBy(activeBatches, (b) => `${b.source || 'x'}|${b.batch_key || b.batch_label || ''}`);
+      if (!rows.length){
         tbody.innerHTML = '<tr><td colspan="9">Sem lotes ativos.</td></tr>';
         return;
       }
-      tbody.innerHTML = activeBatches.map((b) => {
+      tbody.innerHTML = rows.map((b) => {
         const renewBtn = b.source === 'v2'
           ? `<button class="btn mini" type="button" data-renew-batch-v2="${esc(b.emprestimo_id)}" ${b.can_renew ? '' : 'disabled'}>Renovar lote</button>`
           : `<button class="btn mini" type="button" data-renew-batch-old="${esc((b.loan_ids || []).join(','))}" ${b.can_renew ? '' : 'disabled'}>Renovar lote</button>`;
@@ -1032,12 +1028,14 @@
 
 
     async function refreshCollections({silent=false}={}){
+      const runId = ++refreshSerial;
       if (!silent) {
         $('tbodyRes').innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
         $('tbodyLoans').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
         $('tbodyBatches').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
       }
       const res = await Promise.allSettled([fetchActiveReservations(), fetchActiveLoans()]);
+      if (runId !== refreshSerial) return;
       if (res[0].status === 'fulfilled') {
         renderReservationTable();
         clearStatus('statusRes');
@@ -1096,7 +1094,7 @@
             </td>
           </tr>`).join('');
       }
-      const myLoans = findProfileLoans(editingProfileId);
+      const myLoans = dedupeBy(findProfileLoans(editingProfileId), (l) => `${l.source || 'x'}|${l.emprestimo_id || l.loan_id}|${l.line_no || 0}|${l.sub_id || ''}`);
       if (!myLoans.length){
         tbodyLoans.innerHTML = '<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>';
       } else {
