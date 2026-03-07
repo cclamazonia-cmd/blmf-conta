@@ -87,16 +87,29 @@
       .tabs-layout{ flex-direction:column; }
       .tabs-nav{
         width:100%;
-        flex-direction:row;
-        overflow-x:auto;
-        padding-bottom: 2px;
+        display:grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap:10px;
+        overflow:visible;
+        padding-bottom: 0;
       }
       .tab-btn{
-        width:auto;
-        white-space:nowrap;
-        flex: 0 0 auto;
+        width:100%;
+        min-height:56px;
+        white-space:normal;
+        flex: initial;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+        font-weight:700;
+        line-height:1.2;
+        padding:12px 10px;
       }
       .tab-btn .hint{ display:none; }
+    }
+    @media (max-width: 420px){
+      .tabs-nav{ grid-template-columns:1fr; }
     }
 
     .panel-head{ margin-bottom: 10px; }
