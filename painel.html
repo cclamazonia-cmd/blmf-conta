@@ -611,22 +611,7 @@
     refreshLoanHint();
 
     function profileName(row){
-      const first = String(row?.first_name || '').trim();
-      const last  = String(row?.last_name || '').trim();
-      const full  = [first, last].filter(Boolean).join(' ').trim();
-
-      const candidate =
-        row?.user_nome ||
-        full ||
-        row?.full_name ||
-        row?.name ||
-        row?.nome ||
-        row?.display_name ||
-        row?.surname ||
-        row?.sobrenome ||
-        row?.email ||
-        '—';
-
+      const candidate = row?.full_name || row?.name || row?.nome || row?.display_name || row?.surname || row?.sobrenome || row?.email || '—';
       return String(candidate);
     }
     function firstExistingKey(obj, candidates){
@@ -708,6 +693,17 @@
       return new Map((data || []).map((row) => [String(row.bib_ref), row]));
     }
 
+    async function loadReservaDetailsByIds(reservaIds){
+      const ids = Array.from(new Set((reservaIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
+      if (!ids.length) return new Map();
+      const { data, error } = await supabase
+        .from('v_reservas_detalhes')
+        .select('reserva_id,tombo,titulo,autor,first_name,last_name,user_email')
+        .in('reserva_id', ids);
+      if (error) throw error;
+      return new Map((data || []).map((row) => [Number(row.reserva_id), row]));
+    }
+
     function extractBook(row){
       const b = Array.isArray(row?.books) ? row.books[0] : row?.books;
       return b || null;
@@ -727,7 +723,6 @@
 
         activeReservations = rows.map((r) => {
           const fallbackName = [r.first_name, r.last_name].filter(Boolean).join(' ').trim();
-
           return {
             id: Number(`${r.reserva_id}${String(r.line_no).padStart(2, '0')}`),
             reserva_id: Number(r.reserva_id),
@@ -740,7 +735,7 @@
             bib_ref: r.bib_ref,
             titulo: r.titulo || `Referência ${r.bib_ref}`,
             autor: r.autor || '',
-            rotulo: r.rotulo || '—',
+            rotulo: r.rotulo || '',
             reserva_em: r.reserva_created_at || r.item_created_at,
             validade: r.expires_at || addDays(r.reserva_created_at || r.item_created_at || Date.now(), 14),
             raw: r,
@@ -768,10 +763,13 @@
       const rows = data || [];
       const booksMap = await loadBooksByBibRefs(rows.map((r) => r.bib_ref));
       const profilesMap = await loadProfilesByIds(rows.map((r) => r.user_id));
+      const reservaDetailsMap = await loadReservaDetailsByIds(rows.map((r) => r.id));
 
       activeReservations = rows.map((r) => {
         const book = booksMap.get(String(r.bib_ref)) || {};
         const user = profilesMap.get(String(r.user_id)) || {};
+        const detail = reservaDetailsMap.get(Number(r.id)) || {};
+        const detailName = [detail.first_name, detail.last_name].filter(Boolean).join(' ').trim();
         const created = r.reserva_em || r.created_at;
         return {
           id: Number(r.id),
@@ -780,12 +778,12 @@
           line_no: 1,
           source: 'old',
           user_id: r.user_id,
-          user_name: profileName(user),
-          user_email: user.email || '—',
+          user_name: detailName || profileName(user),
+          user_email: detail.user_email || user.email || '—',
           bib_ref: r.bib_ref,
-          titulo: book.titulo || `Referência ${r.bib_ref}`,
-          autor: book.autor || '',
-          rotulo: '—',
+          titulo: detail.titulo || book.titulo || `Referência ${r.bib_ref}`,
+          autor: detail.autor || book.autor || '',
+          rotulo: detail.tombo || '',
           reserva_em: created,
           validade: addDays(created || Date.now(), 14),
           raw: r,
@@ -832,6 +830,7 @@
             titulo: r.titulo || 'Livro',
             autor: r.autor || '',
             bib_ref: r.bib_ref || '—',
+            rotulo: r.rotulo || '',
             checkout_date: r.emprestimo_created_at,
             due_date: r.due_at,
             returned_date: r.returned_at,
@@ -926,6 +925,7 @@
             titulo: book.titulo || 'Livro',
             autor: book.autor || '',
             bib_ref: book.bib_ref || '—',
+            rotulo: '',
             checkout_date: row.checkout_date,
             due_date: row.due_date,
             returned_date: row.returned_date,
@@ -986,8 +986,8 @@
             <td class="mono">${esc(r.sub_id)}</td>
             <td>${esc(r.user_name)}${r.user_email && r.user_email !== '—' ? `<br><span class="mini subtle">${esc(r.user_email)}</span>` : ''}</td>
             <td>${esc(r.titulo)}${r.autor ? `<br><span class="mini subtle">${esc(r.autor)}</span>` : ''}</td>
-            <td class="mono">${esc(r.bib_ref)}</td>
-            <td>${esc(r.rotulo || '—')}</td>
+            <td class="mono">${esc(r.bib_ref)}${r.rotulo ? `<br><span class="mini subtle">${esc(r.rotulo)}</span>` : ''}</td>
+            <td>${r.rotulo ? esc(r.rotulo) : '—'}</td>
             <td>${esc(fmtDateTime(r.reserva_em))}</td>
             <td>${esc(fmtDateTime(r.validade))}</td>
           </tr>`;
@@ -1014,7 +1014,7 @@
             <td class="mono">#${esc(l.batch_label)}</td>
             <td>${esc(l.user_name)}${l.user_email && l.user_email !== '—' ? `<br><span class="mini subtle">${esc(l.user_email)}</span>` : ''}</td>
             <td>${esc(l.titulo)}${l.autor ? `<br><span class="mini subtle">${esc(l.autor)}</span>` : ''}</td>
-            <td class="mono">${esc(l.bib_ref)}</td>
+            <td class="mono">${esc(l.bib_ref)}${l.rotulo ? `<br><span class="mini subtle">${esc(l.rotulo)}</span>` : ''}</td>
             <td>${esc(fmtDate(l.checkout_date))}</td>
             <td>${esc(fmtDate(l.due_date))}</td>
             <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span></td>
@@ -1129,7 +1129,7 @@
             <td class="mono">${esc(l.sub_id)}</td>
             <td class="mono">#${esc(l.batch_label)}</td>
             <td>${esc(l.titulo)}${l.autor ? `<br><span class="mini subtle">${esc(l.autor)}</span>` : ''}</td>
-            <td class="mono">${esc(l.bib_ref)}</td>
+            <td class="mono">${esc(l.bib_ref)}${l.rotulo ? `<br><span class="mini subtle">${esc(l.rotulo)}</span>` : ''}</td>
             <td>${esc(fmtDate(l.checkout_date))}</td>
             <td>${esc(fmtDate(l.due_date))}</td>
             <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span></td>
