@@ -680,6 +680,22 @@ button[type="submit"] *,
       return new Map((data || []).map((row) => [String(row.bib_ref), row]));
     }
 
+    async function fetchRotulosMapByBibRefs(refs) {
+      const clean = Array.from(new Set((refs || []).map((r) => String(r || "").trim()).filter(Boolean)));
+      if (!clean.length) return new Map();
+      const { data } = await supabase
+        .from("exemplares")
+        .select("bib_ref, tombo")
+        .in("bib_ref", clean)
+        .order("tombo", { ascending: true });
+      const map = new Map();
+      for (const row of (data || [])) {
+        const key = String(row?.bib_ref || "").trim();
+        if (key && !map.has(key) && row?.tombo) map.set(key, String(row.tombo));
+      }
+      return map;
+    }
+
     async function loadProfile() {
       let data = null;
       let error = null;
@@ -798,18 +814,23 @@ button[type="submit"] *,
         .order("line_no", { ascending: true });
 
       if (!v2.error && (v2.data || []).length) {
-        const rows = v2.data.map((r) => `
+        const rotulosMap = await fetchRotulosMapByBibRefs((v2.data || []).map((r) => r.bib_ref));
+        const rows = v2.data.map((r) => {
+          const rotulo = r.rotulo || rotulosMap.get(String(r.bib_ref || "").trim()) || "—";
+          const validade = r.expires_at || addDays(r.reserva_created_at || Date.now(), 14);
+          return `
           <tr>
             <td>#${r.reserva_id}</td>
             <td class="mono">${escapeHtml(r.sub_id)}</td>
             <td>${escapeHtml(r.titulo || "Livro")} ${r.autor ? `<br><small>${escapeHtml(r.autor)}</small>` : ""}</td>
             <td class="mono">${escapeHtml(r.bib_ref || "—")}</td>
-            <td class="mono">${escapeHtml(r.rotulo || "—")}</td>
+            <td class="mono">${escapeHtml(rotulo)}</td>
             <td>${escapeHtml(fmtDateOnly(r.reserva_created_at))}</td>
-            <td>${escapeHtml(fmtDateOnly(r.expires_at))}</td>
+            <td>${escapeHtml(fmtDateOnly(validade))}</td>
             <td>${escapeHtml(reservationStatusLabel(r.item_status, r))}</td>
             <td><button type="button" class="secondary mini-btn" data-cancel-v2="${r.reserva_id}|${r.line_no}">Cancelar</button></td>
-          </tr>`).join("");
+          </tr>`;
+        }).join("");
 
         activeReservationsEl.innerHTML = `
           <div class="table-scroll">
@@ -855,10 +876,13 @@ button[type="submit"] *,
       if (!oldRes.data || !oldRes.data.length) return showEmpty(activeReservationsEl, "Você não tem reservas ativas no momento.");
 
       const booksMap = await fetchBooksMapByBibRefs(oldRes.data.map((r) => r.bib_ref));
+      const rotulosMap = await fetchRotulosMapByBibRefs(oldRes.data.map((r) => r.bib_ref));
       const rows = oldRes.data.map((r) => {
         const book = booksMap.get(String(r.bib_ref)) || {};
         const title = book.titulo || `Referência ${r.bib_ref}`;
         const author = book.autor || "";
+        const rotulo = rotulosMap.get(String(r.bib_ref || "").trim()) || "—";
+        const validade = addDays(r.created_at || Date.now(), 14);
         const canCancel = String(r.status || "") === "pending";
         return `
           <tr>
@@ -866,9 +890,9 @@ button[type="submit"] *,
             <td class="mono">—</td>
             <td>${escapeHtml(title)}${author ? `<br><small>${escapeHtml(author)}</small>` : ""}</td>
             <td class="mono">${escapeHtml(r.bib_ref)}</td>
-            <td class="mono">—</td>
+            <td class="mono">${escapeHtml(rotulo)}</td>
             <td>${escapeHtml(fmtDateOnly(r.created_at))}</td>
-            <td>—</td>
+            <td>${escapeHtml(fmtDateOnly(validade))}</td>
             <td>${escapeHtml(reservationStatusLabel(r.status, r))}${r.cancelled_reason ? `<br><small>${escapeHtml(r.cancelled_reason)}</small>` : ""}</td>
             <td>${canCancel ? `<button type="button" class="secondary mini-btn" data-cancel-old="${r.id}">Cancelar</button>` : `<span class="tag-muted">Sem ação</span>`}</td>
           </tr>`;
