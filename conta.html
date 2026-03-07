@@ -1428,8 +1428,6 @@ button[type="submit"] *,
             html: `<li><b>${escapeHtml(heading)}</b> — ${escapeHtml(lotStatus)}<ul class="history-children">${children}</ul></li>`
           });
         }
-      } else {
-        console.warn('oldLoans history query failed', oldLoans.error);
       }
 
       items.sort((a,b) => String(b.when || '').localeCompare(String(a.when || '')));
