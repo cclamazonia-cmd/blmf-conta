@@ -563,6 +563,13 @@ button[type="submit"] *,
       return Number.isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 19).replace("T", " ");
     }
 
+    function addDays(v, days) {
+      const base = new Date(v || Date.now());
+      if (Number.isNaN(base.getTime())) return null;
+      base.setDate(base.getDate() + Number(days || 0));
+      return base;
+    }
+
     function showEmpty(el, msg) {
       if (el) el.innerHTML = `<p>${escapeHtml(msg)}</p>`;
     }
