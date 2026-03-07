@@ -961,9 +961,14 @@
       return sess;
     }
     async function requireBibliotecaOrRedirect(){
-      const { data, error } = await supabase.rpc('fn_v2_is_biblioteca');
+      const { data, error } = await supabase
+        .schema('api')
+        .from('profiles')
+        .select('is_librarian')
+        .eq('id', session.user.id)
+        .maybeSingle();
       if (error){ setStatus('statusLoans', 'Não consegui verificar o acesso da biblioteca: ' + error.message, 'bad', false); return false; }
-      if (!data){ location.assign(ROUTES.CONTA); return false; }
+      if (!data?.is_librarian){ location.assign(ROUTES.CONTA); return false; }
       return true;
     }
     async function fillHeader(){
