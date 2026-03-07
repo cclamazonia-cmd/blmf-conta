@@ -587,6 +587,17 @@
       }
       return m;
     }
+    function dedupeBy(items, keyFn){
+      const out = [];
+      const seen = new Set();
+      for (const item of (items || [])){
+        const key = keyFn(item);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(item);
+      }
+      return out;
+    }
     function loanDaysByCount(n){ if (n === 1) return 21; if (n >= 2 && n <= 3) return 30; if (n >= 4 && n <= 5) return 38; return null; }
     function refreshLoanHint(){
       const refs = parseRefs($("bibRefs").value);
