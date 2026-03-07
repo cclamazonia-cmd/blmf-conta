@@ -1104,7 +1104,7 @@ button[type="submit"] *,
 
       const v2 = await supabase
         .from("v_emprestimo_itens_v2_ui")
-        .select("emprestimo_id, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at")
+        .select("emprestimo_id, line_no, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at")
         .eq("user_id", session.user.id)
         .eq("item_status", "aberto")
         .order("emprestimo_id", { ascending: false })
@@ -1124,7 +1124,7 @@ button[type="submit"] *,
           const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
           return `<tr>
             <td>#${r.emprestimo_id}</td>
-            <td class="mono">${escapeHtml(r.sub_id)}</td>
+            <td class="mono">${escapeHtml(loanSubId(r))}</td>
             <td>${escapeHtml(r.titulo || "Livro")}${r.autor ? `<br><small>${escapeHtml(r.autor)}</small>` : ""}</td>
             <td class="mono">${escapeHtml(r.bib_ref || "—")}</td>
             <td class="mono">${escapeHtml(r.rotulo || "—")}</td>
@@ -1142,7 +1142,7 @@ button[type="submit"] *,
               ${r.autor ? `<p class="author">${escapeHtml(r.autor)}</p>` : ""}
               <div class="mobile-kv">
                 <div class="k">Lote</div><div class="v">#${escapeHtml(r.emprestimo_id)}</div>
-                <div class="k">Livro</div><div class="v mono">${escapeHtml(r.sub_id)}</div>
+                <div class="k">Livro</div><div class="v mono">${escapeHtml(loanSubId(r))}</div>
                 <div class="k">Referência</div><div class="v mono">${escapeHtml(r.bib_ref || "—")}</div>
                 <div class="k">Rótulo</div><div class="v mono">${escapeHtml(r.rotulo || "—")}</div>
                 <div class="k">Saída em</div><div class="v">${escapeHtml(fmtDateOnly(r.emprestimo_created_at))}</div>
@@ -1286,7 +1286,7 @@ button[type="submit"] *,
       historyEl.textContent = "Carregando...";
 
       const [v2Loans, oldLoans, v2Reservas, oldReservas] = await Promise.all([
-        supabase.from("v_emprestimo_itens_v2_ui").select("emprestimo_id, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
+        supabase.from("v_emprestimo_itens_v2_ui").select("emprestimo_id, line_no, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
         supabase.from("loans").select("id, due_date, checkout_date, returned_date, books(titulo, autor)").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(100),
         supabase.from("v_reserva_itens_v2_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
         supabase.from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(100)
@@ -1319,7 +1319,7 @@ button[type="submit"] *,
           const status = l.returned_at ? `retornado em ${fmtDateTime(l.returned_at)}` : `em curso — devolução ${fmtDateOnly(l.due_at)}`;
           items.push({
             when: l.returned_at || l.emprestimo_created_at || l.due_at,
-            html: `<li><b>Empréstimo #${escapeHtml(l.emprestimo_id)}</b> — <span class="mono">${escapeHtml(l.sub_id)}</span> — ${escapeHtml(l.titulo || 'Livro')} — ${escapeHtml(status)}</li>`
+            html: `<li><b>Empréstimo #${escapeHtml(l.emprestimo_id)}</b> — <span class="mono">${escapeHtml(loanSubId(l))}</span> — ${escapeHtml(l.titulo || 'Livro')} — ${escapeHtml(status)}</li>`
           });
         }
       }
