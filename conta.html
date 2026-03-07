@@ -590,6 +590,7 @@ button[type="submit"] *,
             <h2>Histórico</h2>
           </div>
           <div id="history"></div>
+          <p id="historyMsg" class="msg" aria-live="polite"></p>
         </section>
 
         
@@ -629,6 +630,7 @@ button[type="submit"] *,
     const activeReserveMsg = $("activeReserveMsg");
     const loanMsg = $("loanMsg");
     const historyEl = $("history");
+    const historyMsg = $("historyMsg");
     const loansEl = $("loans");
     const activeReservationsEl = $("activeReservations");
 
@@ -1141,6 +1143,14 @@ button[type="submit"] *,
 
       let sections = [];
 
+      if (v2.error || oldQ.error) {
+        console.error("renderLoans errors", { v2: v2.error, oldQ: oldQ.error });
+        const msgs = [];
+        if (v2.error) msgs.push("v2: " + (v2.error.message || JSON.stringify(v2.error)));
+        if (oldQ.error) msgs.push("loans: " + (oldQ.error.message || JSON.stringify(oldQ.error)));
+        if (loanMsg) loanMsg.textContent = "Diagnóstico empréstimos — " + msgs.join(" | ");
+      }
+
       if (!v2.error && (v2.data || []).length) {
         const rows = v2.data.map((r) => {
           const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
@@ -1306,6 +1316,7 @@ button[type="submit"] *,
 
     async function renderHistory() {
       historyEl.textContent = "Carregando...";
+      if (historyMsg) historyMsg.textContent = "";
 
       const [v2Loans, oldLoans, v2Reservas, oldReservas] = await Promise.all([
         supabase.from("v_emprestimo_itens_v2_ui_fix").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
@@ -1315,6 +1326,16 @@ button[type="submit"] *,
       ]);
 
       const items = [];
+
+      if (v2Loans.error || oldLoans.error || v2Reservas.error || oldReservas.error) {
+        console.error("renderHistory errors", { v2Loans: v2Loans.error, oldLoans: oldLoans.error, v2Reservas: v2Reservas.error, oldReservas: oldReservas.error });
+        const msgs = [];
+        if (v2Loans.error) msgs.push("v2 empréstimos: " + (v2Loans.error.message || JSON.stringify(v2Loans.error)));
+        if (oldLoans.error) msgs.push("loans antigos: " + (oldLoans.error.message || JSON.stringify(oldLoans.error)));
+        if (v2Reservas.error) msgs.push("v2 reservas: " + (v2Reservas.error.message || JSON.stringify(v2Reservas.error)));
+        if (oldReservas.error) msgs.push("reservas antigas: " + (oldReservas.error.message || JSON.stringify(oldReservas.error)));
+        if (historyMsg) historyMsg.textContent = "Diagnóstico histórico — " + msgs.join(" | ");
+      }
 
       if (!v2Reservas.error) {
         for (const r of (v2Reservas.data || [])) {
