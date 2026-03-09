@@ -306,52 +306,27 @@ async function fetchIsLibrarian(userId) {
   }
 }
 
-async function afterLoginRedirect(userIdFromLogin = null) {
+async function afterLoginRedirect(userId) {
   const next = getNextParam();
-  let userId = userIdFromLogin || null;
 
   if (!userId) {
-    const { data: sess } = await supabase.auth.getSession();
-    const session = sess?.session || null;
-    userId = session?.user?.id || null;
-  }
-
-  if (!userId) {
-    window.location.href = ROUTES.CADASTRO;
+    document.getElementById("msg").textContent = "Falha no login: sessão não encontrada.";
     return;
   }
 
   const isLib = await fetchIsLibrarian(userId);
 
-  // Protege o Painel para quem não é bibliotecário/a
   if (next && /painel\.html/i.test(next) && !isLib) {
-    window.location.href = ROUTES.CONTA;
+    window.location.replace(ROUTES.CONTA);
     return;
   }
 
-  // Se houver next válido, respeita a rota
-  if (next) {
-    window.location.href = next;
+  if (isLib) {
+    window.location.replace(next || ROUTES.PAINEL);
     return;
   }
 
-  // Prioridade ao Painel para bibliotecário/a
-  window.location.href = isLib ? ROUTES.PAINEL : ROUTES.CONTA;
-}
-
-async function redirectIfAlreadyLoggedIn() {
-  if (isRecovery) return;
-
-  try {
-    const { data: sess } = await supabase.auth.getSession();
-    const session = sess?.session || null;
-    const userId = session?.user?.id || null;
-    if (userId) {
-      await afterLoginRedirect(userId);
-    }
-  } catch (e) {
-    console.warn("redirectIfAlreadyLoggedIn failed:", e);
-  }
+  window.location.replace(next || ROUTES.CONTA);
 }
 
 // O acesso à conta só acontece quando o botão “Entrar” é acionado.
@@ -402,8 +377,6 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       rp2.type = show ? "text" : "password";
       toggleResetPw.textContent = show ? "Ocultar senha" : "Mostrar senha";
     });
-
-    await redirectIfAlreadyLoggedIn();
 
     document.getElementById("resetForm").addEventListener("submit", async (e) => {
       e.preventDefault();
