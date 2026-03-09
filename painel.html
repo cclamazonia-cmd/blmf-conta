@@ -812,7 +812,7 @@
     const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzcHRmbW9renlrd3psc2hzbmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzcxNzcsImV4cCI6MjA4ODExMzE3N30.JkMLHPCV2AH5ELZV_1RfcoW250QEofLGvnDKSDpkcn0";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+      auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
     const statusTimers = new Map();
@@ -932,7 +932,10 @@
         });
         panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.tab === tab));
       }
-      btns.forEach((btn) => btn.addEventListener('click', () => activate(btn.dataset.tab)));
+      btns.forEach((btn) => btn.addEventListener('click', async () => {
+        activate(btn.dataset.tab);
+        if (session && isLibrarian) await refreshCollections({silent:true});
+      }));
       activate('acoes');
     }
 
@@ -949,9 +952,18 @@
           cfg.pane.classList.toggle('active', active);
         });
       }
-      map.Dados.btn.addEventListener('click', () => activate('Dados'));
-      map.Reservas.btn.addEventListener('click', () => activate('Reservas'));
-      map.Emprestimos.btn.addEventListener('click', () => activate('Emprestimos'));
+      map.Dados.btn.addEventListener('click', async () => {
+        activate('Dados');
+        if (session && isLibrarian) await refreshCollections({silent:true});
+      });
+      map.Reservas.btn.addEventListener('click', async () => {
+        activate('Reservas');
+        if (session && isLibrarian) await refreshCollections({silent:true});
+      });
+      map.Emprestimos.btn.addEventListener('click', async () => {
+        activate('Emprestimos');
+        if (session && isLibrarian) await refreshCollections({silent:true});
+      });
       activate('Dados');
       return activate;
     }
@@ -2186,6 +2198,7 @@
       refreshTimer = setInterval(() => refreshCollections({silent:true}), 30000);
       document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshCollections({silent:true}); });
       window.addEventListener('focus', () => refreshCollections({silent:true}));
+      window.addEventListener('pageshow', () => refreshCollections({silent:true}));
     }
 
     session = await requireSession();
