@@ -306,21 +306,8 @@ async function fetchIsLibrarian(userId) {
   }
 }
 
-async function afterLoginRedirect(userIdFromLogin = "") {
+async function redirectAfterSuccessfulLogin(userId) {
   const next = getNextParam();
-  let userId = (userIdFromLogin || "").trim();
-
-  if (!userId) {
-    const { data: sess } = await supabase.auth.getSession();
-    const session = sess?.session || null;
-    userId = session?.user?.id || "";
-  }
-
-  if (!userId) {
-    document.getElementById("msg").textContent = "Login realizado, mas não foi possível abrir sua área. Tente entrar novamente.";
-    return;
-  }
-
   const isLib = await fetchIsLibrarian(userId);
 
   // Protege o Painel
@@ -329,14 +316,20 @@ async function afterLoginRedirect(userIdFromLogin = "") {
     return;
   }
 
+  // Se houver next válido, respeita-o
+  if (next) {
+    window.location.replace(next);
+    return;
+  }
+
   // Se for bibliotecário, vai pro Painel por padrão
-  if (!next && isLib) {
+  if (isLib) {
     window.location.replace(ROUTES.PAINEL);
     return;
   }
 
   // Padrão: conta do leitor
-  window.location.replace(next || ROUTES.CONTA);
+  window.location.replace(ROUTES.CONTA);
 }
 
 // O acesso à conta só acontece quando o botão “Entrar” é acionado.
@@ -354,8 +347,13 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
         return;
       }
 
-      const userId = data?.user?.id || data?.session?.user?.id || "";
-      await afterLoginRedirect(userId);
+      const userId = data?.user?.id || data?.session?.user?.id || null;
+      if (!userId) {
+        msg.textContent = "Login realizado, mas não foi possível abrir sua área. Tente novamente.";
+        return;
+      }
+
+      await redirectAfterSuccessfulLogin(userId);
     });
 
     document.getElementById("forgotForm").addEventListener("submit", async (e) => {
