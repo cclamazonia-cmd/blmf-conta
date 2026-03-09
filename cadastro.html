@@ -306,25 +306,18 @@ async function fetchIsLibrarian(userId) {
   }
 }
 
-async function afterLoginRedirect(authData = null) {
+async function afterLoginRedirect(userIdFromLogin = "") {
   const next = getNextParam();
-
-  let userId =
-    authData?.user?.id ||
-    authData?.session?.user?.id ||
-    null;
+  let userId = (userIdFromLogin || "").trim();
 
   if (!userId) {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      userId = userData?.user?.id || null;
-    } catch (_) {
-      userId = null;
-    }
+    const { data: sess } = await supabase.auth.getSession();
+    const session = sess?.session || null;
+    userId = session?.user?.id || "";
   }
 
   if (!userId) {
-    window.location.replace(ROUTES.CADASTRO);
+    document.getElementById("msg").textContent = "Login realizado, mas não foi possível abrir sua área. Tente entrar novamente.";
     return;
   }
 
@@ -336,13 +329,13 @@ async function afterLoginRedirect(authData = null) {
     return;
   }
 
-  // Bibliotecário/a: prioridade para o Painel
-  if (isLib) {
-    window.location.replace(next || ROUTES.PAINEL);
+  // Se for bibliotecário, vai pro Painel por padrão
+  if (!next && isLib) {
+    window.location.replace(ROUTES.PAINEL);
     return;
   }
 
-  // Leitor/a: vai para a conta
+  // Padrão: conta do leitor
   window.location.replace(next || ROUTES.CONTA);
 }
 
@@ -355,18 +348,14 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          msg.textContent = "Falha no login: " + error.message;
-          return;
-        }
-
-        await afterLoginRedirect(data);
-      } catch (err) {
-        msg.textContent = "Não foi possível concluir a entrada agora. Tente novamente.";
-        console.error("login redirect error:", err);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        msg.textContent = "Falha no login: " + error.message;
+        return;
       }
+
+      const userId = data?.user?.id || data?.session?.user?.id || "";
+      await afterLoginRedirect(userId);
     });
 
     document.getElementById("forgotForm").addEventListener("submit", async (e) => {
