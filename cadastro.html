@@ -306,11 +306,15 @@ async function fetchIsLibrarian(userId) {
   }
 }
 
-async function afterLoginRedirect() {
-  const { data: sess } = await supabase.auth.getSession();
-  const session = sess?.session || null;
-  const userId = session?.user?.id || null;
+async function afterLoginRedirect(userIdFromLogin = null) {
   const next = getNextParam();
+  let userId = userIdFromLogin || null;
+
+  if (!userId) {
+    const { data: sess } = await supabase.auth.getSession();
+    const session = sess?.session || null;
+    userId = session?.user?.id || null;
+  }
 
   if (!userId) {
     window.location.href = ROUTES.CADASTRO;
@@ -319,20 +323,35 @@ async function afterLoginRedirect() {
 
   const isLib = await fetchIsLibrarian(userId);
 
-  // Protege o Painel
+  // Protege o Painel para quem não é bibliotecário/a
   if (next && /painel\.html/i.test(next) && !isLib) {
     window.location.href = ROUTES.CONTA;
     return;
   }
 
-  // Se for bibliotecário, vai pro Painel por padrão
-  if (!next && isLib) {
-    window.location.href = ROUTES.PAINEL;
+  // Se houver next válido, respeita a rota
+  if (next) {
+    window.location.href = next;
     return;
   }
 
-  // Padrão: conta do leitor
-  window.location.href = next || "./conta.html";
+  // Prioridade ao Painel para bibliotecário/a
+  window.location.href = isLib ? ROUTES.PAINEL : ROUTES.CONTA;
+}
+
+async function redirectIfAlreadyLoggedIn() {
+  if (isRecovery) return;
+
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    const session = sess?.session || null;
+    const userId = session?.user?.id || null;
+    if (userId) {
+      await afterLoginRedirect(userId);
+    }
+  } catch (e) {
+    console.warn("redirectIfAlreadyLoggedIn failed:", e);
+  }
 }
 
 // O acesso à conta só acontece quando o botão “Entrar” é acionado.
@@ -344,12 +363,14 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         msg.textContent = "Falha no login: " + error.message;
         return;
       }
-      await afterLoginRedirect();
+
+      const userId = data?.user?.id || data?.session?.user?.id || null;
+      await afterLoginRedirect(userId);
     });
 
     document.getElementById("forgotForm").addEventListener("submit", async (e) => {
@@ -381,6 +402,8 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       rp2.type = show ? "text" : "password";
       toggleResetPw.textContent = show ? "Ocultar senha" : "Mostrar senha";
     });
+
+    await redirectIfAlreadyLoggedIn();
 
     document.getElementById("resetForm").addEventListener("submit", async (e) => {
       e.preventDefault();
