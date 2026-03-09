@@ -93,7 +93,7 @@
     .rules summary{ cursor:pointer; }
     .rules ul{ margin:10px 0 0 18px; color:#f0f0f0; }
     .rules a{ color:#fff; text-decoration:underline; }
-  
+
 /* red-only override */
 html{ accent-color:#c00000; }
 a:any-link{ color:inherit; }
@@ -234,7 +234,7 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
     document.getElementById("goCriarConta").addEventListener("click", () => {
       window.location.href = ROUTES.CRIAR;
     });
-document.getElementById("goRegimento").addEventListener("click", () => {
+    document.getElementById("goRegimento").addEventListener("click", () => {
       window.location.href = REGIMENTO_URL;
     });
 
@@ -281,59 +281,77 @@ document.getElementById("goRegimento").addEventListener("click", () => {
       recoveryBox.classList.remove("hide");
     }
 
-    
+    function getNextParam() {
+      const u = new URL(window.location.href);
+      const next = (u.searchParams.get("next") || "").trim();
+      if (!next) return "";
+      if (!/^[a-z0-9_\-./]+\.html(\?.*)?(#.*)?$/i.test(next)) return "";
+      return next;
+    }
 
-function getNextParam() {
-  const u = new URL(window.location.href);
-  const next = (u.searchParams.get("next") || "").trim();
-  if (!next) return "";
-  // Segurança simples: só aceita navegação interna para arquivos .html (com query/hash opcionais)
-  if (!/^[a-z0-9_\-./]+\.html(\?.*)?(#.*)?$/i.test(next)) return "";
-  return next;
-}
+    async function fetchIsLibrarian(userId) {
+      if (!userId) return false;
 
-async function fetchIsLibrarian(userId) {
-  try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("is_librarian")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error) return false;
-    return !!data?.is_librarian;
-  } catch {
-    return false;
-  }
-}
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("is_librarian")
+          .eq("id", userId)
+          .maybeSingle();
 
-async function redirectAfterSuccessfulLogin(userId) {
-  const next = getNextParam();
-  const isLib = await fetchIsLibrarian(userId);
+        if (error) {
+          console.warn("profiles.is_librarian read failed:", error);
+          return false;
+        }
 
-  // Protege o Painel
-  if (next && /painel\.html/i.test(next) && !isLib) {
-    window.location.replace(ROUTES.CONTA);
-    return;
-  }
+        return data?.is_librarian === true;
+      } catch (e) {
+        console.warn("profiles.is_librarian read exception:", e);
+        return false;
+      }
+    }
 
-  // Se houver next válido, respeita-o
-  if (next) {
-    window.location.replace(next);
-    return;
-  }
+    async function resolveLoginUserId(signInData) {
+      const directUserId =
+        signInData?.user?.id ||
+        signInData?.session?.user?.id ||
+        null;
 
-  // Se for bibliotecário, vai pro Painel por padrão
-  if (isLib) {
-    window.location.replace(ROUTES.PAINEL);
-    return;
-  }
+      if (directUserId) return directUserId;
 
-  // Padrão: conta do leitor
-  window.location.replace(ROUTES.CONTA);
-}
+      try {
+        const { data } = await supabase.auth.getUser();
+        return data?.user?.id || null;
+      } catch {
+        return null;
+      }
+    }
 
-// O acesso à conta só acontece quando o botão “Entrar” é acionado.
-document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    async function afterLoginRedirect(signInData) {
+      const userId = await resolveLoginUserId(signInData);
+      const next = getNextParam();
+
+      if (!userId) {
+        window.location.replace(ROUTES.CADASTRO);
+        return;
+      }
+
+      const isLib = await fetchIsLibrarian(userId);
+
+      if (isLib) {
+        window.location.replace(ROUTES.PAINEL);
+        return;
+      }
+
+      if (next && !/painel\.html/i.test(next)) {
+        window.location.replace(new URL(next, ROUTES.CADASTRO).toString());
+        return;
+      }
+
+      window.location.replace(ROUTES.CONTA);
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const msg = document.getElementById("msg");
       msg.textContent = "";
@@ -347,13 +365,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
         return;
       }
 
-      const userId = data?.user?.id || data?.session?.user?.id || null;
-      if (!userId) {
-        msg.textContent = "Login realizado, mas não foi possível abrir sua área. Tente novamente.";
-        return;
-      }
-
-      await redirectAfterSuccessfulLogin(userId);
+      await afterLoginRedirect(data);
     });
 
     document.getElementById("forgotForm").addEventListener("submit", async (e) => {
