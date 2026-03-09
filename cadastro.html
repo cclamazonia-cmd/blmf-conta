@@ -306,26 +306,43 @@ async function fetchIsLibrarian(userId) {
   }
 }
 
-async function afterLoginRedirect(userId) {
+async function afterLoginRedirect(authData = null) {
   const next = getNextParam();
 
+  let userId =
+    authData?.user?.id ||
+    authData?.session?.user?.id ||
+    null;
+
   if (!userId) {
-    document.getElementById("msg").textContent = "Falha no login: sessão não encontrada.";
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      userId = userData?.user?.id || null;
+    } catch (_) {
+      userId = null;
+    }
+  }
+
+  if (!userId) {
+    window.location.replace(ROUTES.CADASTRO);
     return;
   }
 
   const isLib = await fetchIsLibrarian(userId);
 
+  // Protege o Painel
   if (next && /painel\.html/i.test(next) && !isLib) {
     window.location.replace(ROUTES.CONTA);
     return;
   }
 
+  // Bibliotecário/a: prioridade para o Painel
   if (isLib) {
     window.location.replace(next || ROUTES.PAINEL);
     return;
   }
 
+  // Leitor/a: vai para a conta
   window.location.replace(next || ROUTES.CONTA);
 }
 
@@ -338,14 +355,18 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        msg.textContent = "Falha no login: " + error.message;
-        return;
-      }
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          msg.textContent = "Falha no login: " + error.message;
+          return;
+        }
 
-      const userId = data?.user?.id || data?.session?.user?.id || null;
-      await afterLoginRedirect(userId);
+        await afterLoginRedirect(data);
+      } catch (err) {
+        msg.textContent = "Não foi possível concluir a entrada agora. Tente novamente.";
+        console.error("login redirect error:", err);
+      }
     });
 
     document.getElementById("forgotForm").addEventListener("submit", async (e) => {
