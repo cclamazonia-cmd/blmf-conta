@@ -786,7 +786,13 @@ button[type="submit"] *,
   </main>
 
   <script type="module">
-    import { supabase } from "./js/auth.js";
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzcHRmbW9renlrd3psc2hzbmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzcxNzcsImV4cCI6MjA4ODExMzE3N30.JkMLHPCV2AH5ELZV_1RfcoW250QEofLGvnDKSDpkcn0";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
 
     const ROUTES = {
       CADASTRO: "https://cclamazonia-cmd.github.io/blmf-conta/cadastro.html",
@@ -942,6 +948,42 @@ button[type="submit"] *,
       if (pushHash) location.hash = "#" + key;
     }
 
+    let contaRefreshPromise = null;
+
+    function getActiveContaTab() {
+      return (document.querySelector('.tab-panel.active')?.dataset.tab) || 'perfil';
+    }
+
+    async function refreshContaForActiveTab() {
+      const activeTab = getActiveContaTab();
+      if (activeTab === 'perfil') {
+        await loadProfile();
+        return;
+      }
+      if (activeTab === 'reservar') {
+        await renderActiveReservations();
+        return;
+      }
+      if (activeTab === 'curso') {
+        await renderLoans();
+        return;
+      }
+      if (activeTab === 'historico') {
+        await renderHistory();
+      }
+    }
+
+    async function refreshContaView() {
+      if (contaRefreshPromise) return contaRefreshPromise;
+      contaRefreshPromise = (async () => {
+        await loadProfile();
+        await refreshContaForActiveTab();
+      })().finally(() => {
+        contaRefreshPromise = null;
+      });
+      return contaRefreshPromise;
+    }
+
     function enforcePasswordChangeUI(enforce) {
       mustChangePassword = !!enforce;
       if (mustChangeNotice) mustChangeNotice.style.display = enforce ? "block" : "none";
@@ -968,10 +1010,11 @@ button[type="submit"] *,
     }
 
     tabButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         if (mustChangePassword && btn.dataset.tab !== "perfil") return;
         if (userIsRestricted && btn.dataset.tab === "reservar") return;
         setActiveTab(btn.dataset.tab);
+        await refreshContaForActiveTab();
       });
     });
 
@@ -1780,6 +1823,12 @@ button[type="submit"] *,
     await renderActiveReservations();
     await renderLoans();
     await renderHistory();
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) refreshContaView();
+    });
+    window.addEventListener('focus', () => refreshContaView());
+    window.addEventListener('pageshow', () => refreshContaView());
   </script>
 </body>
 </html>
