@@ -226,6 +226,89 @@
       .mobile-cards{ display:grid; gap:12px; margin-top:10px; }
     }
 
+    @media (max-width: 760px){
+      body{ background-attachment:scroll; }
+      main.card{
+        width:min(100%, calc(100vw - 20px));
+        max-width:min(100%, calc(100vw - 20px));
+        margin:10px auto 18px;
+      }
+      .brand{
+        gap:12px;
+        align-items:center;
+        margin-bottom:12px;
+      }
+      .brand img{
+        width:64px;
+        height:64px;
+      }
+      .subtitle{
+        font-size:.92rem;
+        line-height:1.35;
+      }
+      .notice{
+        padding:10px;
+        border-radius:10px;
+      }
+      .panel-head h2,
+      .panel-head h3{
+        line-height:1.2;
+      }
+      .header-actions{
+        display:grid;
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+      .header-btn,
+      .header-btn:link,
+      .header-btn:visited,
+      .header-btn:active,
+      .logout-btn{
+        width:100%;
+        min-height:46px;
+        padding:12px 14px;
+      }
+      .mobile-card{
+        border-radius:12px;
+        padding:11px;
+      }
+      .mobile-kv{
+        grid-template-columns:minmax(80px,96px) 1fr;
+        gap:6px 8px;
+      }
+      .history-list,
+      .history-list ul{
+        padding-left:16px;
+      }
+      .table-scroll{
+        -webkit-overflow-scrolling:touch;
+      }
+      input, select, textarea, button{
+        font-size:16px;
+      }
+    }
+    @media (max-width: 520px){
+      main.card{
+        width:min(100%, calc(100vw - 12px));
+        max-width:min(100%, calc(100vw - 12px));
+        margin:6px auto 14px;
+      }
+      .tabs-nav{
+        gap:8px;
+      }
+      .tab-btn{
+        min-height:52px;
+        padding:11px 10px;
+        border-radius:10px;
+      }
+      .grid3{
+        gap:10px;
+      }
+      .mobile-actions > *{
+        flex:1 1 100%;
+      }
+    }
+
     .header-actions{
       display:flex;
       justify-content:flex-start;
