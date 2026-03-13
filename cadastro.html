@@ -291,8 +291,18 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
       const u = new URL(window.location.href);
       const next = (u.searchParams.get("next") || "").trim();
       if (!next) return "";
-      if (!/^[a-z0-9_\-./]+\.html(\?.*)?(#.*)?$/i.test(next)) return "";
-      return next;
+      try {
+        const resolved = new URL(next, window.location.href);
+        const allowedOrigins = new Set([
+          window.location.origin,
+          "https://cclamazonia-cmd.github.io"
+        ]);
+        if (!allowedOrigins.has(resolved.origin)) return "";
+        if (!/^\/blmf-(catalogo|conta)\//i.test(resolved.pathname)) return "";
+        return resolved.toString();
+      } catch (_) {
+        return "";
+      }
     }
 
     async function fetchIsLibrarian(userId) {
