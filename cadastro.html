@@ -291,14 +291,14 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
       const u = new URL(window.location.href);
       const next = (u.searchParams.get("next") || "").trim();
       if (!next) return "";
+
       try {
-        const resolved = new URL(next, window.location.href);
-        const allowedOrigins = new Set([
-          window.location.origin,
-          "https://cclamazonia-cmd.github.io"
-        ]);
-        if (!allowedOrigins.has(resolved.origin)) return "";
-        if (!/^\/blmf-(catalogo|conta)\//i.test(resolved.pathname)) return "";
+        const resolved = new URL(next, ROUTES.CADASTRO);
+        const isSameHost = resolved.origin === new URL(ROUTES.CADASTRO).origin;
+        const allowedPath =
+          resolved.pathname.startsWith("/blmf-catalogo/") ||
+          resolved.pathname.startsWith("/blmf-conta/");
+        if (!isSameHost || !allowedPath) return "";
         return resolved.toString();
       } catch (_) {
         return "";
@@ -372,19 +372,13 @@ button:hover, button:focus, .secondary:hover, .secondary:focus{
         return;
       }
 
+      if (next) {
+        window.location.href = next;
+        return;
+      }
+
       const isLib = await fetchIsLibrarian(userId);
-
-      if (isLib) {
-        window.location.href = ROUTES.PAINEL;
-        return;
-      }
-
-      if (next && !/painel\.html/i.test(next)) {
-        window.location.href = new URL(next, ROUTES.CADASTRO).toString();
-        return;
-      }
-
-      window.location.href = ROUTES.CONTA;
+      window.location.href = isLib ? ROUTES.PAINEL : ROUTES.CONTA;
     }
 
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
