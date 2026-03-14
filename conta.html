@@ -454,6 +454,7 @@ button[type="submit"] *,
           <a class="header-btn" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
           <button id="logout" class="logout-btn" type="button">Sair</button>
         </div>
+        <div id="serviceStateNotice" class="notice" style="display:none; margin-top:12px;"></div>
         </div>
       </div>
     </div>
@@ -831,9 +832,11 @@ button[type="submit"] *,
             </p>
           </div>
 
+          <div id="reserveServiceNotice" class="notice" style="display:none"></div>
+
           <form id="reserveForm" class="row" style="justify-content:flex-start;">
             <input type="text" id="bibRef" placeholder="Ex.: 0000124, 0000138" style="max-width:380px;" required />
-            <button type="submit">Reservar</button>
+            <button id="reserveSubmitBtn" type="submit">Reservar</button>
           </form>
           <p id="reserveMsg" class="msg" aria-live="polite"></p>
 
@@ -909,10 +912,30 @@ button[type="submit"] *,
     const historyMsg = $("historyMsg");
     const loansEl = $("loans");
     const activeReservationsEl = $("activeReservations");
+    const serviceStateNotice = $("serviceStateNotice");
+    const reserveServiceNotice = $("reserveServiceNotice");
+    const reserveFormEl = $("reserveForm");
+    const reserveSubmitBtn = $("reserveSubmitBtn");
+    const bibRefInput = $("bibRef");
 
     let mustChangePassword = false;
     let userIsRestricted = false;
     let isLibrarian = false;
+    let publicServiceState = null;
+
+    const SERVICE_MODE_LABELS = {
+      em_organizacao: "Em organização",
+      atendimento_eventual: "Atendimento eventual",
+      atendimento_semanal: "Atendimento semanal",
+      fechado_temporariamente: "Fechado temporariamente"
+    };
+
+    const SERVICE_MODE_MESSAGES = {
+      em_organizacao: "A biblioteca está em organização. O atendimento ocorre conforme a capacidade operacional atual.",
+      atendimento_eventual: "A biblioteca funciona com atendimento eventual. Consulte os canais do CCLA para informações atualizadas.",
+      atendimento_semanal: "A biblioteca funciona com atendimento semanal em ritmo regular. Consulte os canais do CCLA para os horários e orientações vigentes.",
+      fechado_temporariamente: "A biblioteca está temporariamente fechada para atendimento presencial. Consulte os canais do CCLA para atualizações e orientações."
+    };
 
     function escapeHtml(v) {
       return String(v ?? "").replace(/[&<>"']/g, (c) => ({
@@ -945,6 +968,66 @@ button[type="submit"] *,
 
     function showEmpty(el, msg) {
       if (el) el.innerHTML = `<p>${escapeHtml(msg)}</p>`;
+    }
+
+    function normalizeServiceState(row) {
+      if (!row || typeof row !== "object") return null;
+      return {
+        service_mode: String(row.service_mode || "").trim() || null,
+        allow_reservations: row.allow_reservations === true,
+        public_message: String(row.public_message || "").trim(),
+        updated_at: row.updated_at || null
+      };
+    }
+
+    function getServiceModeMessage(state) {
+      if (!state) return "Informação temporariamente indisponível.";
+      return state.public_message || SERVICE_MODE_MESSAGES[state.service_mode] || "Informação temporariamente indisponível.";
+    }
+
+    function renderPublicServiceState() {
+      const mode = publicServiceState?.service_mode || null;
+      const modeLabel = SERVICE_MODE_LABELS[mode] || "Informação temporariamente indisponível";
+      const message = getServiceModeMessage(publicServiceState);
+      if (serviceStateNotice) {
+        serviceStateNotice.style.display = "block";
+        serviceStateNotice.innerHTML = `<b>Funcionamento: ${escapeHtml(modeLabel)}</b><div class="small">${escapeHtml(message)}</div>`;
+      }
+
+      const reservationsClosed = publicServiceState ? publicServiceState.allow_reservations === false : false;
+      if (reserveServiceNotice) {
+        if (reservationsClosed) {
+          reserveServiceNotice.style.display = "block";
+          reserveServiceNotice.innerHTML = `<b>Reservas temporariamente fechadas</b><div class="small">As novas reservas públicas estão fechadas no momento. Consulte os canais do CCLA para atualizações e orientações.</div>`;
+        } else {
+          reserveServiceNotice.style.display = "none";
+          reserveServiceNotice.innerHTML = "";
+        }
+      }
+
+      if (bibRefInput) bibRefInput.disabled = reservationsClosed;
+      if (reserveSubmitBtn) {
+        reserveSubmitBtn.disabled = reservationsClosed;
+        reserveSubmitBtn.textContent = reservationsClosed ? "Reservas temporariamente fechadas" : "Reservar";
+      }
+    }
+
+    async function loadPublicServiceState() {
+      const { data, error } = await supabase
+        .from("v_library_service_public")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("loadPublicServiceState error:", error);
+        publicServiceState = null;
+        renderPublicServiceState();
+        return;
+      }
+
+      publicServiceState = normalizeServiceState(data);
+      renderPublicServiceState();
     }
 
     function normalizeOneRef(input) {
@@ -1060,6 +1143,7 @@ button[type="submit"] *,
       if (contaRefreshPromise) return contaRefreshPromise;
       contaRefreshPromise = (async () => {
         await loadProfile();
+        await loadPublicServiceState();
         await refreshContaForActiveTab();
       })().finally(() => {
         contaRefreshPromise = null;
@@ -1875,6 +1959,10 @@ button[type="submit"] *,
     $("reserveForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       reserveMsg.textContent = "";
+      if (publicServiceState && publicServiceState.allow_reservations === false) {
+        reserveMsg.textContent = "As reservas públicas estão temporariamente fechadas. Consulte os canais do CCLA para atualizações e orientações.";
+        return;
+      }
       if (userIsRestricted) {
         reserveMsg.textContent = "Seu cadastro está restrito. Para solicitar regularização, escreva para ccl-amazonia@riseup.net ou vá até a biblioteca.";
         return;
@@ -1903,6 +1991,7 @@ button[type="submit"] *,
     });
 
     await loadProfile();
+    await loadPublicServiceState();
     await renderActiveReservations();
     await renderLoans();
     await renderHistory();
