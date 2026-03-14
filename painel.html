@@ -461,7 +461,11 @@
 
     <div class="tabs-layout">
       <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
-        <button class="tab-btn active" type="button" data-tab="acoes" role="tab" aria-selected="true" aria-controls="tab-acoes">
+        <button class="tab-btn active" type="button" data-tab="funcionamento" role="tab" aria-selected="true" aria-controls="tab-funcionamento">
+          Funcionamento
+          <span class="hint">Modo global e reservas públicas</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="acoes" role="tab" aria-selected="false" aria-controls="tab-acoes">
           Ações
           <span class="hint">Registrar saída e devolução</span>
         </button>
@@ -484,7 +488,7 @@
       </nav>
 
       <div class="tabs-panels">
-        <section id="tab-acoes" class="tab-panel active" data-tab="acoes" role="tabpanel">
+        <section id="tab-funcionamento" class="tab-panel active" data-tab="funcionamento" role="tabpanel">
           <div class="grid">
             <div class="card">
               <div class="section-head">
@@ -524,7 +528,11 @@
               </div>
               <div class="status" id="serviceStateMsg"></div>
             </div>
+          </div>
+        </section>
 
+        <section id="tab-acoes" class="tab-panel" data-tab="acoes" role="tabpanel">
+          <div class="grid">
             <div class="card">
               <div class="section-head">
                 <div>
@@ -1069,7 +1077,7 @@
         activate(btn.dataset.tab);
         if (session && isLibrarian) await refreshCollections({silent:true});
       }));
-      activate('acoes');
+      activate('funcionamento');
     }
 
     function setupProfileTabs(){
