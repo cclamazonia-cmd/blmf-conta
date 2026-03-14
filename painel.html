@@ -518,7 +518,7 @@
               <div style="margin-top:12px">
                 <label for="publicServiceMessage">Mensagem pública personalizada (opcional)</label>
                 <textarea class="textarea" id="publicServiceMessage" placeholder="Mensagem visível no catálogo, na conta e nas páginas de cadastro."></textarea>
-                <div class="hint">Se este campo ficar vazio, o sistema exibirá automaticamente a mensagem padrão do modo de funcionamento escolhido. Use este campo apenas para um aviso público personalizado.</div>
+                <div class="help" style="margin-top:6px">Se este campo ficar vazio, o sistema exibirá automaticamente a mensagem padrão do modo de funcionamento escolhido. Use este espaço apenas para um aviso público pontual.</div>
               </div>
               <div style="margin-top:12px">
                 <label for="internalServiceMessage">Mensagem interna</label>
@@ -992,6 +992,26 @@
       })[String(mode || '')] || '';
     }
 
+    function isCanonicalServiceDefaultMessage(msg){
+      const t = String(msg || '').trim();
+      if (!t) return false;
+      return [
+        'A biblioteca está em organização. O atendimento ocorre conforme a capacidade operacional atual.',
+        'A biblioteca funciona com atendimento eventual. Consulte os canais do CCLA para informações atualizadas.',
+        'A biblioteca funciona com atendimento semanal em ritmo regular. Consulte os canais do CCLA para os horários e orientações vigentes.',
+        'A biblioteca está temporariamente fechada para atendimento presencial. Consulte os canais do CCLA para atualizações e orientações.',
+        'O atendimento ocorre de forma eventual, conforme a disponibilidade da equipe.',
+        'A biblioteca está em atendimento semanal.',
+        'A biblioteca está temporariamente fechada para atendimento presencial.',
+        'A biblioteca está temporariamente fechada para atendimento presencial. Consulte os canais do CCLA para atualizações.'
+      ].includes(t);
+    }
+
+    function getEditablePublicServiceMessage(state){
+      const t = String(state?.public_message || '').trim();
+      return isCanonicalServiceDefaultMessage(t) ? '' : t;
+    }
+
     function renderLibraryServiceState(state){
       const modeText = translateServiceMode(state?.service_mode);
       const reservationsText = state?.allow_reservations ? 'Reservas públicas: abertas' : 'Reservas públicas: fechadas';
@@ -1000,7 +1020,7 @@
 
       if ($('serviceModeSelect')) $('serviceModeSelect').value = state?.service_mode || 'em_organizacao';
       if ($('allowReservationsToggle')) $('allowReservationsToggle').checked = !!state?.allow_reservations;
-      if ($('publicServiceMessage')) $('publicServiceMessage').value = state?.public_message || '';
+      if ($('publicServiceMessage')) $('publicServiceMessage').value = getEditablePublicServiceMessage(state);
       if ($('internalServiceMessage')) $('internalServiceMessage').value = state?.internal_message || '';
     }
 
