@@ -390,8 +390,8 @@
       #tab-reservas td:nth-child(7)::before{content:"Reserva"}
       #tab-reservas td:nth-child(8)::before{content:"Validade"}
 
-      #tab-emprestimos-livro td:nth-child(1)::before{content:"Sub-ID"}
-      #tab-emprestimos-livro td:nth-child(2)::before{content:"Lote"}
+      #tab-emprestimos-livro td:nth-child(1)::before{content:"ID do item"}
+      #tab-emprestimos-livro td:nth-child(2)::before{content:"ID do empréstimo"}
       #tab-emprestimos-livro td:nth-child(3)::before{content:"Leitor(a/e)"}
       #tab-emprestimos-livro td:nth-child(4)::before{content:"Livro"}
       #tab-emprestimos-livro td:nth-child(5)::before{content:"Referência"}
@@ -400,10 +400,10 @@
       #tab-emprestimos-livro td:nth-child(8)::before{content:"Situação"}
       #tab-emprestimos-livro td:nth-child(9)::before{content:"Ações"}
 
-      #tab-emprestimos-lote td:nth-child(1)::before{content:"Lote"}
+      #tab-emprestimos-lote td:nth-child(1)::before{content:"ID do empréstimo"}
       #tab-emprestimos-lote td:nth-child(2)::before{content:"Leitor(a/e)"}
       #tab-emprestimos-lote td:nth-child(3)::before{content:"Quantidade"}
-      #tab-emprestimos-lote td:nth-child(4)::before{content:"Sub-IDs"}
+      #tab-emprestimos-lote td:nth-child(4)::before{content:"IDs dos itens"}
       #tab-emprestimos-lote td:nth-child(5)::before{content:"Referências"}
       #tab-emprestimos-lote td:nth-child(6)::before{content:"Saída"}
       #tab-emprestimos-lote td:nth-child(7)::before{content:"Prazo"}
@@ -418,8 +418,8 @@
       #profilePaneReservas td:nth-child(6)::before{content:"Situação"}
       #profilePaneReservas td:nth-child(7)::before{content:"Ações"}
 
-      #profilePaneEmprestimos td:nth-child(1)::before{content:"Sub-ID"}
-      #profilePaneEmprestimos td:nth-child(2)::before{content:"Lote"}
+      #profilePaneEmprestimos td:nth-child(1)::before{content:"ID do item"}
+      #profilePaneEmprestimos td:nth-child(2)::before{content:"ID do empréstimo"}
       #profilePaneEmprestimos td:nth-child(3)::before{content:"Livro"}
       #profilePaneEmprestimos td:nth-child(4)::before{content:"Referência"}
       #profilePaneEmprestimos td:nth-child(5)::before{content:"Saída"}
@@ -453,7 +453,7 @@
         <span class="chip" id="chipEmail">E-mail: —</span>
         <span class="chip" id="chipResCount">Reservas ativas: —</span>
         <span class="chip" id="chipLoanCount">Empréstimos ativos: —</span>
-        <span class="chip" id="chipBatchCount">Lotes ativos: —</span>
+        <span class="chip" id="chipBatchCount">Empréstimos agrupados: —</span>
         <span class="chip" id="chipServiceMode">Modo: —</span>
         <span class="chip" id="chipReservationsState">Reservas públicas: —</span>
       </div>
@@ -475,11 +475,11 @@
         </button>
         <button class="tab-btn" type="button" data-tab="emprestimos-livro" role="tab" aria-selected="false" aria-controls="tab-emprestimos-livro">
           Empréstimos por livro
-          <span class="hint">Sub-ID, renovação e devolução</span>
+          <span class="hint">ID do item, renovação e devolução</span>
         </button>
         <button class="tab-btn" type="button" data-tab="emprestimos-lote" role="tab" aria-selected="false" aria-controls="tab-emprestimos-lote">
-          Empréstimos por lote
-          <span class="hint">Vista agrupada por lote</span>
+          Empréstimos agrupados
+          <span class="hint">Vista agrupada por empréstimo</span>
         </button>
         <button class="tab-btn" type="button" data-tab="leitor" role="tab" aria-selected="false" aria-controls="tab-leitor">
           Gerir leitor(a/e)
@@ -562,25 +562,25 @@
               <div class="section-head">
                 <div>
                   <h2>Registrar devolução</h2>
-                  <div class="mini">Total por lote / ID ou parcial por sub-ID exibido na tabela.</div>
+                  <div class="mini">Total por ID do empréstimo ou parcial por ID do item exibido na tabela.</div>
                 </div>
               </div>
               <div class="row">
                 <div>
-                  <label for="loanId">Devolução total (ID do lote ou ID do empréstimo)</label>
+                  <label for="loanId">Devolução total (ID do empréstimo)</label>
                   <input class="input" id="loanId" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Ex.: 154">
                   <div class="actions">
                     <button class="btn" id="btnDevolverId" type="button">Registrar devolução total</button>
                   </div>
-                  <div class="hint">Se for um lote ativo, todos os livros do lote serão devolvidos juntos.</div>
+                  <div class="hint">Se for um empréstimo com vários livros, todos os itens serão devolvidos juntos.</div>
                 </div>
                 <div>
-                  <label for="loanSubIds">Devolução parcial (por sub-IDs)</label>
+                  <label for="loanSubIds">Devolução parcial (por IDs dos itens)</label>
                   <input class="input" id="loanSubIds" type="text" placeholder="154.1, 154.2">
                   <div class="actions">
                     <button class="btn" id="btnDevolverSubIds" type="button">Registrar devolução parcial</button>
                   </div>
-                  <div class="hint">Use os sub-IDs mostrados na vista “Empréstimos por livro”.</div>
+                  <div class="hint">Use os IDs dos itens mostrados na vista “Empréstimos por livro”.</div>
                 </div>
               </div>
               <div class="status" id="statusDev"></div>
@@ -639,8 +639,8 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Sub-ID</th>
-                    <th>Lote</th>
+                    <th>ID do item</th>
+                    <th>ID do empréstimo</th>
                     <th>Leitor(a/e)</th>
                     <th>Livro</th>
                     <th>Referência</th>
@@ -661,8 +661,8 @@
           <div class="card">
             <div class="section-head">
               <div>
-                <h2>Empréstimos ativos por lote</h2>
-                <div class="mini">Sem histórico. Apenas lotes ainda abertos.</div>
+                <h2>Empréstimos ativos agrupados</h2>
+                <div class="mini">Sem histórico. Apenas empréstimos agrupados ainda abertos.</div>
               </div>
               <div class="actions" style="margin-top:0">
                 <button class="btn" id="btnRecarregarLotes" type="button">Recarregar</button>
@@ -673,10 +673,10 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Lote</th>
+                    <th>ID do empréstimo</th>
                     <th>Leitor(a/e)</th>
                     <th>Quantidade</th>
-                    <th>Sub-IDs</th>
+                    <th>IDs dos itens</th>
                     <th>Referências</th>
                     <th>Saída</th>
                     <th>Prazo</th>
@@ -817,8 +817,8 @@
                     <table>
                       <thead>
                         <tr>
-                          <th>Sub-ID</th>
-                          <th>Lote</th>
+                          <th>ID do item</th>
+                          <th>ID do empréstimo</th>
                           <th>Livro</th>
                           <th>Referência</th>
                           <th>Saída</th>
@@ -1431,7 +1431,7 @@
     function renderCounts(){
       setChip('chipResCount', `Reservas ativas: ${activeReservations.length}`);
       setChip('chipLoanCount', `Empréstimos ativos: ${activeLoans.length}`);
-      setChip('chipBatchCount', `Lotes ativos: ${activeBatches.length}`);
+      setChip('chipBatchCount', `Empréstimos agrupados: ${activeBatches.length}`);
     }
 
     function renderReservationTable(){
@@ -1489,16 +1489,16 @@
       const tbody = $('tbodyBatches');
       const rows = dedupeBy(activeBatches, (b) => `${b.source || 'x'}|${b.batch_key || b.batch_label || ''}`);
       if (!rows.length){
-        tbody.innerHTML = '<tr><td colspan="9">Sem lotes ativos.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9">Sem empréstimos agrupados ativos.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map((b) => {
         const renewBtn = b.source === 'v2'
-          ? `<button class="btn mini" type="button" data-renew-batch-v2="${esc(b.emprestimo_id)}" ${b.can_renew ? '' : 'disabled'}>Renovar lote</button>`
-          : `<button class="btn mini" type="button" data-renew-batch-old="${esc((b.loan_ids || []).join(','))}" ${b.can_renew ? '' : 'disabled'}>Renovar lote</button>`;
+          ? `<button class="btn mini" type="button" data-renew-batch-v2="${esc(b.emprestimo_id)}" ${b.can_renew ? '' : 'disabled'}>Renovar empréstimo</button>`
+          : `<button class="btn mini" type="button" data-renew-batch-old="${esc((b.loan_ids || []).join(','))}" ${b.can_renew ? '' : 'disabled'}>Renovar empréstimo</button>`;
         const returnBtn = b.source === 'v2'
-          ? `<button class="btn mini" type="button" data-return-batch-v2="${esc(b.emprestimo_id)}">Devolver lote</button>`
-          : `<button class="btn mini" type="button" data-return-batch-old="${esc((b.loan_ids || []).join(','))}">Devolver lote</button>`;
+          ? `<button class="btn mini" type="button" data-return-batch-v2="${esc(b.emprestimo_id)}">Devolver empréstimo</button>`
+          : `<button class="btn mini" type="button" data-return-batch-old="${esc((b.loan_ids || []).join(','))}">Devolver empréstimo</button>`;
         return `
         <tr>
           <td class="mono">#${esc(b.batch_label)}</td>
@@ -1538,7 +1538,7 @@
         clearStatus('statusBatches');
       } else {
         $('tbodyLoans').innerHTML = '<tr><td colspan="9">Erro ao carregar empréstimos.</td></tr>';
-        $('tbodyBatches').innerHTML = '<tr><td colspan="9">Erro ao carregar lotes.</td></tr>';
+        $('tbodyBatches').innerHTML = '<tr><td colspan="9">Erro ao carregar empréstimos agrupados.</td></tr>';
         const msg = res[1].reason?.message || String(res[1].reason || 'Erro ao carregar empréstimos.');
         setStatus('statusLoans', msg, 'bad', false);
         setStatus('statusBatches', msg, 'bad', false);
@@ -1814,7 +1814,7 @@
         const borrower = await findUserByEmail(email);
         const result = await insertCurrentLoansForUser(borrower.id, refs, 'Saída registrada no painel.', null);
         const lotLabel = result.loanIds.length ? Math.min(...result.loanIds) : '—';
-        setStatus('statusSaida', `Saída registrada. Lote: ${lotLabel}. Prazo: ${fmtDate(result.dueDate)}.`, 'ok');
+        setStatus('statusSaida', `Saída registrada. ID do empréstimo: ${lotLabel}. Prazo: ${fmtDate(result.dueDate)}.`, 'ok');
         $('bibRefs').value = '';
         refreshLoanHint();
         await refreshCollections({silent:true});
@@ -1901,7 +1901,7 @@
     async function returnPartialBySubIds(){
       clearStatus('statusDev');
       const subIds = parseSubIds($('loanSubIds').value);
-      if (!subIds.length) return setStatus('statusDev', 'Informe pelo menos 1 sub-ID.', 'warn');
+      if (!subIds.length) return setStatus('statusDev', 'Informe pelo menos 1 ID do item.', 'warn');
 
       $('btnDevolverSubIds').disabled = true;
       try {
@@ -1915,7 +1915,7 @@
         });
 
         if (missing.length) {
-          throw new Error('Sub-ID(s) não encontrado(s): ' + missing.join(', '));
+          throw new Error('ID(s) do item não encontrado(s): ' + missing.join(', '));
         }
 
         const v2Rows = matched.filter((r) => r.source === 'v2');
@@ -1988,9 +1988,9 @@
 
     async function renewBatchOld(loanIds, targetStatusId='statusBatches'){
       const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
-      if (!ids.length) return setStatus(targetStatusId, 'Nenhum empréstimo válido nesse lote.', 'warn');
+      if (!ids.length) return setStatus(targetStatusId, 'Nenhum item válido nesse empréstimo.', 'warn');
       try {
-        setStatus(targetStatusId, 'Processando renovação do lote...', 'warn');
+        setStatus(targetStatusId, 'Processando renovação do empréstimo...', 'warn');
         let renewed = 0;
         let lastDue = null;
         for (const loanId of ids) {
@@ -2004,23 +2004,23 @@
           renewed += 1;
           lastDue = row?.due_date || row?.new_due_date || lastDue;
         }
-        setStatus(targetStatusId, `Renovação do lote aplicada. Itens processados: ${renewed}.` + (lastDue ? ` Nova devolução: ${fmtDate(lastDue)}.` : ''), 'ok');
+        setStatus(targetStatusId, `Renovação do empréstimo aplicada. Itens processados: ${renewed}.` + (lastDue ? ` Nova devolução: ${fmtDate(lastDue)}.` : ''), 'ok');
         await refreshCollections({silent:true});
       } catch (e) {
-        setStatus(targetStatusId, 'Erro ao renovar lote: ' + (e.message || String(e)), 'bad', false);
+        setStatus(targetStatusId, 'Erro ao renovar empréstimo: ' + (e.message || String(e)), 'bad', false);
       }
     }
 
     async function returnBatchOld(loanIds, targetStatusId='statusBatches'){
       const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
-      if (!ids.length) return setStatus(targetStatusId, 'Nenhum empréstimo válido nesse lote.', 'warn');
+      if (!ids.length) return setStatus(targetStatusId, 'Nenhum item válido nesse empréstimo.', 'warn');
       try {
-        setStatus(targetStatusId, 'Processando devolução do lote...', 'warn');
-        const total = await markLoansReturned(ids, 'Devolução em lote registrada no painel.');
-        setStatus(targetStatusId, `Devolução do lote registrada. Itens processados: ${total}.`, 'ok');
+        setStatus(targetStatusId, 'Processando devolução do empréstimo...', 'warn');
+        const total = await markLoansReturned(ids, 'Devolução agrupada registrada no painel.');
+        setStatus(targetStatusId, `Devolução do empréstimo registrada. Itens processados: ${total}.`, 'ok');
         await refreshCollections({silent:true});
       } catch (e) {
-        setStatus(targetStatusId, 'Erro ao devolver lote: ' + (e.message || String(e)), 'bad', false);
+        setStatus(targetStatusId, 'Erro ao devolver empréstimo: ' + (e.message || String(e)), 'bad', false);
       }
     }
 
@@ -2174,14 +2174,14 @@
           try {
             const rpc = await supabase.rpc('fn_v2_return_emprestimo_total', {
               p_emprestimo_id: emprestimoId,
-              p_notes: 'Devolução em lote registrada no painel.'
+              p_notes: 'Devolução agrupada registrada no painel.'
             });
             if (rpc.error) throw rpc.error;
             const total = Number(rpc.data || 0) || 0;
-            setStatus('statusBatches', `Devolução do lote registrada. Itens processados: ${total}.`, 'ok');
+            setStatus('statusBatches', `Devolução do empréstimo registrada. Itens processados: ${total}.`, 'ok');
             await refreshCollections({silent:true});
           } catch (e) {
-            setStatus('statusBatches', 'Erro ao devolver lote: ' + (e.message || String(e)), 'bad', false);
+            setStatus('statusBatches', 'Erro ao devolver empréstimo: ' + (e.message || String(e)), 'bad', false);
           } finally {
             returnBatchV2Btn.disabled = false;
           }
