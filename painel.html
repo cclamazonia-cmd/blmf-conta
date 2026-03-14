@@ -516,8 +516,9 @@
                 </div>
               </div>
               <div style="margin-top:12px">
-                <label for="publicServiceMessage">Mensagem pública</label>
+                <label for="publicServiceMessage">Mensagem pública personalizada (opcional)</label>
                 <textarea class="textarea" id="publicServiceMessage" placeholder="Mensagem visível no catálogo, na conta e nas páginas de cadastro."></textarea>
+                <div class="hint">Se este campo ficar vazio, o sistema exibirá automaticamente a mensagem padrão do modo de funcionamento escolhido. Use este campo apenas para um aviso público personalizado.</div>
               </div>
               <div style="margin-top:12px">
                 <label for="internalServiceMessage">Mensagem interna</label>
@@ -985,9 +986,9 @@
     function defaultServiceMessage(mode){
       return ({
         em_organizacao: 'A biblioteca está em organização. O atendimento ocorre conforme a capacidade operacional atual.',
-        atendimento_eventual: 'O atendimento ocorre de forma eventual, conforme a disponibilidade da equipe.',
-        atendimento_semanal: 'A biblioteca está em atendimento semanal.',
-        fechado_temporariamente: 'A biblioteca está temporariamente fechada para atendimento presencial.'
+        atendimento_eventual: 'A biblioteca funciona com atendimento eventual. Consulte os canais do CCLA para informações atualizadas.',
+        atendimento_semanal: 'A biblioteca funciona com atendimento semanal em ritmo regular. Consulte os canais do CCLA para os horários e orientações vigentes.',
+        fechado_temporariamente: 'A biblioteca está temporariamente fechada para atendimento presencial. Consulte os canais do CCLA para atualizações e orientações.'
       })[String(mode || '')] || '';
     }
 
@@ -1056,10 +1057,6 @@
 
     function setupServiceStateActions(){
       $('btnSaveServiceState')?.addEventListener('click', saveLibraryServiceState);
-      $('serviceModeSelect')?.addEventListener('change', () => {
-        const current = $('publicServiceMessage').value.trim();
-        if (!current) $('publicServiceMessage').value = defaultServiceMessage($('serviceModeSelect').value);
-      });
     }
 
     function setupMainTabs(){
