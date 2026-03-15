@@ -1192,12 +1192,11 @@
       el.className = 'status' + (cls ? ` ${cls}` : '');
       el.textContent = msg || '';
       if (msg && autoclear) {
-        const autoClearMs = cls === 'ok' ? 18000 : 10000;
         const t = setTimeout(() => {
           el.className = 'status';
           el.textContent = '';
           statusTimers.delete(id);
-        }, autoClearMs);
+        }, 10000);
         statusTimers.set(id, t);
       }
     }
@@ -2653,6 +2652,7 @@
         setStatus(targetStatusId, 'Atualizando seguimento das reservas...', 'warn');
         let total = 0;
         const grouped = groupBy(v2Rows, (r) => r.reserva_id);
+        const returnedRows = [];
         for (const [reservaId, items] of grouped.entries()) {
           const lineNos = items.map((i) => Number(i.line_no));
           const rpc = await supabase.rpc('fn_v2_set_reserva_linhas_workflow', {
@@ -2663,8 +2663,27 @@
             p_pickup_scheduled_for: pickupScheduledFor
           });
           if (rpc.error) throw rpc.error;
-          total += Array.isArray(rpc.data) ? rpc.data.length : 0;
+          const rpcRows = Array.isArray(rpc.data) ? rpc.data : [];
+          total += rpcRows.length;
+          returnedRows.push(...rpcRows);
         }
+        const returnedMap = new Map(
+          returnedRows.map((row) => [`${row.reserva_id}|${row.line_no}`, row])
+        );
+        activeReservations = activeReservations.map((r) => {
+          const key = `${r.reserva_id}|${r.line_no}`;
+          const row = returnedMap.get(key);
+          if (!row) return r;
+          return {
+            ...r,
+            workflow_stage: row.workflow_stage_effective || r.workflow_stage,
+            workflow_stage_updated_at: row.updated_at || r.workflow_stage_updated_at,
+            workflow_note: row.workflow_note || '',
+            pickup_scheduled_for: row.pickup_scheduled_for || null
+          };
+        });
+        renderReservationTable();
+        renderProfileLists();
         const ignored = oldRows.length ? ` ${oldRows.length} reserva(s) antiga(s) ficaram sem alteração.` : '';
         if (stage === 'solicitada') {
           if ($('reservationWorkflowPickupAt')) $('reservationWorkflowPickupAt').value = '';
@@ -2672,6 +2691,7 @@
         }
         setStatus(targetStatusId, `${translateReservationWorkflowStage(stage)} aplicada em ${total} item(ns).${ignored}`, 'ok');
         await refreshCollections({silent:true});
+        setTimeout(() => { refreshCollections({silent:true}); }, 700);
       } catch (e) {
         setStatus(targetStatusId, e.message || String(e), 'bad', false);
       }
