@@ -602,6 +602,26 @@
                 <button class="btn" id="btnRecarregarRes" type="button">Recarregar</button>
               </div>
             </div>
+            <div class="muted-box" style="margin-top:12px">
+              <div class="mini" style="margin-bottom:8px">Gestão dos estados intermediários das reservas selecionadas.</div>
+              <div class="row" style="align-items:end">
+                <div>
+                  <label for="resWorkflowNote">Nota interna da etapa (opcional)</label>
+                  <input class="input" id="resWorkflowNote" type="text" placeholder="Ex.: livro separado na estante, leitor avisado, retirada combinada...">
+                </div>
+                <div>
+                  <label for="resScheduleAt">Data e hora da retirada (para “Agendar retirada”)</label>
+                  <input class="input" id="resScheduleAt" type="datetime-local">
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn" id="btnResPreparar" type="button">Marcar em preparação</button>
+                <button class="btn" id="btnResAvisar" type="button">Marcar aviso enviado</button>
+                <button class="btn" id="btnResCombinar" type="button">Marcar retirada a combinar</button>
+                <button class="btn" id="btnResAgendar" type="button">Agendar retirada</button>
+                <button class="btn" id="btnResPronta" type="button">Marcar pronta para retirada</button>
+              </div>
+            </div>
             <div class="sep"></div>
             <div class="tableWrap">
               <table>
@@ -1855,6 +1875,99 @@
       });
     }
 
+    function selectedReservationRows(){
+      return activeReservations.filter((r) => selectedReservaIds.has(r.id));
+    }
+
+    function toIsoFromLocalInput(value){
+      const raw = String(value || '').trim();
+      if (!raw) return null;
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    function workflowPayloadForStage(stage, note='', pickupScheduledFor=null){
+      const now = nowISO();
+      const payload = {
+        workflow_stage: stage,
+        workflow_note: note || null,
+        updated_at: now,
+        updated_by: session?.user?.id || null,
+        last_stage_changed_at: now,
+      };
+      if (stage === 'em_preparacao') payload.prepared_at = now;
+      if (stage === 'aviso_enviado') payload.notified_at = now;
+      if (stage === 'retirada_agendada') payload.pickup_scheduled_for = pickupScheduledFor || null;
+      if (stage === 'pronta_para_retirada') payload.ready_for_pickup_at = now;
+      return payload;
+    }
+
+    async function setReservationWorkflowStage(stage, rows, { note='', pickupScheduledFor=null, targetStatusId='statusRes' } = {}){
+      const cleanRows = (rows || []).filter((r) => r && r.source === 'v2');
+      const skipped = (rows || []).filter((r) => !r || r.source !== 'v2');
+      if (!cleanRows.length) {
+        const msg = skipped.length
+          ? 'As etapas intermediárias só podem ser geridas nas reservas v2 ativas.'
+          : 'Selecione pelo menos 1 reserva ativa.';
+        setStatus(targetStatusId, msg, 'warn');
+        return;
+      }
+      if (stage === 'retirada_agendada' && !pickupScheduledFor) {
+        setStatus(targetStatusId, 'Informe data e hora para agendar a retirada.', 'warn');
+        return;
+      }
+
+      const groups = groupBy(cleanRows, (r) => r.reserva_id);
+      let processed = 0;
+      const rpcNames = ['fn_v2_set_reserva_linhas_workflow_stage'];
+
+      for (const [reservaId, items] of groups.entries()) {
+        const lineNos = items.map((i) => Number(i.line_no));
+        let done = false;
+        let lastErr = null;
+
+        for (const rpcName of rpcNames) {
+          const rpc = await supabase.rpc(rpcName, {
+            p_reserva_id: Number(reservaId),
+            p_line_nos: lineNos,
+            p_workflow_stage: stage,
+            p_workflow_note: note || null,
+            p_pickup_scheduled_for: pickupScheduledFor || null,
+          });
+          if (!rpc.error) {
+            processed += Number(rpc.data || 0) || lineNos.length;
+            done = true;
+            break;
+          }
+          lastErr = rpc.error;
+          if (!isMissingFunctionError(rpc.error)) throw rpc.error;
+        }
+
+        if (done) continue;
+
+        const base = workflowPayloadForStage(stage, note, pickupScheduledFor);
+        const rowsToUpsert = lineNos.map((lineNo) => ({
+          reserva_id: Number(reservaId),
+          line_no: Number(lineNo),
+          created_at: nowISO(),
+          created_by: session?.user?.id || null,
+          ...base,
+        }));
+
+        const up = await supabase
+          .from('reserva_item_workflow_v2')
+          .upsert(rowsToUpsert, { onConflict: 'reserva_id,line_no' })
+          .select('reserva_id,line_no');
+        if (up.error) throw (lastErr && !isMissingFunctionError(lastErr) ? lastErr : up.error);
+        processed += (up.data || []).length || lineNos.length;
+      }
+
+      const stageLabel = translateReservationWorkflowStage(stage);
+      const skippedMsg = skipped.length ? ` ${skipped.length} item(ns) fora do fluxo v2 foram ignorados.` : '';
+      setStatus(targetStatusId, `${stageLabel} aplicado para ${processed} item(ns).${skippedMsg}`, 'ok');
+      await refreshCollections({silent:true});
+    }
+
     function renderReservationTable(){
       const tbody = $('tbodyRes');
       renderReservationFollowUpSummary();
@@ -2876,6 +2989,27 @@
     $('btnDevolverSubIds').addEventListener('click', returnPartialBySubIds);
     $('btnConfirmarSelecionados').addEventListener('click', () => confirmReservations([...selectedReservaIds]));
     $('btnCancelarSelecionados').addEventListener('click', () => cancelReservations([...selectedReservaIds]));
+    $('btnResPreparar')?.addEventListener('click', () => setReservationWorkflowStage('em_preparacao', selectedReservationRows(), {
+      note: $('resWorkflowNote')?.value.trim() || '',
+      targetStatusId: 'statusRes'
+    }));
+    $('btnResAvisar')?.addEventListener('click', () => setReservationWorkflowStage('aviso_enviado', selectedReservationRows(), {
+      note: $('resWorkflowNote')?.value.trim() || '',
+      targetStatusId: 'statusRes'
+    }));
+    $('btnResCombinar')?.addEventListener('click', () => setReservationWorkflowStage('retirada_a_combinar', selectedReservationRows(), {
+      note: $('resWorkflowNote')?.value.trim() || '',
+      targetStatusId: 'statusRes'
+    }));
+    $('btnResAgendar')?.addEventListener('click', () => setReservationWorkflowStage('retirada_agendada', selectedReservationRows(), {
+      note: $('resWorkflowNote')?.value.trim() || '',
+      pickupScheduledFor: toIsoFromLocalInput($('resScheduleAt')?.value),
+      targetStatusId: 'statusRes'
+    }));
+    $('btnResPronta')?.addEventListener('click', () => setReservationWorkflowStage('pronta_para_retirada', selectedReservationRows(), {
+      note: $('resWorkflowNote')?.value.trim() || '',
+      targetStatusId: 'statusRes'
+    }));
     $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
     $('btnRecarregarLoans').addEventListener('click', () => refreshCollections());
     $('btnRecarregarLotes').addEventListener('click', () => refreshCollections());
