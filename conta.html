@@ -1398,11 +1398,42 @@ button[type="submit"] *,
       return stage ? translateReservationWorkflowStage(stage) : reservationStatusLabel(row?.item_status, row);
     }
 
+    function translatePickupReplyStatus(status) {
+      return ({
+        confirmado_leitor: "Você confirmou esse horário",
+        recusado_leitor: "Você informou que não pode nesse horário"
+      })[String(status || "")] || "";
+    }
+
     function reservationWorkflowDetailLines(row) {
       const lines = [];
       if (row?.pickup_scheduled_for) lines.push(`Retirada prevista: ${fmtDateTimeBelem(row.pickup_scheduled_for)} (Belém)`);
+      const pickupReplyLabel = translatePickupReplyStatus(row?.pickup_reply_status);
+      if (pickupReplyLabel) lines.push(pickupReplyLabel);
+      if (row?.pickup_reply_note) lines.push(String(row.pickup_reply_note));
       if (row?.workflow_note) lines.push(String(row.workflow_note));
       return lines;
+    }
+
+    async function setReservaPickupReply(rid, lineNo, replyStatus, note = null) {
+      return await supabase.rpc("fn_v2_set_reserva_linhas_pickup_reply", {
+        p_reserva_id: rid,
+        p_line_nos: [lineNo],
+        p_reply_status: replyStatus,
+        p_note: note
+      });
+    }
+
+    function reservationPickupReplyActions(row) {
+      if (String(row?.workflow_stage_effective || "") !== "retirada_agendada") {
+        return `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
+      }
+      return `
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="secondary mini-btn" data-pickup-reply="${row.reserva_id}|${row.line_no}|confirmado_leitor">Confirmar horário</button>
+          <button type="button" class="secondary mini-btn" data-pickup-reply="${row.reserva_id}|${row.line_no}|recusado_leitor">Não posso nesse horário</button>
+          <button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>
+        </div>`;
     }
 
     async function renderActiveReservations() {
@@ -1413,7 +1444,7 @@ button[type="submit"] *,
       const v2 = await supabase
         .schema("api")
         .from("reserva_itens_followup_ui")
-        .select("reserva_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, item_status, reserva_created_at, expires_at, reserva_status, emprestimo_item_id, workflow_stage_effective, workflow_note, pickup_scheduled_for, workflow_stage_updated_at_effective")
+        .select("reserva_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, item_status, reserva_created_at, expires_at, reserva_status, emprestimo_item_id, workflow_stage_effective, workflow_note, pickup_scheduled_for, workflow_stage_updated_at_effective, pickup_reply_status, pickup_reply_note, pickup_reply_at")
         .eq("user_id", session.user.id)
         .eq("item_status", "ativa")
         .order("reserva_id", { ascending: false })
@@ -1436,7 +1467,7 @@ button[type="submit"] *,
             <td>${escapeHtml(fmtDateOnly(r.reserva_created_at))}</td>
             <td>${escapeHtml(fmtDateOnly(validade))}</td>
             <td><b>${escapeHtml(workflowLabel)}</b>${workflowDetails.length ? `<br><small>${workflowDetails.map((line) => escapeHtml(line)).join("<br>")}</small>` : ""}</td>
-            <td><button type="button" class="secondary mini-btn" data-cancel-v2="${r.reserva_id}|${r.line_no}">Cancelar</button></td>
+            <td>${reservationPickupReplyActions(r)}</td>
           </tr>`;
         }).join("");
         const mobileCards = v2.data.map((r) => {
@@ -1458,7 +1489,7 @@ button[type="submit"] *,
                 <div class="k">Situação</div><div class="v"><b>${escapeHtml(workflowLabel)}</b>${workflowDetails.length ? `<br><small>${workflowDetails.map((line) => escapeHtml(line)).join("<br>")}</small>` : ""}</div>
               </div>
               <div class="mobile-actions">
-                <button type="button" class="secondary mini-btn" data-cancel-v2="${r.reserva_id}|${r.line_no}">Cancelar</button>
+                ${reservationPickupReplyActions(r)}
               </div>
             </article>`;
         }).join("");
@@ -1489,6 +1520,33 @@ button[type="submit"] *,
               return;
             }
             activeReserveMsg.textContent = "Reserva cancelada.";
+            await renderActiveReservations();
+            await renderHistory();
+          });
+        });
+        activeReservationsEl.querySelectorAll("[data-pickup-reply]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const [rid, lineNo, replyStatus] = String(btn.getAttribute("data-pickup-reply") || "").split("|");
+            const reservaId = Number(rid);
+            const reservaLineNo = Number(lineNo);
+            if (!reservaId || !reservaLineNo || !replyStatus) return;
+            const proceed = window.confirm(replyStatus === "confirmado_leitor"
+              ? "Confirma que poderá retirar o livro nesse horário?"
+              : "Confirma que você não poderá comparecer nesse horário?");
+            if (!proceed) return;
+            btn.disabled = true;
+            if (activeReserveMsg) activeReserveMsg.textContent = replyStatus === "confirmado_leitor"
+              ? "Registrando sua confirmação..."
+              : "Registrando sua resposta...";
+            const res = await setReservaPickupReply(reservaId, reservaLineNo, replyStatus, null);
+            if (res.error) {
+              activeReserveMsg.textContent = "Erro ao registrar sua resposta: " + res.error.message;
+              btn.disabled = false;
+              return;
+            }
+            activeReserveMsg.textContent = replyStatus === "confirmado_leitor"
+              ? "Horário confirmado. A biblioteca foi avisada."
+              : "Resposta registrada. A biblioteca foi avisada para propor outro horário.";
             await renderActiveReservations();
             await renderHistory();
           });
