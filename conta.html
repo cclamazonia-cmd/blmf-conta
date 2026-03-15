@@ -920,7 +920,14 @@ button[type="submit"] *,
 
     const contaMsgTimers = new Map();
 
-    function armAutoClearMsg(el, delay = 2000) {
+    function getMsgAutoClearDelay(el) {
+      const content = String(el?.textContent || "").trim();
+      if (!content) return 2000;
+      if (el?.id === "loanMsg" && /^Erro ao renovar:/i.test(content)) return 10000;
+      return 2000;
+    }
+
+    function armAutoClearMsg(el, delay = null) {
       if (!el) return;
       const key = el.id || el;
       if (contaMsgTimers.has(key)) {
@@ -929,15 +936,16 @@ button[type="submit"] *,
       }
       const content = String(el.textContent || "").trim();
       if (!content) return;
+      const effectiveDelay = Number.isFinite(delay) ? delay : getMsgAutoClearDelay(el);
       const timer = setTimeout(() => {
         el.textContent = "";
         contaMsgTimers.delete(key);
-      }, delay);
+      }, effectiveDelay);
       contaMsgTimers.set(key, timer);
     }
 
     document.querySelectorAll(".msg").forEach((el) => {
-      const observer = new MutationObserver(() => armAutoClearMsg(el, 2000));
+      const observer = new MutationObserver(() => armAutoClearMsg(el));
       observer.observe(el, { childList: true, characterData: true, subtree: true });
     });
 
