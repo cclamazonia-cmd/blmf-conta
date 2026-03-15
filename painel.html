@@ -1211,6 +1211,29 @@
       if (!v) return '—';
       return String(v).replace('T',' ').slice(0,16);
     };
+    const BELÉM_UTC_OFFSET = '-03:00';
+    const fmtDateTimeBelem = (v) => {
+      if (!v) return '—';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return String(v).replace('T',' ').slice(0,16);
+      const parts = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'America/Belem',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(d);
+      const pick = (type) => parts.find((part) => part.type === type)?.value || '';
+      return `${pick('year')}-${pick('month')}-${pick('day')} ${pick('hour')}:${pick('minute')}`;
+    };
+    const parseDateTimeLocalAsBelemISO = (value) => {
+      const m = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+      if (!m) return null;
+      const [, year, month, day, hour, minute] = m;
+      return `${year}-${month}-${day}T${hour}:${minute}:00${BELÉM_UTC_OFFSET}`;
+    };
     const todayISO = () => new Date().toISOString().slice(0,10);
     const nowISO = () => new Date().toISOString();
     function addDays(dateLike, days){
@@ -1837,7 +1860,7 @@
 
     function reservationWorkflowDetail(r){
       const details = [];
-      if (r.pickup_scheduled_for) details.push('Retirada: ' + fmtDateTime(r.pickup_scheduled_for));
+      if (r.pickup_scheduled_for) details.push('Retirada: ' + fmtDateTimeBelem(r.pickup_scheduled_for) + ' (Belém)');
       if (r.workflow_note) details.push(r.workflow_note);
       return details.join(' · ');
     }
@@ -2617,11 +2640,13 @@
       let pickupScheduledFor = null;
       if (stage === 'retirada_agendada') {
         if (!pickupInput) return setStatus(targetStatusId, 'Informe a data e hora da retirada para agendar.', 'warn');
-        const parsed = new Date(pickupInput);
-        if (Number.isNaN(parsed.getTime())) return setStatus(targetStatusId, 'Data e hora de retirada inválidas.', 'warn');
-        pickupScheduledFor = parsed.toISOString();
+        pickupScheduledFor = parseDateTimeLocalAsBelemISO(pickupInput);
+        if (!pickupScheduledFor || Number.isNaN(new Date(pickupScheduledFor).getTime())) {
+          return setStatus(targetStatusId, 'Data e hora de retirada inválidas.', 'warn');
+        }
       }
-      const note = ($('reservationWorkflowNote')?.value || '').trim() || null;
+      const noteInput = ($('reservationWorkflowNote')?.value || '').trim();
+      const note = stage === 'solicitada' ? null : (noteInput || null);
 
       try {
         setStatus(targetStatusId, 'Atualizando seguimento das reservas...', 'warn');
@@ -2640,6 +2665,10 @@
           total += Array.isArray(rpc.data) ? rpc.data.length : 0;
         }
         const ignored = oldRows.length ? ` ${oldRows.length} reserva(s) antiga(s) ficaram sem alteração.` : '';
+        if (stage === 'solicitada') {
+          if ($('reservationWorkflowPickupAt')) $('reservationWorkflowPickupAt').value = '';
+          if ($('reservationWorkflowNote')) $('reservationWorkflowNote').value = '';
+        }
         setStatus(targetStatusId, `${translateReservationWorkflowStage(stage)} aplicada em ${total} item(ns).${ignored}`, 'ok');
         await refreshCollections({silent:true});
       } catch (e) {
