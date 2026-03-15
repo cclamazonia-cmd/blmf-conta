@@ -908,6 +908,12 @@ button[type="submit"] *,
     const reserveMsg = $("reserveMsg");
     const activeReserveMsg = $("activeReserveMsg");
     const loanMsg = $("loanMsg");
+    let loanMsgHoldUntil = 0;
+    function setLoanMsgText(message, holdMs = 0) {
+      if (!loanMsg) return;
+      loanMsg.textContent = message || "";
+      loanMsgHoldUntil = message && holdMs > 0 ? (Date.now() + holdMs) : 0;
+    }
     const historyEl = $("history");
     const historyMsg = $("historyMsg");
     const loansEl = $("loans");
@@ -1688,20 +1694,8 @@ button[type="submit"] *,
       return { error: lastErr, data: null };
     }
 
-    function setLoanMsgText(message, delay = 2000, preserve = false) {
-      if (!loanMsg) return;
-      loanMsg.textContent = message || "";
-      if (preserve && message) {
-        loanMsg.dataset.preserveUntil = String(Date.now() + delay);
-      } else {
-        delete loanMsg.dataset.preserveUntil;
-      }
-      armAutoClearMsg(loanMsg, delay);
-    }
-
     async function renderLoans() {
-      const preserveUntil = Number(loanMsg?.dataset?.preserveUntil || 0);
-      if (loanMsg && !(preserveUntil && Date.now() < preserveUntil)) loanMsg.textContent = "";
+      if (loanMsg && Date.now() >= loanMsgHoldUntil) loanMsg.textContent = "";
       loansEl.textContent = "Carregando...";
 
       const v2 = await supabase
@@ -1848,12 +1842,12 @@ button[type="submit"] *,
           const res = await tryRenewV2(loanId);
           const row = Array.isArray(res.data) ? res.data[0] : res.data;
           if (res.error) {
-            setLoanMsgText("Erro ao renovar: " + res.error.message, 2000, true);
+            setLoanMsgText("Erro ao renovar: " + res.error.message, 2000);
             btn.disabled = false;
             return;
           }
           if (row?.ok === false) {
-            setLoanMsgText("Erro ao renovar: " + (row?.message || "Renovação indisponível."), 2000, true);
+            setLoanMsgText("Erro ao renovar: " + (row?.message || "Renovação indisponível."), 2000);
             btn.disabled = false;
             return;
           }
@@ -1876,12 +1870,12 @@ button[type="submit"] *,
           const res = await tryRenewOld(loanId);
           const row = Array.isArray(res.data) ? res.data[0] : res.data;
           if (res.error) {
-            setLoanMsgText("Erro ao renovar: " + res.error.message, 2000, true);
+            setLoanMsgText("Erro ao renovar: " + res.error.message, 2000);
             btn.disabled = false;
             return;
           }
           if (row?.ok === false) {
-            setLoanMsgText("Erro ao renovar: " + (row?.message || "Renovação indisponível."), 2000, true);
+            setLoanMsgText("Erro ao renovar: " + (row?.message || "Renovação indisponível."), 2000);
             btn.disabled = false;
             return;
           }
