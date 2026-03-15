@@ -610,12 +610,8 @@
                   <input class="input" id="resWorkflowNote" type="text" placeholder="Ex.: livro separado na estante, leitor avisado, retirada combinada...">
                 </div>
                 <div>
-                  <label for="resScheduleDate">Data e hora da retirada (para “Agendar retirada”)</label>
-                  <div class="row" style="grid-template-columns:1fr 180px;gap:10px">
-                    <input class="input" id="resScheduleDate" type="date">
-                    <input class="input" id="resScheduleTime" type="time" step="60">
-                  </div>
-                  <input class="input hidden" id="resScheduleAt" type="datetime-local" tabindex="-1" aria-hidden="true">
+                  <label for="resScheduleAt">Data e hora da retirada (para “Agendar retirada”)</label>
+                  <input class="input" id="resScheduleAt" type="datetime-local" step="60">
                 </div>
               </div>
               <div class="actions">
