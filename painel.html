@@ -2477,28 +2477,17 @@
     }
 
     async function tryCreateEmprestimoV2ByBibRefs(userId, bibRefs, note='Saída registrada no painel.', dueDate=null){
-      const candidates = [
-        ['fn_v2_create_emprestimo_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
-        ['fn_v2_create_emprestimo_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
-        ['fn_v2_create_emprestimo_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }],
-        ['fn_v2_create_emprestimo', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
-        ['fn_v2_create_emprestimo', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
-        ['fn_v2_create_emprestimo', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }],
-        ['create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
-        ['create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
-        ['create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }],
-        ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
-        ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
-        ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }]
-      ];
-      const attemptedFns = new Set();
-      for (const [fn, args] of candidates) {
-        attemptedFns.add(fn);
-        const res = await supabase.rpc(fn, args);
-        if (!res.error) return normalizeEmprestimoV2CreateResult(res.data, dueDate);
-        if (!isMissingFunctionError(res.error)) throw res.error;
+      const res = await supabase.rpc('fn_v2_create_emprestimo_by_bib_refs', {
+        p_user_id: userId,
+        p_bib_refs: bibRefs,
+        p_due_at: dueDate,
+        p_notes: note
+      });
+      if (!res.error) return normalizeEmprestimoV2CreateResult(res.data, dueDate);
+      if (isMissingFunctionError(res.error)) {
+        throw new Error('A função canônica de criação de empréstimo v2 não está disponível: fn_v2_create_emprestimo_by_bib_refs(p_user_id, p_bib_refs, p_due_at, p_notes).');
       }
-      throw new Error('Não encontrei uma RPC v2 de criação de empréstimo disponível para “Registrar saída”. Funções auditadas: ' + Array.from(attemptedFns).join(', ') + '.');
+      throw res.error;
     }
 
     async function insertCurrentLoansForUserV2First(userId, bibRefs, note='Saída registrada no painel.', dueAt=null){
