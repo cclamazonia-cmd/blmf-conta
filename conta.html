@@ -959,6 +959,21 @@ button[type="submit"] *,
       return Number.isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 19).replace("T", " ");
     }
 
+    function fmtDateTimeBelem(v) {
+      if (!v) return "—";
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString("pt-BR", {
+        timeZone: "America/Belem",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+    }
+
     function addDays(v, days) {
       const base = new Date(v || Date.now());
       if (Number.isNaN(base.getTime())) return null;
