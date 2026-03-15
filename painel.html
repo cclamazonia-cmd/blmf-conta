@@ -2464,12 +2464,15 @@
       const rawId = row?.emprestimo_id ?? row?.id ?? row?.loan_id ?? (typeof data === 'number' || typeof data === 'string' ? data : null);
       const emprestimoId = Number(rawId);
       const safeEmprestimoId = Number.isFinite(emprestimoId) && emprestimoId > 0 ? emprestimoId : null;
+      if (!safeEmprestimoId) {
+        throw new Error('A RPC v2 respondeu, mas não devolveu um ID de empréstimo utilizável.');
+      }
       return {
         source: 'v2',
         emprestimoId: safeEmprestimoId,
-        loanIds: safeEmprestimoId ? [safeEmprestimoId] : [],
+        loanIds: [safeEmprestimoId],
         dueDate: row?.due_at || row?.due_date || row?.new_due_date || dueDateFallback || null,
-        displayId: safeEmprestimoId ? String(safeEmprestimoId) : '—'
+        displayId: String(safeEmprestimoId)
       };
     }
 
@@ -2488,14 +2491,14 @@
         ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
         ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }]
       ];
-      let lastMissing = null;
+      const attemptedFns = new Set();
       for (const [fn, args] of candidates) {
+        attemptedFns.add(fn);
         const res = await supabase.rpc(fn, args);
         if (!res.error) return normalizeEmprestimoV2CreateResult(res.data, dueDate);
         if (!isMissingFunctionError(res.error)) throw res.error;
-        lastMissing = res.error;
       }
-      return null;
+      throw new Error('Não encontrei uma RPC v2 de criação de empréstimo disponível para “Registrar saída”. Funções auditadas: ' + Array.from(attemptedFns).join(', ') + '.');
     }
 
     async function insertCurrentLoansForUserV2First(userId, bibRefs, note='Saída registrada no painel.', dueAt=null){
@@ -2507,14 +2510,7 @@
         throw new Error('Limite de empréstimos ativos = 5: devolva algo antes de registrar nova saída.');
       }
       const dueDate = dueAt || addDays(todayISO(), loanDaysByCount(books.length));
-      const v2Result = await tryCreateEmprestimoV2ByBibRefs(userId, cleanRefs, note, dueDate);
-      if (v2Result) return v2Result;
-      const oldResult = await insertCurrentLoansForUser(userId, cleanRefs, note, dueAt);
-      return {
-        ...oldResult,
-        source: 'old',
-        displayId: oldResult.loanIds.length ? String(Math.min(...oldResult.loanIds)) : '—'
-      };
+      return await tryCreateEmprestimoV2ByBibRefs(userId, cleanRefs, note, dueDate);
     }
 
     async function confirmReservationToLoan(reservaId){
@@ -2576,8 +2572,7 @@
         const borrower = await findUserByEmail(email);
         const result = await insertCurrentLoansForUserV2First(borrower.id, refs, 'Saída registrada no painel.', null);
         const lotLabel = result.displayId || (result.loanIds.length ? String(Math.min(...result.loanIds)) : '—');
-        const compatNote = result.source === 'old' ? ' Atenção: esta saída ainda usou a via antiga de compatibilidade.' : '';
-        setStatus('statusSaida', `Saída registrada. ID do empréstimo: ${lotLabel}. Prazo: ${fmtDate(result.dueDate)}.${compatNote}`, 'ok');
+        setStatus('statusSaida', `Saída registrada. ID do empréstimo: ${lotLabel}. Prazo: ${fmtDate(result.dueDate)}.`, 'ok');
         $('bibRefs').value = '';
         refreshLoanHint();
         await refreshCollections({silent:true});
