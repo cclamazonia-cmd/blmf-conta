@@ -620,6 +620,8 @@
                 <button class="btn" id="btnResCombinar" type="button">Marcar retirada a combinar</button>
                 <button class="btn" id="btnResAgendar" type="button">Agendar retirada</button>
                 <button class="btn" id="btnResPronta" type="button">Marcar pronta para retirada</button>
+                <button class="btn" id="btnResNaoRetirada" type="button">Marcar não retirada</button>
+                <button class="btn" id="btnResLiberar" type="button">Liberar para circulação</button>
               </div>
             </div>
             <div class="sep"></div>
@@ -1167,7 +1169,7 @@
       }
     }
 
-    function setStatus(id, msg='', cls='', autoclear=false){
+    function setStatus(id, msg='', cls='', autoclear=true){
       const el = $(id);
       if (!el) return;
       if (statusTimers.has(id)) {
@@ -3058,6 +3060,14 @@
       targetStatusId: 'statusRes'
     }));
     $('btnResPronta')?.addEventListener('click', () => setReservationWorkflowStage('pronta_para_retirada', selectedReservationRows(), {
+      note: $('resWorkflowNote')?.value.trim() || '',
+      targetStatusId: 'statusRes'
+    }));
+    $('btnResNaoRetirada')?.addEventListener('click', () => setReservationWorkflowStage('nao_retirada', selectedReservationRows(), {
+      note: $('resWorkflowNote')?.value.trim() || '',
+      targetStatusId: 'statusRes'
+    }));
+    $('btnResLiberar')?.addEventListener('click', () => setReservationWorkflowStage('liberada_para_circulacao', selectedReservationRows(), {
       note: $('resWorkflowNote')?.value.trim() || '',
       targetStatusId: 'statusRes'
     }));
