@@ -1919,23 +1919,38 @@
 
       const groups = groupBy(cleanRows, (r) => r.reserva_id);
       let processed = 0;
-      const rpcNames = ['fn_v2_set_reserva_linhas_workflow_stage'];
+      const rpcAttempts = [
+        {
+          name: 'fn_v2_set_reserva_linhas_workflow',
+          args: (reservaId, lineNos) => ({
+            p_reserva_id: Number(reservaId),
+            p_line_nos: lineNos,
+            p_stage: stage,
+            p_note: note || null,
+            p_pickup_scheduled_for: pickupScheduledFor || null,
+          })
+        },
+        {
+          name: 'fn_v2_set_reserva_linhas_workflow_stage',
+          args: (reservaId, lineNos) => ({
+            p_reserva_id: Number(reservaId),
+            p_line_nos: lineNos,
+            p_workflow_stage: stage,
+            p_workflow_note: note || null,
+            p_pickup_scheduled_for: pickupScheduledFor || null,
+          })
+        }
+      ];
 
       for (const [reservaId, items] of groups.entries()) {
         const lineNos = items.map((i) => Number(i.line_no));
         let done = false;
         let lastErr = null;
 
-        for (const rpcName of rpcNames) {
-          const rpc = await supabase.rpc(rpcName, {
-            p_reserva_id: Number(reservaId),
-            p_line_nos: lineNos,
-            p_workflow_stage: stage,
-            p_workflow_note: note || null,
-            p_pickup_scheduled_for: pickupScheduledFor || null,
-          });
+        for (const rpcAttempt of rpcAttempts) {
+          const rpc = await supabase.rpc(rpcAttempt.name, rpcAttempt.args(reservaId, lineNos));
           if (!rpc.error) {
-            processed += Number(rpc.data || 0) || lineNos.length;
+            processed += Array.isArray(rpc.data) ? (rpc.data.length || lineNos.length) : (Number(rpc.data || 0) || lineNos.length);
             done = true;
             break;
           }
