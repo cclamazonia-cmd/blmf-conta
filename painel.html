@@ -2700,7 +2700,7 @@
 
     async function renewLoan(loanId, targetStatusId='statusLoans'){
       try {
-        setStatus(targetStatusId, 'Processando renovação...', 'warn');
+        setStatus(targetStatusId, 'Processando renovação...', 'warn', false);
         let res = await supabase.rpc('renew_loan', { p_loan_id: loanId });
         if (res.error && /function|not exist|não existe/i.test(String(res.error.message || ''))) {
           res = await supabase.rpc('extend_loan_once', { p_loan_id: loanId });
@@ -2718,7 +2718,7 @@
 
     async function renewEmprestimoV2(emprestimoId, targetStatusId='statusLoans'){
       try {
-        setStatus(targetStatusId, 'Processando renovação...', 'warn');
+        setStatus(targetStatusId, 'Processando renovação...', 'warn', false);
         const res = await supabase.rpc('fn_v2_extend_emprestimo_once', { p_emprestimo_id: Number(emprestimoId) });
         if (res.error) throw res.error;
         const row = Array.isArray(res.data) ? res.data[0] : res.data;
@@ -2737,7 +2737,7 @@
       const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
       if (!ids.length) return setStatus(targetStatusId, 'Nenhum item válido nesse empréstimo.', 'warn');
       try {
-        setStatus(targetStatusId, 'Processando renovação do empréstimo...', 'warn');
+        setStatus(targetStatusId, 'Processando renovação do empréstimo...', 'warn', false);
         let renewed = 0;
         let lastDue = null;
         for (const loanId of ids) {
@@ -2762,7 +2762,7 @@
       const ids = Array.from(new Set((loanIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
       if (!ids.length) return setStatus(targetStatusId, 'Nenhum item válido nesse empréstimo.', 'warn');
       try {
-        setStatus(targetStatusId, 'Processando devolução do empréstimo...', 'warn');
+        setStatus(targetStatusId, 'Processando devolução do empréstimo...', 'warn', false);
         const total = await markLoansReturned(ids, 'Devolução agrupada registrada no painel.');
         setStatus(targetStatusId, `Devolução do empréstimo registrada. Itens processados: ${total}.`, 'ok');
         await refreshCollections({silent:true});
