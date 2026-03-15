@@ -610,8 +610,12 @@
                   <input class="input" id="resWorkflowNote" type="text" placeholder="Ex.: livro separado na estante, leitor avisado, retirada combinada...">
                 </div>
                 <div>
-                  <label for="resScheduleAt">Data e hora da retirada (para “Agendar retirada”)</label>
-                  <input class="input" id="resScheduleAt" type="datetime-local">
+                  <label for="resScheduleDate">Data e hora da retirada (para “Agendar retirada”)</label>
+                  <div class="row" style="grid-template-columns:1fr 180px;gap:10px">
+                    <input class="input" id="resScheduleDate" type="date">
+                    <input class="input" id="resScheduleTime" type="time" step="60">
+                  </div>
+                  <input class="input hidden" id="resScheduleAt" type="datetime-local" tabindex="-1" aria-hidden="true">
                 </div>
               </div>
               <div class="actions">
@@ -1451,6 +1455,7 @@
     const activateProfileTab = setupProfileTabs();
     setupMainTabs();
     setupServiceStateActions();
+    bindResScheduleAtParts();
 
     async function requireSession(){
       const { data: { session: sess } } = await supabase.auth.getSession();
@@ -1879,11 +1884,62 @@
       return activeReservations.filter((r) => selectedReservaIds.has(r.id));
     }
 
+    function syncResScheduleAtParts(){
+      const date = String($('resScheduleDate')?.value || '').trim();
+      const time = String($('resScheduleTime')?.value || '').trim();
+      const hidden = $('resScheduleAt');
+      if (!hidden) return '';
+      hidden.value = (date && time) ? `${date}T${time}` : '';
+      return hidden.value;
+    }
+
+    function bindResScheduleAtParts(){
+      const dateInput = $('resScheduleDate');
+      const timeInput = $('resScheduleTime');
+      const hidden = $('resScheduleAt');
+      if (!dateInput || !timeInput || !hidden) return;
+
+      const sync = () => syncResScheduleAtParts();
+
+      if (hidden.value && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(hidden.value)) {
+        const [datePart, timePart] = hidden.value.split('T');
+        if (!dateInput.value) dateInput.value = datePart || '';
+        if (!timeInput.value) timeInput.value = String(timePart || '').slice(0, 5);
+      }
+
+      dateInput.addEventListener('input', () => {
+        sync();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
+          requestAnimationFrame(() => {
+            timeInput.focus();
+            try { if (typeof timeInput.showPicker === 'function') timeInput.showPicker(); } catch {}
+          });
+        }
+      });
+
+      dateInput.addEventListener('change', () => {
+        sync();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
+          requestAnimationFrame(() => {
+            timeInput.focus();
+            try { if (typeof timeInput.showPicker === 'function') timeInput.showPicker(); } catch {}
+          });
+        }
+      });
+
+      timeInput.addEventListener('input', sync);
+      timeInput.addEventListener('change', sync);
+      sync();
+    }
+
     function toIsoFromLocalInput(value){
       const raw = String(value || '').trim();
       if (!raw) return null;
-      const d = new Date(raw);
-      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+      if (!m) return null;
+      const [, y, mo, d, h, mi] = m;
+      const utc = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h) + 3, Number(mi), 0, 0);
+      return new Date(utc).toISOString();
     }
 
     function workflowPayloadForStage(stage, note='', pickupScheduledFor=null){
