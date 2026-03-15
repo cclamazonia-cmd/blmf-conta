@@ -1629,69 +1629,49 @@
       return String(value || '').trim().toLowerCase();
     }
 
-    function pickBestProfileMatch(rows, email){
+    async function queryProfileByEmailDirect(email, select = '*'){
       const normalized = normalizeEmail(email);
-      const list = Array.isArray(rows) ? rows.filter(Boolean) : [];
-      if (!list.length) return null;
-      return (
-        list.find((row) => normalizeEmail(row?.email) === normalized)
-        || list.find((row) => normalizeEmail(row?.email).startsWith(normalized))
-        || list[0]
-      );
+      let lastError = null;
+      const attempts = [
+        () => supabase.schema('api').from('profiles').select(select).ilike('email', normalized).limit(2),
+        () => supabase.from('profiles').select(select).ilike('email', normalized).limit(2),
+      ];
+      for (const run of attempts){
+        try {
+          const { data, error } = await run();
+          if (error) { lastError = error; continue; }
+          const rows = Array.isArray(data) ? data : [];
+          const exact = rows.find((row) => normalizeEmail(row?.email) === normalized) || rows[0] || null;
+          if (exact?.id) return exact;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (lastError) throw lastError;
+      return null;
     }
 
-    async function queryProfilesByEmail({ email, select = '*', schema = 'api', partial = false } = {}){
-      const normalized = normalizeEmail(email);
-      if (!normalized) return { data: null, error: null };
-      let query = schema === 'api'
-        ? supabase.schema('api').from('profiles').select(select)
-        : supabase.from('profiles').select(select);
-      query = partial ? query.ilike('email', `%${normalized}%`) : query.ilike('email', normalized);
-      query = query.limit(10);
-      const { data, error } = await query;
-      return { data: pickBestProfileMatch(data || [], normalized), error };
-    }
-
-    function findProfileIdInLoadedCollections(email){
+    async function queryProfileByEmailRpc(email){
       const normalized = normalizeEmail(email);
       if (!normalized) return null;
-      const rows = []
-        .concat(activeReservations || [])
-        .concat(activeLoans || [])
-        .concat(activeBatches || []);
-      const hit = rows.find((row) => normalizeEmail(row?.user_email) === normalized);
-      return hit?.user_id ? String(hit.user_id) : null;
+      const { data, error } = await supabase.rpc('fn_painel_find_profile_by_email', { p_email: normalized });
+      if (error) throw error;
+      return data && typeof data === 'object' ? data : null;
     }
 
     async function resolveProfileByEmail(email, select = '*'){
       const normalized = normalizeEmail(email);
       if (!normalized) throw new Error('Informe um e-mail.');
-      const attempts = [
-        () => queryProfilesByEmail({ email: normalized, select, schema: 'api', partial: false }),
-        () => queryProfilesByEmail({ email: normalized, select, schema: 'public', partial: false }),
-        () => queryProfilesByEmail({ email: normalized, select, schema: 'api', partial: true }),
-        () => queryProfilesByEmail({ email: normalized, select, schema: 'public', partial: true }),
-      ];
 
-      let lastError = null;
-      for (const run of attempts){
-        try {
-          const { data, error } = await run();
-          if (error) { lastError = error; continue; }
-          if (data?.id) return data;
-        } catch (error) {
-          lastError = error;
-        }
+      try {
+        const rpcData = await queryProfileByEmailRpc(normalized);
+        if (rpcData?.id) return select === 'id,email' ? { id: rpcData.id, email: rpcData.email || normalized } : rpcData;
+      } catch (error) {
+        if (!isMissingFunctionError(error)) throw error;
       }
 
-      const loadedId = findProfileIdInLoadedCollections(normalized);
-      if (loadedId){
-        const map = await loadProfilesByIds([loadedId]);
-        const row = map.get(String(loadedId));
-        if (row?.id) return select === 'id,email' ? { id: row.id, email: row.email || normalized } : row;
-      }
-
-      if (lastError) throw lastError;
+      const directData = await queryProfileByEmailDirect(normalized, select);
+      if (directData?.id) return directData;
       throw new Error('Não encontrei esse e-mail no cadastro.');
     }
 
