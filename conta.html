@@ -1426,6 +1426,9 @@ button[type="submit"] *,
       if (String(row?.workflow_stage_effective || "") !== "retirada_agendada") {
         return `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
       }
+      if (String(row?.pickup_reply_status || "").trim()) {
+        return `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
+      }
       return `
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button type="button" class="secondary mini-btn" data-pickup-reply="${row.reserva_id}|${row.line_no}|confirmado_leitor">Confirmar horário</button>
