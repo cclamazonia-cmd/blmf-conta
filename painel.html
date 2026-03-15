@@ -1625,9 +1625,20 @@
       }
     }
 
+    async function findProfileByEmailForLibrarian(email, fields='*'){
+      const primary = await supabase.from('profiles').select(fields).eq('email', email).maybeSingle();
+      if (!primary.error && primary.data?.id) return primary.data;
+
+      const fallback = await supabase.schema('api').from('profiles').select(fields).eq('email', email).maybeSingle();
+      if (fallback.error) throw fallback.error;
+      if (fallback.data?.id) return fallback.data;
+
+      if (primary.error) throw primary.error;
+      return null;
+    }
+
     async function loadProfileByEmail(email){
-      const { data, error } = await supabase.schema('api').from('profiles').select('*').eq('email', email).maybeSingle();
-      if (error) throw error;
+      const data = await findProfileByEmailForLibrarian(email, '*');
       if (!data?.id) throw new Error('Não encontrei esse e-mail no cadastro.');
       editingProfileId = data.id;
       editingProfileRow = data;
@@ -1683,8 +1694,7 @@
     }
 
     async function findUserByEmail(email){
-      const { data, error } = await supabase.schema('api').from('profiles').select('id,email').eq('email', email).maybeSingle();
-      if (error) throw error;
+      const data = await findProfileByEmailForLibrarian(email, 'id,email');
       if (!data?.id) throw new Error('E-mail não encontrado no cadastro.');
       return data;
     }
