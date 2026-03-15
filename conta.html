@@ -959,6 +959,23 @@ button[type="submit"] *,
       return Number.isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 19).replace("T", " ");
     }
 
+    function fmtDateTimeBelem(v) {
+      if (!v) return "—";
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return String(v);
+      const parts = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'America/Belem',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(d);
+      const pick = (type) => parts.find((part) => part.type === type)?.value || '';
+      return `${pick('year')}-${pick('month')}-${pick('day')} ${pick('hour')}:${pick('minute')}`;
+    }
+
     function addDays(v, days) {
       const base = new Date(v || Date.now());
       if (Number.isNaN(base.getTime())) return null;
@@ -1383,7 +1400,7 @@ button[type="submit"] *,
 
     function reservationWorkflowDetailLines(row) {
       const lines = [];
-      if (row?.pickup_scheduled_for) lines.push(`Retirada prevista: ${fmtDateTime(row.pickup_scheduled_for)}`);
+      if (row?.pickup_scheduled_for) lines.push(`Retirada prevista: ${fmtDateTimeBelem(row.pickup_scheduled_for)} (Belém)`);
       if (row?.workflow_note) lines.push(String(row.workflow_note));
       return lines;
     }
