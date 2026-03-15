@@ -1197,6 +1197,12 @@ button[type="submit"] *,
       return contaRefreshPromise;
     }
 
+    function setLoanMsgText(message, delay = null) {
+      if (!loanMsg) return;
+      loanMsg.textContent = String(message || '');
+      armAutoClearMsg(loanMsg, delay);
+    }
+
     function enforcePasswordChangeUI(enforce) {
       mustChangePassword = !!enforce;
       if (mustChangeNotice) mustChangeNotice.style.display = enforce ? "block" : "none";
@@ -1863,22 +1869,22 @@ button[type="submit"] *,
           const proceed = window.confirm("Atenção: cada empréstimo só pode ser renovado uma única vez. Deseja continuar?");
           if (!proceed) return;
           btn.disabled = true;
-          if (loanMsg) loanMsg.textContent = "Processando renovação...";
+          setLoanMsgText("Processando renovação...", 2000);
           const res = await tryRenewV2(loanId);
           const row = Array.isArray(res.data) ? res.data[0] : res.data;
           if (res.error) {
-            loanMsg.textContent = "Erro ao renovar: " + res.error.message;
+            setLoanMsgText("Erro ao renovar: " + res.error.message, 10000);
             btn.disabled = false;
             return;
           }
           if (row?.ok === false) {
-            loanMsg.textContent = "Erro ao renovar: " + (row?.message || "Renovação indisponível.");
+            setLoanMsgText("Erro ao renovar: " + (row?.message || "Renovação indisponível."), 10000);
             btn.disabled = false;
             return;
           }
           const newDue = row?.due_at || row?.due_date || row?.new_due_date;
           const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
-          loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
+          setLoanMsgText(message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : ""), 2000);
           await renderLoans();
           await renderHistory();
         });
@@ -1891,22 +1897,22 @@ button[type="submit"] *,
           const proceed = window.confirm("Atenção: cada empréstimo só pode ser renovado uma única vez. Deseja continuar?");
           if (!proceed) return;
           btn.disabled = true;
-          if (loanMsg) loanMsg.textContent = "Processando renovação...";
+          setLoanMsgText("Processando renovação...", 2000);
           const res = await tryRenewOld(loanId);
           const row = Array.isArray(res.data) ? res.data[0] : res.data;
           if (res.error) {
-            loanMsg.textContent = "Erro ao renovar: " + res.error.message;
+            setLoanMsgText("Erro ao renovar: " + res.error.message, 10000);
             btn.disabled = false;
             return;
           }
           if (row?.ok === false) {
-            loanMsg.textContent = "Erro ao renovar: " + (row?.message || "Renovação indisponível.");
+            setLoanMsgText("Erro ao renovar: " + (row?.message || "Renovação indisponível."), 10000);
             btn.disabled = false;
             return;
           }
           const newDue = row?.due_date || row?.new_due_date;
           const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
-          loanMsg.textContent = message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : "");
+          setLoanMsgText(message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : ""), 2000);
           await renderLoans();
           await renderHistory();
         });
