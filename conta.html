@@ -918,6 +918,29 @@ button[type="submit"] *,
     const reserveSubmitBtn = $("reserveSubmitBtn");
     const bibRefInput = $("bibRef");
 
+    const contaMsgTimers = new Map();
+
+    function armAutoClearMsg(el, delay = 2000) {
+      if (!el) return;
+      const key = el.id || el;
+      if (contaMsgTimers.has(key)) {
+        clearTimeout(contaMsgTimers.get(key));
+        contaMsgTimers.delete(key);
+      }
+      const content = String(el.textContent || "").trim();
+      if (!content) return;
+      const timer = setTimeout(() => {
+        el.textContent = "";
+        contaMsgTimers.delete(key);
+      }, delay);
+      contaMsgTimers.set(key, timer);
+    }
+
+    document.querySelectorAll(".msg").forEach((el) => {
+      const observer = new MutationObserver(() => armAutoClearMsg(el, 2000));
+      observer.observe(el, { childList: true, characterData: true, subtree: true });
+    });
+
     let mustChangePassword = false;
     let userIsRestricted = false;
     let isLibrarian = false;
