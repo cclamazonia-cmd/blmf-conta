@@ -1625,20 +1625,78 @@
       }
     }
 
-    async function findProfileByEmailForLibrarian(email, fields='*'){
-      const primary = await supabase.from('profiles').select(fields).eq('email', email).maybeSingle();
-      if (!primary.error && primary.data?.id) return primary.data;
+    function normalizeEmail(value){
+      return String(value || '').trim().toLowerCase();
+    }
 
-      const fallback = await supabase.schema('api').from('profiles').select(fields).eq('email', email).maybeSingle();
-      if (fallback.error) throw fallback.error;
-      if (fallback.data?.id) return fallback.data;
+    function pickBestProfileMatch(rows, email){
+      const normalized = normalizeEmail(email);
+      const list = Array.isArray(rows) ? rows.filter(Boolean) : [];
+      if (!list.length) return null;
+      return (
+        list.find((row) => normalizeEmail(row?.email) === normalized)
+        || list.find((row) => normalizeEmail(row?.email).startsWith(normalized))
+        || list[0]
+      );
+    }
 
-      if (primary.error) throw primary.error;
-      return null;
+    async function queryProfilesByEmail({ email, select = '*', schema = 'api', partial = false } = {}){
+      const normalized = normalizeEmail(email);
+      if (!normalized) return { data: null, error: null };
+      let query = schema === 'api'
+        ? supabase.schema('api').from('profiles').select(select)
+        : supabase.from('profiles').select(select);
+      query = partial ? query.ilike('email', `%${normalized}%`) : query.ilike('email', normalized);
+      query = query.limit(10);
+      const { data, error } = await query;
+      return { data: pickBestProfileMatch(data || [], normalized), error };
+    }
+
+    function findProfileIdInLoadedCollections(email){
+      const normalized = normalizeEmail(email);
+      if (!normalized) return null;
+      const rows = []
+        .concat(activeReservations || [])
+        .concat(activeLoans || [])
+        .concat(activeBatches || []);
+      const hit = rows.find((row) => normalizeEmail(row?.user_email) === normalized);
+      return hit?.user_id ? String(hit.user_id) : null;
+    }
+
+    async function resolveProfileByEmail(email, select = '*'){
+      const normalized = normalizeEmail(email);
+      if (!normalized) throw new Error('Informe um e-mail.');
+      const attempts = [
+        () => queryProfilesByEmail({ email: normalized, select, schema: 'api', partial: false }),
+        () => queryProfilesByEmail({ email: normalized, select, schema: 'public', partial: false }),
+        () => queryProfilesByEmail({ email: normalized, select, schema: 'api', partial: true }),
+        () => queryProfilesByEmail({ email: normalized, select, schema: 'public', partial: true }),
+      ];
+
+      let lastError = null;
+      for (const run of attempts){
+        try {
+          const { data, error } = await run();
+          if (error) { lastError = error; continue; }
+          if (data?.id) return data;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      const loadedId = findProfileIdInLoadedCollections(normalized);
+      if (loadedId){
+        const map = await loadProfilesByIds([loadedId]);
+        const row = map.get(String(loadedId));
+        if (row?.id) return select === 'id,email' ? { id: row.id, email: row.email || normalized } : row;
+      }
+
+      if (lastError) throw lastError;
+      throw new Error('Não encontrei esse e-mail no cadastro.');
     }
 
     async function loadProfileByEmail(email){
-      const data = await findProfileByEmailForLibrarian(email, '*');
+      const data = await resolveProfileByEmail(email, '*');
       if (!data?.id) throw new Error('Não encontrei esse e-mail no cadastro.');
       editingProfileId = data.id;
       editingProfileRow = data;
@@ -1694,7 +1752,7 @@
     }
 
     async function findUserByEmail(email){
-      const data = await findProfileByEmailForLibrarian(email, 'id,email');
+      const data = await resolveProfileByEmail(email, 'id,email');
       if (!data?.id) throw new Error('E-mail não encontrado no cadastro.');
       return data;
     }
