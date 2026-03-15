@@ -1167,7 +1167,7 @@
       }
     }
 
-    function setStatus(id, msg='', cls='', autoclear=true){
+    function setStatus(id, msg='', cls='', autoclear=false){
       const el = $(id);
       if (!el) return;
       if (statusTimers.has(id)) {
