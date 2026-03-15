@@ -2217,6 +2217,126 @@
       return { loanIds: (data || []).map((row) => Number(row.id)).filter(Boolean), batchId, dueDate: storedDueDate };
     }
 
+
+    async function ensureBooksCurrentlyAvailableHybrid(bookIds, bibRefs){
+      const cleanRefs = Array.from(new Set((bibRefs || []).map((v) => String(v || '').trim()).filter(Boolean)));
+      const ids = Array.from(new Set((bookIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
+      if (!cleanRefs.length && !ids.length) return;
+
+      const [v2, old] = await Promise.all([
+        cleanRefs.length
+          ? supabase
+              .schema('api')
+              .from('emprestimo_itens_ui')
+              .select('bib_ref')
+              .in('bib_ref', cleanRefs)
+              .eq('item_status', 'aberto')
+          : Promise.resolve({ data: [], error: null }),
+        ids.length
+          ? supabase
+              .schema('api')
+              .from('loans')
+              .select('id,book_id')
+              .in('book_id', ids)
+              .is('returned_date', null)
+          : Promise.resolve({ data: [], error: null })
+      ]);
+
+      if (v2.error) throw v2.error;
+      if (old.error) throw old.error;
+
+      const unavailable = new Set();
+      (v2.data || []).forEach((row) => {
+        const ref = String(row?.bib_ref || '').trim();
+        if (ref) unavailable.add(ref);
+      });
+      const oldOpenByBook = new Set((old.data || []).map((row) => Number(row.book_id)).filter((v) => Number.isFinite(v) && v > 0));
+      ids.forEach((bookId, idx) => {
+        if (oldOpenByBook.has(bookId)) unavailable.add(String(cleanRefs[idx] || bibRefs[idx] || '').trim());
+      });
+
+      const conflictRefs = Array.from(unavailable).filter(Boolean);
+      if (conflictRefs.length) throw new Error('Livros indisponíveis para empréstimo: ' + conflictRefs.join(', '));
+    }
+
+    async function countOpenLoansForUserHybrid(userId){
+      const [v2, old] = await Promise.all([
+        supabase
+          .schema('api')
+          .from('emprestimo_itens_ui')
+          .select('emprestimo_item_id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('item_status', 'aberto'),
+        supabase
+          .schema('api')
+          .from('loans')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .is('returned_date', null)
+      ]);
+      if (v2.error) throw v2.error;
+      if (old.error) throw old.error;
+      return Number(v2.count || 0) + Number(old.count || 0);
+    }
+
+    function normalizeEmprestimoV2CreateResult(data, dueDateFallback){
+      const row = Array.isArray(data) ? data[0] : data;
+      const rawId = row?.emprestimo_id ?? row?.id ?? row?.loan_id ?? (typeof data === 'number' || typeof data === 'string' ? data : null);
+      const emprestimoId = Number(rawId);
+      const safeEmprestimoId = Number.isFinite(emprestimoId) && emprestimoId > 0 ? emprestimoId : null;
+      return {
+        source: 'v2',
+        emprestimoId: safeEmprestimoId,
+        loanIds: safeEmprestimoId ? [safeEmprestimoId] : [],
+        dueDate: row?.due_at || row?.due_date || row?.new_due_date || dueDateFallback || null,
+        displayId: safeEmprestimoId ? String(safeEmprestimoId) : '—'
+      };
+    }
+
+    async function tryCreateEmprestimoV2ByBibRefs(userId, bibRefs, note='Saída registrada no painel.', dueDate=null){
+      const candidates = [
+        ['fn_v2_create_emprestimo_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
+        ['fn_v2_create_emprestimo_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
+        ['fn_v2_create_emprestimo_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }],
+        ['fn_v2_create_emprestimo', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
+        ['fn_v2_create_emprestimo', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
+        ['fn_v2_create_emprestimo', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }],
+        ['create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
+        ['create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
+        ['create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }],
+        ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_at: dueDate, p_notes: note }],
+        ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_due_date: dueDate, p_notes: note }],
+        ['fn_create_emprestimo_v2_by_bib_refs', { p_user_id: userId, p_bib_refs: bibRefs, p_notes: note }]
+      ];
+      let lastMissing = null;
+      for (const [fn, args] of candidates) {
+        const res = await supabase.rpc(fn, args);
+        if (!res.error) return normalizeEmprestimoV2CreateResult(res.data, dueDate);
+        if (!isMissingFunctionError(res.error)) throw res.error;
+        lastMissing = res.error;
+      }
+      return null;
+    }
+
+    async function insertCurrentLoansForUserV2First(userId, bibRefs, note='Saída registrada no painel.', dueAt=null){
+      const books = await loadBooksForLoanBibRefs(bibRefs);
+      const cleanRefs = books.map((b) => String(b.bib_ref));
+      await ensureBooksCurrentlyAvailableHybrid(books.map((b) => b.id), cleanRefs);
+      const openCount = await countOpenLoansForUserHybrid(userId);
+      if (openCount + books.length > 5) {
+        throw new Error('Limite de empréstimos ativos = 5: devolva algo antes de registrar nova saída.');
+      }
+      const dueDate = dueAt || addDays(todayISO(), loanDaysByCount(books.length));
+      const v2Result = await tryCreateEmprestimoV2ByBibRefs(userId, cleanRefs, note, dueDate);
+      if (v2Result) return v2Result;
+      const oldResult = await insertCurrentLoansForUser(userId, cleanRefs, note, dueAt);
+      return {
+        ...oldResult,
+        source: 'old',
+        displayId: oldResult.loanIds.length ? String(Math.min(...oldResult.loanIds)) : '—'
+      };
+    }
+
     async function confirmReservationToLoan(reservaId){
       const rpcRes = await supabase.rpc('fn_confirm_reserva_to_loan', { p_reserva_id: reservaId, p_due_at: null });
       if (!rpcRes.error) {
@@ -2274,9 +2394,10 @@
       $('btnRegistrarSaida').disabled = true;
       try {
         const borrower = await findUserByEmail(email);
-        const result = await insertCurrentLoansForUser(borrower.id, refs, 'Saída registrada no painel.', null);
-        const lotLabel = result.loanIds.length ? Math.min(...result.loanIds) : '—';
-        setStatus('statusSaida', `Saída registrada. ID do empréstimo: ${lotLabel}. Prazo: ${fmtDate(result.dueDate)}.`, 'ok');
+        const result = await insertCurrentLoansForUserV2First(borrower.id, refs, 'Saída registrada no painel.', null);
+        const lotLabel = result.displayId || (result.loanIds.length ? String(Math.min(...result.loanIds)) : '—');
+        const compatNote = result.source === 'old' ? ' Atenção: esta saída ainda usou a via antiga de compatibilidade.' : '';
+        setStatus('statusSaida', `Saída registrada. ID do empréstimo: ${lotLabel}. Prazo: ${fmtDate(result.dueDate)}.${compatNote}`, 'ok');
         $('bibRefs').value = '';
         refreshLoanHint();
         await refreshCollections({silent:true});
