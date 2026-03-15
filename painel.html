@@ -721,8 +721,6 @@
 
               <div>
                 <div class="profile-pane active" id="profilePaneDados">
-                  <div class="mini" style="margin-bottom:12px">Os campos abaixo reproduzem os dados pessoais da página “Conta”, para permitir uma gestão completa do cadastro do(a/e) leitor(a/e).</div>
-
                   <div class="row">
                     <div>
                       <label for="editFirstName">Nome</label>
@@ -778,11 +776,12 @@
                     </div>
                   </div>
 
+                  <div style="margin-top:12px">
+                    <label for="editCity">Cidade</label>
+                    <input class="input" id="editCity" type="text">
+                  </div>
+
                   <div class="row" style="margin-top:12px">
-                    <div>
-                      <label for="editCity">Cidade</label>
-                      <input class="input" id="editCity" type="text">
-                    </div>
                     <div>
                       <label for="editState">Estado</label>
                       <select class="select" id="editState">
@@ -817,11 +816,9 @@
                   <option value="TO">Tocantins (TO)</option>
                       </select>
                     </div>
-                  </div>
-
-                  <div style="margin-top:12px">
-                    <label for="editCountry">País</label>
-                    <select class="select" id="editCountry">
+                    <div>
+                      <label for="editCountry">País</label>
+                      <select class="select" id="editCountry">
 <option value="Brasil">Brasil</option>
                   <option value="">— selecione —</option>
                   <option value="Afeganistão">Afeganistão</option>
@@ -1019,10 +1016,9 @@
                   <option value="Zâmbia">Zâmbia</option>
                   <option value="Zimbábue">Zimbábue</option>
                   <option value="Estado da Palestina">Estado da Palestina</option>
-                    </select>
+                      </select>
+                    </div>
                   </div>
-
-                  <div class="sep"></div>
 
                   <div class="row" style="margin-top:12px">
                     <div>
@@ -1230,37 +1226,24 @@
       }
       return null;
     }
-    function setChip(id, value){ const el = $(id); if (el) el.textContent = value; }
 
-
-    function extractProfileAddressPart(prefix, text){
-      const re = new RegExp(`^${prefix}\s*:\s*(.*)$`, 'mi');
+    function extractPackedAddress(prefix, text){
+      const re = new RegExp(`^${prefix}\\s*:\\s*(.*)$`, 'mi');
       const m = String(text || '').match(re);
       return m ? m[1].trim() : '';
     }
 
-    function loadProfileAddressFields(data){
-      const addressText = editingKnownColumns.address ? (data?.[editingKnownColumns.address] || '') : '';
-      const lines = String(addressText || '').split('
-').map((l) => l.trim()).filter(Boolean);
+    function loadProfileAddressFields(addressText){
+      const lines = String(addressText || '').split('\n').map((l) => l.trim()).filter(Boolean);
       const free = lines.filter((l) => !/^(Casa\/Apto:|CEP:|Bairro:|Cidade:|Estado:|País:)/i.test(l));
-      const fallbackAddress1 = editingKnownColumns.address1 ? (data?.[editingKnownColumns.address1] || '') : '';
-      const fallbackAddress2 = editingKnownColumns.address2 ? (data?.[editingKnownColumns.address2] || '') : '';
-      const fallbackUnit = editingKnownColumns.address_number ? (data?.[editingKnownColumns.address_number] || '') : '';
-      const fallbackCep = editingKnownColumns.postal_code ? (data?.[editingKnownColumns.postal_code] || '') : '';
-      const fallbackBairro = editingKnownColumns.bairro ? (data?.[editingKnownColumns.bairro] || '') : '';
-      const fallbackCity = editingKnownColumns.city ? (data?.[editingKnownColumns.city] || '') : '';
-      const fallbackState = editingKnownColumns.state ? (data?.[editingKnownColumns.state] || '') : '';
-      const fallbackCountry = editingKnownColumns.country ? (data?.[editingKnownColumns.country] || '') : '';
-
-      $('editAddr1').value = free[0] || fallbackAddress1;
-      $('editAddr2').value = free[1] || fallbackAddress2;
-      $('editUnit').value = extractProfileAddressPart('Casa\/Apto', addressText) || fallbackUnit;
-      $('editCep').value = extractProfileAddressPart('CEP', addressText) || fallbackCep;
-      $('editBairro').value = extractProfileAddressPart('Bairro', addressText) || fallbackBairro;
-      $('editCity').value = extractProfileAddressPart('Cidade', addressText) || fallbackCity;
-      $('editState').value = extractProfileAddressPart('Estado', addressText) || fallbackState;
-      $('editCountry').value = extractProfileAddressPart('País', addressText) || fallbackCountry || 'Brasil';
+      $('editAddr1').value = free[0] || '';
+      $('editAddr2').value = free[1] || '';
+      $('editUnit').value = extractPackedAddress('Casa\/Apto', addressText);
+      $('editCep').value = extractPackedAddress('CEP', addressText);
+      $('editBairro').value = extractPackedAddress('Bairro', addressText);
+      $('editCity').value = extractPackedAddress('Cidade', addressText);
+      $('editState').value = extractPackedAddress('Estado', addressText);
+      $('editCountry').value = extractPackedAddress('País', addressText) || 'Brasil';
     }
 
     function packProfileAddress(){
@@ -1268,15 +1251,16 @@
         $('editAddr1').value.trim(),
         $('editAddr2').value.trim(),
         $('editUnit').value.trim() ? `Casa/Apto: ${$('editUnit').value.trim()}` : '',
-        $('editCep').value.trim() ? `CEP: ${$('editCep').value.trim()}` : '',
-        $('editBairro').value.trim() ? `Bairro: ${$('editBairro').value.trim()}` : '',
-        $('editCity').value.trim() ? `Cidade: ${$('editCity').value.trim()}` : '',
-        $('editState').value ? `Estado: ${$('editState').value}` : '',
-        $('editCountry').value ? `País: ${$('editCountry').value}` : ''
+        `CEP: ${$('editCep').value.trim()}`,
+        `Bairro: ${$('editBairro').value.trim()}`,
+        `Cidade: ${$('editCity').value.trim()}`,
+        `Estado: ${$('editState').value}`,
+        `País: ${$('editCountry').value}`
       ].filter(Boolean);
-      return lines.join('
-');
+      return lines.join('\n');
     }
+
+    function setChip(id, value){ const el = $(id); if (el) el.textContent = value; }
 
     function translateServiceMode(mode){
       return ({
@@ -1985,28 +1969,15 @@
       editingProfileId = data.id;
       editingProfileRow = data;
       editingKnownColumns = {
-        first_name: firstExistingKey(data, ['first_name','nome','firstName']),
-        last_name: firstExistingKey(data, ['last_name','sobrenome','surname','lastname','lastName']),
-        phone: firstExistingKey(data, ['phone','telefone']),
-        gender: firstExistingKey(data, ['gender','genero','gênero']),
-        address: firstExistingKey(data, ['address','endereco','endereço']),
-        country: firstExistingKey(data, ['country','pais','país']),
-        address1: firstExistingKey(data, ['address_line1','endereco1','endereço1','address1','logradouro','rua']),
-        address_number: firstExistingKey(data, ['address_number','numero','número','num','house_number','street_number','address_no','address_num','apt','apartment','unit']),
-        address2: firstExistingKey(data, ['address_line2','endereco2','endereço2','address2','complemento']),
-        postal_code: firstExistingKey(data, ['postal_code','cep','zip','zipcode']),
-        bairro: firstExistingKey(data, ['bairro','district','neighborhood']),
-        city: firstExistingKey(data, ['city','cidade','municipio','município']),
-        state: firstExistingKey(data, ['state','estado','uf','region']),
         is_librarian: firstExistingKey(data, ['is_librarian','bibliotecario','is_bibliotecario']),
         is_restricted: firstExistingKey(data, ['is_restricted','restricted']),
         restricted_reason: firstExistingKey(data, ['restricted_reason','motivo_restricao','motivo_restrição']),
       };
-      $('editFirstName').value = editingKnownColumns.first_name ? (data[editingKnownColumns.first_name] || '') : '';
-      $('editLastName').value = editingKnownColumns.last_name ? (data[editingKnownColumns.last_name] || '') : '';
-      $('editPhone').value = editingKnownColumns.phone ? (data[editingKnownColumns.phone] || '') : '';
-      $('editGender').value = editingKnownColumns.gender ? (data[editingKnownColumns.gender] || '') : '';
-      loadProfileAddressFields(data);
+      $('editFirstName').value = data.first_name || '';
+      $('editLastName').value = data.last_name || '';
+      $('editPhone').value = data.phone || '';
+      $('editGender').value = data.gender || '';
+      loadProfileAddressFields(data.address || '');
       $('editLibrarian').value = editingKnownColumns.is_librarian ? String(!!data[editingKnownColumns.is_librarian]) : 'false';
       $('editRestricted').value = editingKnownColumns.is_restricted ? String(!!data[editingKnownColumns.is_restricted]) : 'false';
       $('editRestrictedReason').value = editingKnownColumns.restricted_reason ? (data[editingKnownColumns.restricted_reason] || '') : '';
@@ -2017,24 +1988,16 @@
 
     async function saveProfile(){
       if (!editingProfileId) return setStatus('statusPerfil', 'Busque um perfil primeiro.', 'warn');
-      const payload = {};
-      if (editingKnownColumns.first_name) payload[editingKnownColumns.first_name] = $('editFirstName').value.trim();
-      if (editingKnownColumns.last_name) payload[editingKnownColumns.last_name] = $('editLastName').value.trim();
-      if (editingKnownColumns.phone) payload[editingKnownColumns.phone] = $('editPhone').value.trim();
-      if (editingKnownColumns.gender) payload[editingKnownColumns.gender] = $('editGender').value;
-      if (editingKnownColumns.address) payload[editingKnownColumns.address] = packProfileAddress();
-      if (editingKnownColumns.country) payload[editingKnownColumns.country] = $('editCountry').value;
-      if (editingKnownColumns.address1) payload[editingKnownColumns.address1] = $('editAddr1').value.trim();
-      if (editingKnownColumns.address_number) payload[editingKnownColumns.address_number] = $('editUnit').value.trim();
-      if (editingKnownColumns.address2) payload[editingKnownColumns.address2] = $('editAddr2').value.trim();
-      if (editingKnownColumns.postal_code) payload[editingKnownColumns.postal_code] = $('editCep').value.trim();
-      if (editingKnownColumns.bairro) payload[editingKnownColumns.bairro] = $('editBairro').value.trim();
-      if (editingKnownColumns.city) payload[editingKnownColumns.city] = $('editCity').value.trim();
-      if (editingKnownColumns.state) payload[editingKnownColumns.state] = $('editState').value;
+      const payload = {
+        first_name: $('editFirstName').value.trim(),
+        last_name: $('editLastName').value.trim(),
+        phone: $('editPhone').value.trim(),
+        gender: $('editGender').value,
+        address: packProfileAddress()
+      };
       if (editingKnownColumns.is_librarian) payload[editingKnownColumns.is_librarian] = $('editLibrarian').value === 'true';
       if (editingKnownColumns.is_restricted) payload[editingKnownColumns.is_restricted] = $('editRestricted').value === 'true';
       if (editingKnownColumns.restricted_reason) payload[editingKnownColumns.restricted_reason] = $('editRestrictedReason').value.trim();
-      if (!Object.keys(payload).length) return setStatus('statusPerfil', 'Nenhum campo compatível foi encontrado para atualização.', 'warn');
       const { error } = await supabase.from('profiles').update(payload).eq('id', editingProfileId);
       if (error) throw error;
       setStatus('statusPerfil', 'Alterações salvas.', 'ok');
