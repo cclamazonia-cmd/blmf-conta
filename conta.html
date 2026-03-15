@@ -909,10 +909,22 @@ button[type="submit"] *,
     const activeReserveMsg = $("activeReserveMsg");
     const loanMsg = $("loanMsg");
     let loanMsgHoldUntil = 0;
+    let loanMsgTimer = null;
     function setLoanMsgText(message, holdMs = 0) {
       if (!loanMsg) return;
+      if (loanMsgTimer) {
+        clearTimeout(loanMsgTimer);
+        loanMsgTimer = null;
+      }
       loanMsg.textContent = message || "";
       loanMsgHoldUntil = message && holdMs > 0 ? (Date.now() + holdMs) : 0;
+      if (message && holdMs > 0) {
+        loanMsgTimer = setTimeout(() => {
+          loanMsg.textContent = "";
+          loanMsgHoldUntil = 0;
+          loanMsgTimer = null;
+        }, holdMs);
+      }
     }
     const historyEl = $("history");
     const historyMsg = $("historyMsg");
