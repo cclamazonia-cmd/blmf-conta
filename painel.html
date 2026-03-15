@@ -471,7 +471,7 @@
         </button>
         <button class="tab-btn" type="button" data-tab="reservas" role="tab" aria-selected="false" aria-controls="tab-reservas">
           Reservas ativas
-          <span class="hint">Acompanhar, confirmar retirada ou cancelar</span>
+          <span class="hint">Confirmar retirada ou cancelar</span>
         </button>
         <button class="tab-btn" type="button" data-tab="emprestimos-livro" role="tab" aria-selected="false" aria-controls="tab-emprestimos-livro">
           Empréstimos por livro
@@ -603,41 +603,6 @@
               </div>
             </div>
             <div class="sep"></div>
-            <div class="muted-box mini" style="margin-bottom:12px">Use <strong>Confirmar retirada</strong> apenas quando o livro já tiver sido realmente entregue à pessoa. Enquanto o livro estiver só separado, aguardando resposta ou combinando horário, a reserva deve continuar ativa.</div>
-            <div class="chips" id="reservationFollowUpChips" style="margin-top:0;margin-bottom:10px">
-              <span class="chip" id="chipResQueueOpen">Em aberto: —</span>
-              <span class="chip" id="chipResQueueSoon">Até 3 dias: —</span>
-              <span class="chip" id="chipResQueueToday">Hoje: —</span>
-              <span class="chip" id="chipResQueueExpired">Vencidas: —</span>
-            </div>
-            <div class="actions" id="reservationFollowUpFilters" style="margin-top:0;margin-bottom:12px">
-              <button class="btn mini primary" type="button" data-res-filter="all">Todas</button>
-              <button class="btn mini" type="button" data-res-filter="open">Em aberto</button>
-              <button class="btn mini" type="button" data-res-filter="soon">Até 3 dias</button>
-              <button class="btn mini" type="button" data-res-filter="today">Hoje</button>
-              <button class="btn mini" type="button" data-res-filter="expired">Vencidas</button>
-            </div>
-            <div class="muted-box" style="margin-bottom:12px">
-              <div class="mini" style="margin-bottom:8px">Seguimento intermediário das reservas selecionadas</div>
-              <div class="actions" style="margin-top:0">
-                <button class="btn mini" type="button" data-res-workflow-stage="em_preparacao">Marcar como preparado</button>
-                <button class="btn mini" type="button" data-res-workflow-stage="aviso_enviado">Registrar aviso enviado</button>
-                <button class="btn mini" type="button" data-res-workflow-stage="retirada_a_combinar">Marcar retirada a combinar</button>
-                <button class="btn mini" type="button" data-res-workflow-stage="retirada_agendada">Agendar retirada</button>
-                <button class="btn mini" type="button" data-res-workflow-stage="pronta_para_retirada">Marcar pronta para retirada</button>
-                <button class="btn mini" type="button" data-res-workflow-stage="solicitada">Voltar para solicitada</button>
-              </div>
-              <div class="row" style="margin-top:12px">
-                <div>
-                  <label for="reservationWorkflowPickupAt">Data e hora da retirada (opcional; obrigatória só para “Agendar retirada”)</label>
-                  <input class="input" id="reservationWorkflowPickupAt" type="datetime-local">
-                </div>
-                <div>
-                  <label for="reservationWorkflowNote">Nota interna breve (opcional)</label>
-                  <input class="input" id="reservationWorkflowNote" type="text" placeholder="Ex.: separado na estante, aviso enviado por mensagem.">
-                </div>
-              </div>
-            </div>
             <div class="tableWrap">
               <table>
                 <thead>
@@ -1163,7 +1128,6 @@
     let activeLoans = [];
     let activeBatches = [];
     let selectedReservaIds = new Set();
-    let reservationFollowUpFilter = 'all';
     let editingProfileId = null;
     let editingProfileRow = null;
     let editingKnownColumns = {};
@@ -1192,11 +1156,14 @@
       el.className = 'status' + (cls ? ` ${cls}` : '');
       el.textContent = msg || '';
       if (msg && autoclear) {
+        const ttl = cls && /(^|\s)ok(\s|$)/.test(cls)
+          ? 24000
+          : (cls && /(^|\s)warn(\s|$)/.test(cls) ? 16000 : 12000);
         const t = setTimeout(() => {
           el.className = 'status';
           el.textContent = '';
           statusTimers.delete(id);
-        }, 10000);
+        }, ttl);
         statusTimers.set(id, t);
       }
     }
@@ -1210,29 +1177,6 @@
     const fmtDateTime = (v) => {
       if (!v) return '—';
       return String(v).replace('T',' ').slice(0,16);
-    };
-    const BELÉM_UTC_OFFSET = '-03:00';
-    const fmtDateTimeBelem = (v) => {
-      if (!v) return '—';
-      const d = new Date(v);
-      if (Number.isNaN(d.getTime())) return String(v).replace('T',' ').slice(0,16);
-      const parts = new Intl.DateTimeFormat('sv-SE', {
-        timeZone: 'America/Belem',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).formatToParts(d);
-      const pick = (type) => parts.find((part) => part.type === type)?.value || '';
-      return `${pick('year')}-${pick('month')}-${pick('day')} ${pick('hour')}:${pick('minute')}`;
-    };
-    const parseDateTimeLocalAsBelemISO = (value) => {
-      const m = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
-      if (!m) return null;
-      const [, year, month, day, hour, minute] = m;
-      return `${year}-${month}-${day}T${hour}:${minute}:00${BELÉM_UTC_OFFSET}`;
     };
     const todayISO = () => new Date().toISOString().slice(0,10);
     const nowISO = () => new Date().toISOString();
@@ -1536,7 +1480,7 @@
     async function fetchActiveReservations(){
       const qv2 = await supabase
         .schema('api')
-        .from('reserva_itens_followup_ui')
+        .from('reserva_itens_ui')
         .select('*')
         .eq('item_status', 'ativa')
         .order('reserva_id', { ascending:false })
@@ -1565,11 +1509,6 @@
             rotulo: r.rotulo || rotulosMap.get(String(r.bib_ref || '').trim()) || '—',
             reserva_em: r.reserva_created_at || r.item_created_at,
             validade: r.expires_at || addDays(r.reserva_created_at || r.item_created_at || Date.now(), 14),
-            workflow_stage: r.workflow_stage_effective || 'solicitada',
-            workflow_stage_updated_at: r.workflow_stage_updated_at_effective || null,
-            workflow_note: r.workflow_note || '',
-            pickup_scheduled_for: r.pickup_scheduled_for || null,
-            pickup_attention: r.pickup_attention || null,
             raw: r,
           };
         });
@@ -1617,11 +1556,6 @@
           rotulo: rotulosMap.get(String(r.bib_ref || '').trim()) || '—',
           reserva_em: created,
           validade: addDays(created || Date.now(), 14),
-          workflow_stage: 'solicitada',
-          workflow_stage_updated_at: created || null,
-          workflow_note: '',
-          pickup_scheduled_for: null,
-          pickup_attention: null,
           raw: r,
         };
       });
@@ -1808,101 +1742,14 @@
       setChip('chipBatchCount', `Empréstimos agrupados: ${activeBatches.length}`);
     }
 
-    function reservationDateDiff(dateLike){
-      const s = String(dateLike || '').slice(0,10);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-      const today = new Date(todayISO() + 'T00:00:00');
-      const target = new Date(s + 'T00:00:00');
-      return Math.floor((target - today) / 86400000);
-    }
-
-    function getReservationFollowUp(r){
-      const daysLeft = reservationDateDiff(r.validade);
-      const createdDiff = reservationDateDiff(r.reserva_em);
-      const ageDays = createdDiff == null ? null : Math.max(0, -createdDiff);
-      if (daysLeft == null) return { bucket:'open', className:'warn', label:'Sem prazo', detail:'Verificar manualmente' };
-      if (daysLeft < 0) return { bucket:'expired', className:'bad', label:'Prazo vencido', detail:'Retirada não confirmada' };
-      if (daysLeft === 0) return { bucket:'today', className:'bad', label:'Retirar hoje', detail:'Prioridade máxima' };
-      if (daysLeft <= 3) return { bucket:'soon', className:'warn', label:`Até ${daysLeft} dia(s)`, detail:'Combinar retirada' };
-      if (ageDays != null && ageDays <= 1) return { bucket:'open', className:'ok', label:'Nova', detail:`Prazo em ${daysLeft} dia(s)` };
-      return { bucket:'open', className:'ok', label:'Em aberto', detail:`Prazo em ${daysLeft} dia(s)` };
-    }
-
-    function translateReservationWorkflowStage(stage){
-      return ({
-        solicitada: 'Solicitada',
-        em_preparacao: 'Em preparação',
-        aviso_enviado: 'Aviso enviado',
-        retirada_a_combinar: 'Retirada a combinar',
-        retirada_agendada: 'Retirada agendada',
-        pronta_para_retirada: 'Pronta para retirada',
-        retirada_efetivada: 'Retirada efetivada',
-        cancelada_leitor: 'Cancelada pelo leitor',
-        cancelada_biblioteca: 'Cancelada pela biblioteca',
-        expirada: 'Expirada'
-      })[String(stage || '')] || 'Solicitada';
-    }
-
-    function reservationWorkflowStageClass(stage){
-      return ({
-        solicitada: 'warn',
-        em_preparacao: 'warn',
-        aviso_enviado: 'warn',
-        retirada_a_combinar: 'warn',
-        retirada_agendada: 'ok',
-        pronta_para_retirada: 'ok',
-        retirada_efetivada: 'ok',
-        cancelada_leitor: 'bad',
-        cancelada_biblioteca: 'bad',
-        expirada: 'bad'
-      })[String(stage || '')] || 'warn';
-    }
-
-    function reservationWorkflowDetail(r){
-      const details = [];
-      if (r.pickup_scheduled_for) details.push('Retirada: ' + fmtDateTimeBelem(r.pickup_scheduled_for) + ' (Belém)');
-      if (r.workflow_note) details.push(r.workflow_note);
-      return details.join(' · ');
-    }
-
-    function reservationMatchesFilter(r){
-      const followUp = getReservationFollowUp(r);
-      if (reservationFollowUpFilter === 'all') return true;
-      return followUp.bucket === reservationFollowUpFilter;
-    }
-
-    function renderReservationFollowUpSummary(){
-      const summary = { open:0, soon:0, today:0, expired:0 };
-      activeReservations.forEach((r) => {
-        const bucket = getReservationFollowUp(r).bucket;
-        if (summary[bucket] != null) summary[bucket] += 1;
-      });
-      setChip('chipResQueueOpen', `Em aberto: ${summary.open}`);
-      setChip('chipResQueueSoon', `Até 3 dias: ${summary.soon}`);
-      setChip('chipResQueueToday', `Hoje: ${summary.today}`);
-      setChip('chipResQueueExpired', `Vencidas: ${summary.expired}`);
-      document.querySelectorAll('[data-res-filter]').forEach((btn) => {
-        btn.classList.toggle('primary', btn.getAttribute('data-res-filter') === reservationFollowUpFilter);
-      });
-    }
-
     function renderReservationTable(){
       const tbody = $('tbodyRes');
-      renderReservationFollowUpSummary();
       if (!activeReservations.length){
         tbody.innerHTML = '<tr><td colspan="8">Sem reservas ativas.</td></tr>';
         return;
       }
-      const rows = activeReservations.filter(reservationMatchesFilter);
-      if (!rows.length){
-        tbody.innerHTML = '<tr><td colspan="8">Nenhuma reserva neste recorte.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = rows.map((r) => {
+      tbody.innerHTML = activeReservations.map((r) => {
         const checked = selectedReservaIds.has(r.id) ? 'checked' : '';
-        const followUp = getReservationFollowUp(r);
-        const workflowLabel = translateReservationWorkflowStage(r.workflow_stage);
-        const workflowDetail = reservationWorkflowDetail(r);
         return `
           <tr data-reserva-row="${esc(r.id)}" class="${checked ? 'is-selected clickable-row' : 'clickable-row'}">
             <td><input type="checkbox" ${checked} data-reserva-check="${esc(r.id)}" aria-label="Selecionar ${esc(r.sub_id)}"></td>
@@ -1911,8 +1758,8 @@
             <td>${esc(r.titulo)}${r.autor ? `<br><span class="mini subtle">${esc(r.autor)}</span>` : ''}</td>
             <td class="mono">${esc(r.bib_ref)}</td>
             <td>${esc(r.rotulo || '—')}</td>
-            <td>${esc(fmtDateTime(r.reserva_em))}<br><span class="pill ${esc(reservationWorkflowStageClass(r.workflow_stage))}">${esc(workflowLabel)}</span>${r.workflow_stage_updated_at ? `<br><span class="mini subtle">Atualizado: ${esc(fmtDateTime(r.workflow_stage_updated_at))}</span>` : ''}${workflowDetail ? `<br><span class="mini subtle">${esc(workflowDetail)}</span>` : ''}</td>
-            <td>${esc(fmtDateTime(r.validade))}<br><span class="pill ${esc(followUp.className)}">${esc(followUp.label)}</span><br><span class="mini subtle">${esc(followUp.detail)}</span></td>
+            <td>${esc(fmtDateTime(r.reserva_em))}</td>
+            <td>${esc(fmtDateTime(r.validade))}</td>
           </tr>`;
       }).join('');
     }
@@ -2027,25 +1874,21 @@
       if (!myRes.length){
         tbodyRes.innerHTML = '<tr><td colspan="7">Sem reservas ativas para esse perfil.</td></tr>';
       } else {
-        tbodyRes.innerHTML = myRes.map((r) => {
-          const workflowLabel = translateReservationWorkflowStage(r.workflow_stage);
-          const workflowDetail = reservationWorkflowDetail(r);
-          return `
+        tbodyRes.innerHTML = myRes.map((r) => `
           <tr>
             <td>#${esc(r.reserva_id)}</td>
             <td class="mono">${esc(r.sub_id)}</td>
             <td>${esc(r.titulo)}${r.autor ? `<br><span class="mini subtle">${esc(r.autor)}</span>` : ''}</td>
             <td class="mono">${esc(r.bib_ref)}</td>
             <td>${esc(fmtDate(r.validade))}</td>
-            <td><span class="pill ${esc(reservationWorkflowStageClass(r.workflow_stage))}">${esc(workflowLabel)}</span>${workflowDetail ? `<br><span class="mini subtle">${esc(workflowDetail)}</span>` : ''}</td>
+            <td><span class="pill ok">Ativa</span></td>
             <td>
               <div class="actions" style="margin-top:0">
                 <button class="btn mini" type="button" data-profile-confirm-reserva="${r.id}">Confirmar retirada</button>
                 <button class="btn mini" type="button" data-profile-cancel-reserva="${r.id}">Cancelar</button>
               </div>
             </td>
-          </tr>`;
-        }).join('');
+          </tr>`).join('');
       }
       const myLoans = dedupeBy(findProfileLoans(editingProfileId), (l) => `${l.source || 'x'}|${l.emprestimo_id || l.loan_id}|${l.line_no || 0}|${l.sub_id || ''}`);
       if (!myLoans.length){
@@ -2623,59 +2466,6 @@
       }
     }
 
-
-    async function setReservationsWorkflow(reservationIds, stage, targetStatusId='statusRes'){
-      const ids = Array.from(new Set((reservationIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)));
-      if (!ids.length) return setStatus(targetStatusId, 'Selecione pelo menos 1 livro reservado.', 'warn');
-      const rows = activeReservations.filter((r) => ids.includes(r.id));
-      if (!rows.length) return setStatus(targetStatusId, 'As reservas selecionadas já não estão ativas.', 'warn');
-
-      const v2Rows = rows.filter((r) => r.source === 'v2');
-      const oldRows = rows.filter((r) => r.source !== 'v2');
-      if (!v2Rows.length) {
-        return setStatus(targetStatusId, 'O seguimento intermédio está disponível apenas para reservas v2 ativas.', 'warn');
-      }
-
-      const pickupInput = $('reservationWorkflowPickupAt')?.value || '';
-      let pickupScheduledFor = null;
-      if (stage === 'retirada_agendada') {
-        if (!pickupInput) return setStatus(targetStatusId, 'Informe a data e hora da retirada para agendar.', 'warn');
-        pickupScheduledFor = parseDateTimeLocalAsBelemISO(pickupInput);
-        if (!pickupScheduledFor || Number.isNaN(new Date(pickupScheduledFor).getTime())) {
-          return setStatus(targetStatusId, 'Data e hora de retirada inválidas.', 'warn');
-        }
-      }
-      const noteInput = ($('reservationWorkflowNote')?.value || '').trim();
-      const note = stage === 'solicitada' ? null : (noteInput || null);
-
-      try {
-        setStatus(targetStatusId, 'Atualizando seguimento das reservas...', 'warn');
-        let total = 0;
-        const grouped = groupBy(v2Rows, (r) => r.reserva_id);
-        for (const [reservaId, items] of grouped.entries()) {
-          const lineNos = items.map((i) => Number(i.line_no));
-          const rpc = await supabase.rpc('fn_v2_set_reserva_linhas_workflow', {
-            p_reserva_id: Number(reservaId),
-            p_line_nos: lineNos,
-            p_stage: stage,
-            p_note: note,
-            p_pickup_scheduled_for: pickupScheduledFor
-          });
-          if (rpc.error) throw rpc.error;
-          total += Array.isArray(rpc.data) ? rpc.data.length : 0;
-        }
-        const ignored = oldRows.length ? ` ${oldRows.length} reserva(s) antiga(s) ficaram sem alteração.` : '';
-        if (stage === 'solicitada') {
-          if ($('reservationWorkflowPickupAt')) $('reservationWorkflowPickupAt').value = '';
-          if ($('reservationWorkflowNote')) $('reservationWorkflowNote').value = '';
-        }
-        setStatus(targetStatusId, `${translateReservationWorkflowStage(stage)} aplicada em ${total} item(ns).${ignored}`, 'ok');
-        await refreshCollections({silent:true});
-      } catch (e) {
-        setStatus(targetStatusId, e.message || String(e), 'bad', false);
-      }
-    }
-
     function bindReservationSelection(){
       $('tbodyRes').addEventListener('click', (ev) => {
         const check = ev.target.closest('[data-reserva-check]');
@@ -2696,23 +2486,6 @@
 
     function bindDynamicActions(){
       document.body.addEventListener('click', async (ev) => {
-        const reservationFilterBtn = ev.target.closest('[data-res-filter]');
-        if (reservationFilterBtn) {
-          reservationFollowUpFilter = reservationFilterBtn.getAttribute('data-res-filter') || 'all';
-          renderReservationTable();
-          return;
-        }
-
-        const workflowBtn = ev.target.closest('[data-res-workflow-stage]');
-        if (workflowBtn) {
-          const stage = workflowBtn.getAttribute('data-res-workflow-stage');
-          if (!stage) return;
-          workflowBtn.disabled = true;
-          await setReservationsWorkflow([...selectedReservaIds], stage, 'statusRes');
-          workflowBtn.disabled = false;
-          return;
-        }
-
         const renewBatchV2Btn = ev.target.closest('[data-renew-batch-v2]');
         if (renewBatchV2Btn) {
           const emprestimoId = Number(renewBatchV2Btn.getAttribute('data-renew-batch-v2'));
