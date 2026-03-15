@@ -959,23 +959,6 @@ button[type="submit"] *,
       return Number.isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 19).replace("T", " ");
     }
 
-    function fmtDateTimeBelem(v) {
-      if (!v) return "—";
-      const d = new Date(v);
-      if (Number.isNaN(d.getTime())) return String(v);
-      const parts = new Intl.DateTimeFormat('sv-SE', {
-        timeZone: 'America/Belem',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).formatToParts(d);
-      const pick = (type) => parts.find((part) => part.type === type)?.value || '';
-      return `${pick('year')}-${pick('month')}-${pick('day')} ${pick('hour')}:${pick('minute')}`;
-    }
-
     function addDays(v, days) {
       const base = new Date(v || Date.now());
       if (Number.isNaN(base.getTime())) return null;
@@ -1888,7 +1871,7 @@ button[type="submit"] *,
       const [v2Loans, oldLoans, v2Reservas, oldReservas] = await Promise.all([
         supabase.schema("api").from("emprestimo_itens_ui").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
         supabase.schema("api").from("loans_detalhes").select("id, batch_id, due_date, checkout_date, returned_date, books").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(300),
-        supabase.schema("api").from("reserva_itens_followup_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at, workflow_stage_effective").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
+        supabase.schema("api").from("reserva_itens_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
         supabase.schema("api").from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(100)
       ]);
 
@@ -1908,7 +1891,7 @@ button[type="submit"] *,
         for (const r of (v2Reservas.data || [])) {
           items.push({
             when: r.cancelled_at || r.converted_at || r.reserva_created_at,
-            html: `<li><b>Reserva #${escapeHtml(r.reserva_id)}</b> — <span class="mono">${escapeHtml(r.sub_id)}</span> — ${escapeHtml(r.titulo || 'Livro')} — ${escapeHtml(reservationWorkflowLabel(r))}</li>`
+            html: `<li><b>Reserva #${escapeHtml(r.reserva_id)}</b> — <span class="mono">${escapeHtml(r.sub_id)}</span> — ${escapeHtml(r.titulo || 'Livro')} — ${escapeHtml(reservationStatusLabel(r.item_status, r))}</li>`
           });
         }
       }
