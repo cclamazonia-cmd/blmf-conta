@@ -1569,6 +1569,9 @@
             workflow_stage_updated_at: r.workflow_stage_updated_at_effective || null,
             workflow_note: r.workflow_note || '',
             pickup_scheduled_for: r.pickup_scheduled_for || null,
+            pickup_reply_status: r.pickup_reply_status || null,
+            pickup_reply_note: r.pickup_reply_note || '',
+            pickup_reply_at: r.pickup_reply_at || null,
             pickup_attention: r.pickup_attention || null,
             raw: r,
           };
@@ -1858,9 +1861,19 @@
       })[String(stage || '')] || 'warn';
     }
 
+    function translatePickupReplyStatus(status){
+      return ({
+        confirmado_leitor: 'Leitor confirmou o horário',
+        recusado_leitor: 'Leitor não pode nesse horário'
+      })[String(status || '')] || '';
+    }
+
     function reservationWorkflowDetail(r){
       const details = [];
       if (r.pickup_scheduled_for) details.push('Retirada: ' + fmtDateTimeBelem(r.pickup_scheduled_for) + ' (Belém)');
+      const pickupReplyLabel = translatePickupReplyStatus(r.pickup_reply_status);
+      if (pickupReplyLabel) details.push(pickupReplyLabel);
+      if (r.pickup_reply_note) details.push(r.pickup_reply_note);
       if (r.workflow_note) details.push(r.workflow_note);
       return details.join(' · ');
     }
