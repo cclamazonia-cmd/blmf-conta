@@ -471,7 +471,7 @@
         </button>
         <button class="tab-btn" type="button" data-tab="reservas" role="tab" aria-selected="false" aria-controls="tab-reservas">
           Reservas ativas
-          <span class="hint">Confirmar retirada ou cancelar</span>
+          <span class="hint">Acompanhar, confirmar retirada ou cancelar</span>
         </button>
         <button class="tab-btn" type="button" data-tab="emprestimos-livro" role="tab" aria-selected="false" aria-controls="tab-emprestimos-livro">
           Empréstimos por livro
@@ -603,6 +603,20 @@
               </div>
             </div>
             <div class="sep"></div>
+            <div class="muted-box mini" style="margin-bottom:12px">Use <strong>Confirmar retirada</strong> apenas quando o livro já tiver sido realmente entregue à pessoa. Enquanto o livro estiver só separado, aguardando resposta ou combinando horário, a reserva deve continuar ativa.</div>
+            <div class="chips" id="reservationFollowUpChips" style="margin-top:0;margin-bottom:10px">
+              <span class="chip" id="chipResQueueOpen">Em aberto: —</span>
+              <span class="chip" id="chipResQueueSoon">Até 3 dias: —</span>
+              <span class="chip" id="chipResQueueToday">Hoje: —</span>
+              <span class="chip" id="chipResQueueExpired">Vencidas: —</span>
+            </div>
+            <div class="actions" id="reservationFollowUpFilters" style="margin-top:0;margin-bottom:12px">
+              <button class="btn mini primary" type="button" data-res-filter="all">Todas</button>
+              <button class="btn mini" type="button" data-res-filter="open">Em aberto</button>
+              <button class="btn mini" type="button" data-res-filter="soon">Até 3 dias</button>
+              <button class="btn mini" type="button" data-res-filter="today">Hoje</button>
+              <button class="btn mini" type="button" data-res-filter="expired">Vencidas</button>
+            </div>
             <div class="tableWrap">
               <table>
                 <thead>
@@ -1128,6 +1142,7 @@
     let activeLoans = [];
     let activeBatches = [];
     let selectedReservaIds = new Set();
+    let reservationFollowUpFilter = 'all';
     let editingProfileId = null;
     let editingProfileRow = null;
     let editingKnownColumns = {};
@@ -1739,14 +1754,62 @@
       setChip('chipBatchCount', `Empréstimos agrupados: ${activeBatches.length}`);
     }
 
+    function reservationDateDiff(dateLike){
+      const s = String(dateLike || '').slice(0,10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+      const today = new Date(todayISO() + 'T00:00:00');
+      const target = new Date(s + 'T00:00:00');
+      return Math.floor((target - today) / 86400000);
+    }
+
+    function getReservationFollowUp(r){
+      const daysLeft = reservationDateDiff(r.validade);
+      const createdDiff = reservationDateDiff(r.reserva_em);
+      const ageDays = createdDiff == null ? null : Math.max(0, -createdDiff);
+      if (daysLeft == null) return { bucket:'open', className:'warn', label:'Sem prazo', detail:'Verificar manualmente' };
+      if (daysLeft < 0) return { bucket:'expired', className:'bad', label:'Prazo vencido', detail:'Retirada não confirmada' };
+      if (daysLeft === 0) return { bucket:'today', className:'bad', label:'Retirar hoje', detail:'Prioridade máxima' };
+      if (daysLeft <= 3) return { bucket:'soon', className:'warn', label:`Até ${daysLeft} dia(s)`, detail:'Combinar retirada' };
+      if (ageDays != null && ageDays <= 1) return { bucket:'open', className:'ok', label:'Nova', detail:`Prazo em ${daysLeft} dia(s)` };
+      return { bucket:'open', className:'ok', label:'Em aberto', detail:`Prazo em ${daysLeft} dia(s)` };
+    }
+
+    function reservationMatchesFilter(r){
+      const followUp = getReservationFollowUp(r);
+      if (reservationFollowUpFilter === 'all') return true;
+      return followUp.bucket === reservationFollowUpFilter;
+    }
+
+    function renderReservationFollowUpSummary(){
+      const summary = { open:0, soon:0, today:0, expired:0 };
+      activeReservations.forEach((r) => {
+        const bucket = getReservationFollowUp(r).bucket;
+        if (summary[bucket] != null) summary[bucket] += 1;
+      });
+      setChip('chipResQueueOpen', `Em aberto: ${summary.open}`);
+      setChip('chipResQueueSoon', `Até 3 dias: ${summary.soon}`);
+      setChip('chipResQueueToday', `Hoje: ${summary.today}`);
+      setChip('chipResQueueExpired', `Vencidas: ${summary.expired}`);
+      document.querySelectorAll('[data-res-filter]').forEach((btn) => {
+        btn.classList.toggle('primary', btn.getAttribute('data-res-filter') === reservationFollowUpFilter);
+      });
+    }
+
     function renderReservationTable(){
       const tbody = $('tbodyRes');
+      renderReservationFollowUpSummary();
       if (!activeReservations.length){
         tbody.innerHTML = '<tr><td colspan="8">Sem reservas ativas.</td></tr>';
         return;
       }
-      tbody.innerHTML = activeReservations.map((r) => {
+      const rows = activeReservations.filter(reservationMatchesFilter);
+      if (!rows.length){
+        tbody.innerHTML = '<tr><td colspan="8">Nenhuma reserva neste recorte.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map((r) => {
         const checked = selectedReservaIds.has(r.id) ? 'checked' : '';
+        const followUp = getReservationFollowUp(r);
         return `
           <tr data-reserva-row="${esc(r.id)}" class="${checked ? 'is-selected clickable-row' : 'clickable-row'}">
             <td><input type="checkbox" ${checked} data-reserva-check="${esc(r.id)}" aria-label="Selecionar ${esc(r.sub_id)}"></td>
@@ -1756,7 +1819,7 @@
             <td class="mono">${esc(r.bib_ref)}</td>
             <td>${esc(r.rotulo || '—')}</td>
             <td>${esc(fmtDateTime(r.reserva_em))}</td>
-            <td>${esc(fmtDateTime(r.validade))}</td>
+            <td>${esc(fmtDateTime(r.validade))}<br><span class="pill ${esc(followUp.className)}">${esc(followUp.label)}</span><br><span class="mini subtle">${esc(followUp.detail)}</span></td>
           </tr>`;
       }).join('');
     }
@@ -2483,6 +2546,13 @@
 
     function bindDynamicActions(){
       document.body.addEventListener('click', async (ev) => {
+        const reservationFilterBtn = ev.target.closest('[data-res-filter]');
+        if (reservationFilterBtn) {
+          reservationFollowUpFilter = reservationFilterBtn.getAttribute('data-res-filter') || 'all';
+          renderReservationTable();
+          return;
+        }
+
         const renewBatchV2Btn = ev.target.closest('[data-renew-batch-v2]');
         if (renewBatchV2Btn) {
           const emprestimoId = Number(renewBatchV2Btn.getAttribute('data-renew-batch-v2'));
