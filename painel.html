@@ -2757,21 +2757,24 @@
       return supabase.rpc('fn_v2_schedule_emprestimo_return', {
         p_emprestimo_id: emprestimoId,
         p_line_nos: lineNos,
-        p_return_scheduled_for: isoWhen
+        p_return_scheduled_for: isoWhen,
+        p_actor_role: 'biblioteca'
       });
     }
 
     async function clearEmprestimoReturnScheduleV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_clear_emprestimo_return_schedule', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos
+        p_line_nos: lineNos,
+        p_actor_role: 'biblioteca'
       });
     }
 
     async function markEmprestimoReturnMissedV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_mark_emprestimo_return_missed', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos
+        p_line_nos: lineNos,
+        p_actor_role: 'biblioteca'
       });
     }
 
