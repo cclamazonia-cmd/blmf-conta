@@ -134,8 +134,11 @@
     .loan-actions{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:10px; }
     .tag-muted{ color:#cfcfcf; font-size:.9rem; }
     .return-meta{ margin-top:6px; color:#cfcfcf; font-size:.9rem; line-height:1.35; }
-    .return-editor{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
-    .return-editor input[type="datetime-local"]{ max-width:230px; }
+    .return-editor{ display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:8px; }
+    .return-editor-field{ display:flex; flex-direction:column; gap:4px; }
+    .return-editor-field span{ color:#cfcfcf; font-size:.85rem; }
+    .return-editor input[type="date"],
+    .return-editor input[type="time"]{ max-width:230px; }
 
   
     .list-table{ width:100%; border-collapse:collapse; margin-top:10px; }
@@ -455,6 +458,7 @@ button[type="submit"] *,
           <a id="btnCatalogo" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
           <a id="goPainelBiblio" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none;">Ir para modo bibliotecário</a>
           <a class="header-btn" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
+          <a id="btnRegimento" class="header-btn" href="#" target="_blank" rel="noopener noreferrer">Regimento (PDF)</a>
           <button id="logout" class="logout-btn" type="button">Sair</button>
         </div>
         <div id="serviceStateNotice" class="notice" style="display:none; margin-top:12px;"></div>
@@ -887,6 +891,7 @@ button[type="submit"] *,
       CADASTRO: "https://cclamazonia-cmd.github.io/blmf-conta/cadastro.html",
       CATALOGO: "https://cclamazonia-cmd.github.io/blmf-catalogo/",
       PAINEL: "https://cclamazonia-cmd.github.io/blmf-conta/painel.html",
+      REGIMENTO: "https://cclamazonia.noblogs.org/files/2026/03/Regimento-BLMF-v2.2.pdf",
     };
 
     const $ = (id) => document.getElementById(id);
@@ -894,6 +899,8 @@ button[type="submit"] *,
       e.preventDefault();
       window.location.assign(ROUTES.CATALOGO);
     });
+    const btnRegimento = $("btnRegimento");
+    if (btnRegimento) btnRegimento.href = ROUTES.REGIMENTO;
     $("logout")?.addEventListener("click", async () => {
       await supabase.auth.signOut();
       window.location.href = ROUTES.CADASTRO;
@@ -987,16 +994,20 @@ button[type="submit"] *,
     function fmtDateTimeBelem(v) {
       if (!v) return "—";
       const d = new Date(v);
-      return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString("pt-BR", {
+      if (Number.isNaN(d.getTime())) return String(v);
+      const parts = new Intl.DateTimeFormat("en-CA", {
         timeZone: "America/Belem",
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit",
         hour12: false
-      });
+      }).formatToParts(d).reduce((acc, part) => {
+        if (part.type !== "literal") acc[part.type] = part.value;
+        return acc;
+      }, {});
+      return `${parts.day}-${parts.month}-${parts.year} ${parts.hour}:${parts.minute}`;
     }
 
     function addDays(v, days) {
@@ -1587,7 +1598,7 @@ button[type="submit"] *,
         .from("reservas")
         .select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason")
         .eq("user_id", session.user.id)
-        .eq("status", "pending")
+        .in("status", ["pending", "cancelled_by_staff_temp", "cancelled_by_staff_perm"])
         .order("created_at", { ascending: false });
 
       if (oldRes.error) {
@@ -1755,18 +1766,35 @@ button[type="submit"] *,
       return Number.isNaN(dt.getTime()) ? null : dt.toISOString();
     }
 
+    function toDateInputValue(v) {
+      const dt = toDateTimeLocalValue(v);
+      return dt ? dt.slice(0, 10) : "";
+    }
+
+    function toTimeInputValue(v) {
+      const dt = toDateTimeLocalValue(v);
+      return dt ? dt.slice(11, 16) : "";
+    }
+
+    function dateAndTimeToIso(dateValue, timeValue) {
+      if (!dateValue || !timeValue) return null;
+      return dateTimeLocalToIso(`${dateValue}T${timeValue}`);
+    }
+
     async function scheduleReturnV2(loanId, lineNo, isoWhen) {
       return supabase.rpc("fn_v2_schedule_emprestimo_return", {
         p_emprestimo_id: loanId,
         p_line_nos: [lineNo],
-        p_return_scheduled_for: isoWhen
+        p_return_scheduled_for: isoWhen,
+        p_actor_role: "leitor"
       });
     }
 
     async function clearReturnScheduleV2(loanId, lineNo) {
       return supabase.rpc("fn_v2_clear_emprestimo_return_schedule", {
         p_emprestimo_id: loanId,
-        p_line_nos: [lineNo]
+        p_line_nos: [lineNo],
+        p_actor_role: "leitor"
       });
     }
 
@@ -1843,7 +1871,8 @@ button[type="submit"] *,
                 ${r.extension_note ? `<br><small>Obs.: ${escapeHtml(r.extension_note)}</small>` : ``}
               </div>
               <div class="return-editor" data-return-editor="${key}" hidden>
-                <input type="datetime-local" value="${escapeHtml(toDateTimeLocalValue(r.return_scheduled_for))}">
+                <label class="return-editor-field"><span>Data</span><input type="date" value="${escapeHtml(toDateInputValue(r.return_scheduled_for))}"></label>
+                <label class="return-editor-field"><span>Hora (Belém)</span><input type="time" value="${escapeHtml(toTimeInputValue(r.return_scheduled_for))}" step="60"></label>
                 <button type="button" class="secondary mini-btn" data-save-return-schedule="${key}">Salvar horário</button>
               </div>
             </td>
@@ -1888,7 +1917,8 @@ button[type="submit"] *,
                 ${r.return_scheduled_for ? `<button type="button" class="secondary mini-btn" data-clear-return-schedule="${key}">Cancelar agendamento</button>` : ``}
               </div>
               <div class="return-editor" data-return-editor="${key}" hidden>
-                <input type="datetime-local" value="${escapeHtml(toDateTimeLocalValue(r.return_scheduled_for))}">
+                <label class="return-editor-field"><span>Data</span><input type="date" value="${escapeHtml(toDateInputValue(r.return_scheduled_for))}"></label>
+                <label class="return-editor-field"><span>Hora (Belém)</span><input type="time" value="${escapeHtml(toTimeInputValue(r.return_scheduled_for))}" step="60"></label>
                 <button type="button" class="secondary mini-btn" data-save-return-schedule="${key}">Salvar horário</button>
               </div>
             </article>`;
@@ -1974,7 +2004,7 @@ button[type="submit"] *,
           if (!editor) return;
           editor.hidden = !editor.hidden;
           if (!editor.hidden) {
-            const input = editor.querySelector('input[type="datetime-local"]');
+            const input = editor.querySelector('input[type="date"]');
             if (input) input.focus();
           }
         });
@@ -1990,12 +2020,14 @@ button[type="submit"] *,
           if (!loanId || !lineNo) return;
 
           const editor = btn.closest("[data-return-editor]");
-          const input = editor?.querySelector('input[type="datetime-local"]');
-          const raw = input?.value || "";
-          const isoWhen = dateTimeLocalToIso(raw);
+          const dateInput = editor?.querySelector('input[type="date"]');
+          const timeInput = editor?.querySelector('input[type="time"]');
+          const dateValue = dateInput?.value || "";
+          const timeValue = timeInput?.value || "";
+          const isoWhen = dateAndTimeToIso(dateValue, timeValue);
 
           if (!isoWhen) {
-            setLoanMsgText("Informe data e hora para a devolução.", 2200);
+            setLoanMsgText("Informe data e hora para a devolução.", 2000);
             return;
           }
 
@@ -2005,19 +2037,19 @@ button[type="submit"] *,
           const row = Array.isArray(res.data) ? res.data[0] : res.data;
 
           if (res.error) {
-            setLoanMsgText("Erro ao agendar devolução: " + res.error.message, 2600);
+            setLoanMsgText("Erro ao agendar devolução: " + res.error.message, 2000);
             btn.disabled = false;
             return;
           }
           if (row?.ok === false) {
-            setLoanMsgText("Erro ao agendar devolução: " + (row?.message || "Operação indisponível."), 2600);
+            setLoanMsgText("Erro ao agendar devolução: " + (row?.message || "Operação indisponível."), 2000);
             btn.disabled = false;
             return;
           }
 
           const msg = row?.message || "Agendamento de devolução registrado.";
           const whenMsg = row?.return_scheduled_for ? ` Horário: ${fmtDateTimeBelem(row.return_scheduled_for)} (Belém).` : "";
-          setLoanMsgText(msg + whenMsg);
+          setLoanMsgText(msg + whenMsg, 2000);
           await renderLoans();
         });
       });
@@ -2040,17 +2072,17 @@ button[type="submit"] *,
           const row = Array.isArray(res.data) ? res.data[0] : res.data;
 
           if (res.error) {
-            setLoanMsgText("Erro ao cancelar agendamento: " + res.error.message, 2600);
+            setLoanMsgText("Erro ao cancelar agendamento: " + res.error.message, 2000);
             btn.disabled = false;
             return;
           }
           if (row?.ok === false) {
-            setLoanMsgText("Erro ao cancelar agendamento: " + (row?.message || "Operação indisponível."), 2600);
+            setLoanMsgText("Erro ao cancelar agendamento: " + (row?.message || "Operação indisponível."), 2000);
             btn.disabled = false;
             return;
           }
 
-          setLoanMsgText(row?.message || "Agendamento de devolução cancelado.");
+          setLoanMsgText(row?.message || "Agendamento de devolução cancelado.", 2000);
           await renderLoans();
         });
       });
@@ -2077,7 +2109,7 @@ button[type="submit"] *,
           }
           const newDue = row?.due_at || row?.due_date || row?.new_due_date;
           const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
-          setLoanMsgText(message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : ""));
+          setLoanMsgText(message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : ""), 2000);
           await renderLoans();
           await renderHistory();
         });
@@ -2105,7 +2137,7 @@ button[type="submit"] *,
           }
           const newDue = row?.due_date || row?.new_due_date;
           const message = row?.message || (newDue ? "Renovação aplicada." : "Renovação concluída.");
-          setLoanMsgText(message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : ""));
+          setLoanMsgText(message + (newDue ? ` Nova devolução: ${fmtDateOnly(newDue)}.` : ""), 2000);
           await renderLoans();
           await renderHistory();
         });
@@ -2120,7 +2152,7 @@ button[type="submit"] *,
         supabase.schema("api").from("emprestimo_itens_ui").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
         supabase.schema("api").from("loans_detalhes").select("id, batch_id, due_date, checkout_date, returned_date, books").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(300),
         supabase.schema("api").from("reserva_itens_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
-        supabase.schema("api").from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).neq("status", "pending").order("created_at", { ascending:false }).limit(100)
+        supabase.schema("api").from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(100)
       ]);
 
       const items = [];
@@ -2150,7 +2182,7 @@ button[type="submit"] *,
           const book = booksMap.get(String(r.bib_ref)) || {};
           items.push({
             when: r.cancelled_at || r.fulfilled_at || r.created_at,
-            html: `<li><b>Reserva #${escapeHtml(r.id)}</b> — ${escapeHtml(book.titulo || ('Referência ' + r.bib_ref))} — ${escapeHtml(reservationStatusLabel(r.status, r))}${r.cancelled_reason ? ` — ${escapeHtml(r.cancelled_reason)}` : ''}</li>`
+            html: `<li><b>Reserva #${escapeHtml(r.id)}</b> — ${escapeHtml(book.titulo || ('Referência ' + r.bib_ref))} — ${escapeHtml(reservationStatusLabel(r.status, r))}</li>`
           });
         }
       }
