@@ -2768,21 +2768,24 @@
       return supabase.rpc('fn_v2_schedule_emprestimo_return', {
         p_emprestimo_id: emprestimoId,
         p_line_nos: lineNos,
-        p_return_scheduled_for: isoWhen
+        p_return_scheduled_for: isoWhen,
+        p_actor_role: 'biblioteca'
       });
     }
 
     async function clearEmprestimoReturnScheduleV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_clear_emprestimo_return_schedule', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos
+        p_line_nos: lineNos,
+        p_actor_role: 'biblioteca'
       });
     }
 
     async function markEmprestimoReturnMissedV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_mark_emprestimo_return_missed', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos
+        p_line_nos: lineNos,
+        p_actor_role: 'biblioteca'
       });
     }
 
@@ -3126,13 +3129,41 @@
       return data && typeof data === 'object' ? data : null;
     }
 
+    async function queryProfileByIdDirect(profileId, select = '*'){
+      const normalizedId = String(profileId || '').trim();
+      if (!normalizedId) return null;
+      let lastError = null;
+      const attempts = [
+        () => supabase.schema('api').from('profiles').select(select).eq('id', normalizedId).maybeSingle(),
+        () => supabase.from('profiles').select(select).eq('id', normalizedId).maybeSingle(),
+      ];
+      for (const run of attempts){
+        try {
+          const { data, error } = await run();
+          if (error) { lastError = error; continue; }
+          if (data?.id) return data;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (lastError) throw lastError;
+      return null;
+    }
+
     async function resolveProfileByEmail(email, select = '*'){
       const normalized = normalizeEmail(email);
       if (!normalized) throw new Error('Informe um e-mail.');
 
       try {
         const rpcData = await queryProfileByEmailRpc(normalized);
-        if (rpcData?.id) return select === 'id,email' ? { id: rpcData.id, email: rpcData.email || normalized } : rpcData;
+        if (rpcData?.id) {
+          if (select === 'id,email') return { id: rpcData.id, email: rpcData.email || normalized };
+          try {
+            const freshData = await queryProfileByIdDirect(rpcData.id, select);
+            if (freshData?.id) return freshData;
+          } catch (_e) {}
+          return rpcData;
+        }
       } catch (error) {
         if (!isMissingFunctionError(error)) throw error;
       }
@@ -3719,22 +3750,15 @@
         }
 
         if (oldRows.length) {
-          const payload = {
-            status: 'cancelled_by_staff_temp',
-            cancelled_at: nowISO(),
-            cancelled_by: session.user.id,
-            cancelled_by_role: 'staff',
-            cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
-          };
-          const oldIds = oldRows.map((r) => Number(r.reserva_id));
-          const { data, error } = await supabase
-            .from('reservas')
-            .update(payload)
-            .in('id', oldIds)
-            .eq('status', 'pending')
-            .select('id');
-          if (error) throw error;
-          total += (data || []).length;
+          const oldIds = Array.from(new Set(oldRows.map((r) => Number(r.reserva_id)).filter((v) => Number.isFinite(v) && v > 0)));
+          for (const oldId of oldIds) {
+            const rpc = await supabase.rpc('fn_cancel_reserva_legacy_as_biblioteca', {
+              p_reserva_id: oldId,
+              p_notes: 'Cancelamento registrado pela biblioteca no painel.'
+            });
+            if (rpc.error) throw rpc.error;
+            total += Number(rpc.data || 0) || 0;
+          }
         }
 
         selectedReservaIds = new Set([...selectedReservaIds].filter((id) => !ids.includes(id)));
