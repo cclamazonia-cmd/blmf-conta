@@ -2236,7 +2236,9 @@
         .order('line_no', { ascending:true })
         .limit(500);
 
-      if (!qv2.error && (qv2.data || []).length) {
+      if (qv2.error) throw qv2.error;
+
+      if ((qv2.data || []).length) {
         const rows = qv2.data || [];
         const profilesMap = await loadProfilesByIds(rows.map((r) => r.user_id));
         const rotulosMap = await loadRotulosByBibRefs(rows.map((r) => r.bib_ref));
@@ -2691,11 +2693,11 @@
 
     function translateReturnScheduleStatus(status){
       return ({
-        sem_agendamento: 'Situação da devolução: sem agendamento',
-        devolucao_agendada: 'Situação da devolução: agendada',
-        devolucao_realizada: 'Situação da devolução: realizada',
-        devolucao_nao_realizada: 'Situação da devolução: não realizada',
-        emprestimo_prorrogado: 'Situação da devolução: prazo prorrogado'
+        sem_agendamento: 'Sem agendamento de devolução',
+        devolucao_agendada: 'Devolução agendada',
+        devolucao_realizada: 'Devolução realizada',
+        devolucao_nao_realizada: 'Devolução não realizada',
+        emprestimo_prorrogado: 'Empréstimo prorrogado'
       })[String(status || '')] || 'Sem agendamento de devolução';
     }
 
