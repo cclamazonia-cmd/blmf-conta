@@ -136,6 +136,7 @@
     @media (max-width:980px){
       .tableWrap{overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
       #tab-reservas table{min-width:760px;table-layout:fixed}
+      #tab-trabalho-dia table{min-width:920px;table-layout:fixed}
       #tab-emprestimos-livro table{min-width:900px;table-layout:fixed}
       #tab-emprestimos-lote table{min-width:880px;table-layout:fixed}
       #profilePaneReservas table{min-width:720px;table-layout:fixed}
@@ -390,6 +391,14 @@
       #tab-reservas td:nth-child(7)::before{content:"Reserva"}
       #tab-reservas td:nth-child(8)::before{content:"Validade"}
 
+      #tab-trabalho-dia td:nth-child(1)::before{content:"Prioridade"}
+      #tab-trabalho-dia td:nth-child(2)::before{content:"Tipo"}
+      #tab-trabalho-dia td:nth-child(3)::before{content:"Pessoa"}
+      #tab-trabalho-dia td:nth-child(4)::before{content:"Livro / referência"}
+      #tab-trabalho-dia td:nth-child(5)::before{content:"Quando"}
+      #tab-trabalho-dia td:nth-child(6)::before{content:"Situação"}
+      #tab-trabalho-dia td:nth-child(7)::before{content:"Ação"}
+
       #tab-emprestimos-livro td:nth-child(1)::before{content:"ID do item"}
       #tab-emprestimos-livro td:nth-child(2)::before{content:"ID do empréstimo"}
       #tab-emprestimos-livro td:nth-child(3)::before{content:"Leitor(a/e)"}
@@ -465,6 +474,10 @@
           Funcionamento
           <span class="hint">Modo global e reservas públicas</span>
         </button>
+        <button class="tab-btn" type="button" data-tab="trabalho-dia" role="tab" aria-selected="false" aria-controls="tab-trabalho-dia">
+          Trabalho do dia
+          <span class="hint">Prioridades automáticas da biblioteca</span>
+        </button>
         <button class="tab-btn" type="button" data-tab="acoes" role="tab" aria-selected="false" aria-controls="tab-acoes">
           Ações
           <span class="hint">Registrar saída e devolução</span>
@@ -529,6 +542,46 @@
               </div>
               <div class="status" id="serviceStateMsg"></div>
             </div>
+          </div>
+        </section>
+
+        <section id="tab-trabalho-dia" class="tab-panel" data-tab="trabalho-dia" role="tabpanel">
+          <div class="card">
+            <div class="section-head">
+              <div>
+                <h2>Trabalho do dia</h2>
+                <div class="mini">Acompanhamento automático do que pede atenção agora, a partir das reservas e dos empréstimos em curso.</div>
+              </div>
+              <div class="actions" style="margin-top:0">
+                <button class="btn" id="btnRecarregarTrabalhoDia" type="button">Recarregar</button>
+              </div>
+            </div>
+            <div class="chips" style="margin-top:12px">
+              <span class="chip" id="chipTaskTodayPickup">Retiradas hoje: —</span>
+              <span class="chip" id="chipTaskReady">Prontas para retirada: —</span>
+              <span class="chip" id="chipTaskReplies">Respostas do leitor: —</span>
+              <span class="chip" id="chipTaskDueToday">Devoluções hoje: —</span>
+              <span class="chip" id="chipTaskOverdue">Em atraso: —</span>
+              <span class="chip" id="chipTaskSpecial">Exceções: —</span>
+            </div>
+            <div class="sep"></div>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Prioridade</th>
+                    <th>Tipo</th>
+                    <th>Pessoa</th>
+                    <th>Livro / referência</th>
+                    <th>Quando</th>
+                    <th>Situação</th>
+                    <th>Ação sugerida</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyWorkday"><tr><td colspan="7">Carregando…</td></tr></tbody>
+              </table>
+            </div>
+            <div class="status" id="statusTrabalhoDia"></div>
           </div>
         </section>
 
@@ -1157,6 +1210,7 @@
     let refreshSerial = 0;
     let libraryServiceState = null;
     let reservationFollowUpFilter = 'all';
+    let activateMainTab = () => {};
 
     function clearStatus(id){
       const el = $(id);
@@ -1415,6 +1469,7 @@
         });
         panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.tab === tab));
       }
+      activateMainTab = activate;
       btns.forEach((btn) => btn.addEventListener('click', async () => {
         activate(btn.dataset.tab);
         if (session && isLibrarian) await refreshCollections({silent:true});
@@ -1784,6 +1839,256 @@
     }
 
 
+
+    function dateToISOInTimeZone(value, timeZone='America/Belem'){
+      if (!value) return null;
+      const d = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(d.getTime())) {
+        const s = String(value || '').slice(0,10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+      }
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(d);
+      const get = (type) => parts.find((p) => p.type === type)?.value || '';
+      const y = get('year');
+      const m = get('month');
+      const day = get('day');
+      return (y && m && day) ? `${y}-${m}-${day}` : null;
+    }
+
+    function todayBelemISO(){
+      return dateToISOInTimeZone(new Date(), 'America/Belem') || todayISO();
+    }
+
+    function compareDateOnlyToToday(dateLike, todayRef=todayBelemISO()){
+      const s = String(dateLike || '').slice(0,10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+      const today = new Date(String(todayRef) + 'T00:00:00');
+      const target = new Date(s + 'T00:00:00');
+      return Math.floor((target - today) / 86400000);
+    }
+
+    function workdayPriorityMeta(priority){
+      if (priority <= 1) return { label:'Hoje', className:'bad' };
+      if (priority === 2) return { label:'Atenção', className:'warn' };
+      return { label:'Acompanhar', className:'ok' };
+    }
+
+    function buildWorkdayTasks(){
+      const tasks = [];
+      const summary = { todayPickup:0, ready:0, replies:0, dueToday:0, overdue:0, special:0 };
+      const todayBel = todayBelemISO();
+
+      activeReservations.forEach((r) => {
+        const stage = String(r.workflow_stage || '');
+        const stageLabel = translateReservationWorkflowStage(stage);
+        const bookLabel = r.titulo || `Referência ${r.bib_ref}`;
+        const who = r.user_name || '—';
+        const ref = r.bib_ref || '—';
+        const pickupDay = dateToISOInTimeZone(r.pickup_scheduled_for, 'America/Belem');
+        const detail = reservationWorkflowDetail(r);
+
+        if (stage === 'retirada_agendada' && pickupDay === todayBel) {
+          summary.todayPickup += 1;
+          tasks.push({
+            priority: 1,
+            sortDate: r.pickup_scheduled_for || r.validade || '',
+            kind: 'Retirada agendada para hoje',
+            who,
+            book: bookLabel,
+            ref,
+            when: fmtDateTimeBelem(r.pickup_scheduled_for) + ' (Belém)',
+            statusLabel: stageLabel,
+            statusClass: reservationWorkflowStageClass(stage),
+            detail: detail || 'Confirmar presença e separar o exemplar.',
+            actionLabel: 'Abrir reserva',
+            tab: 'reservas',
+            reservationRowId: r.id,
+          });
+        }
+
+        if (stage === 'pronta_para_retirada') {
+          summary.ready += 1;
+          tasks.push({
+            priority: 1,
+            sortDate: r.workflow_stage_updated_at || r.validade || '',
+            kind: 'Reserva pronta para retirada',
+            who,
+            book: bookLabel,
+            ref,
+            when: fmtDateTime(r.workflow_stage_updated_at || r.validade),
+            statusLabel: stageLabel,
+            statusClass: reservationWorkflowStageClass(stage),
+            detail: detail || 'Aguardar retirada ou entrar em contato.',
+            actionLabel: 'Abrir reserva',
+            tab: 'reservas',
+            reservationRowId: r.id,
+          });
+        }
+
+        if (String(r.pickup_reply_status || '') === 'recusado_leitor') {
+          summary.replies += 1;
+          tasks.push({
+            priority: 1,
+            sortDate: r.pickup_reply_at || r.workflow_stage_updated_at || '',
+            kind: 'Leitor recusou o horário',
+            who,
+            book: bookLabel,
+            ref,
+            when: fmtDateTimeBelem(r.pickup_reply_at || r.pickup_scheduled_for) + ' (Belém)',
+            statusLabel: stageLabel,
+            statusClass: 'warn',
+            detail: detail || 'Combinar novo horário de retirada.',
+            actionLabel: 'Abrir reserva',
+            tab: 'reservas',
+            reservationRowId: r.id,
+          });
+        }
+
+        if (stage === 'nao_retirada') {
+          summary.special += 1;
+          tasks.push({
+            priority: 2,
+            sortDate: r.workflow_stage_updated_at || '',
+            kind: 'Não retirada',
+            who,
+            book: bookLabel,
+            ref,
+            when: fmtDateTime(r.workflow_stage_updated_at),
+            statusLabel: stageLabel,
+            statusClass: reservationWorkflowStageClass(stage),
+            detail: detail || 'Decidir se remarcar ou liberar para circulação.',
+            actionLabel: 'Abrir reserva',
+            tab: 'reservas',
+            reservationRowId: r.id,
+          });
+        }
+
+        if (stage === 'expirada') {
+          summary.special += 1;
+          tasks.push({
+            priority: 2,
+            sortDate: r.validade || r.workflow_stage_updated_at || '',
+            kind: 'Reserva expirada',
+            who,
+            book: bookLabel,
+            ref,
+            when: fmtDateTime(r.validade),
+            statusLabel: stageLabel,
+            statusClass: reservationWorkflowStageClass(stage),
+            detail: detail || 'Verificar se ainda requer alguma ação manual.',
+            actionLabel: 'Abrir reserva',
+            tab: 'reservas',
+            reservationRowId: r.id,
+          });
+        }
+
+        if (stage === 'liberada_para_circulacao') {
+          summary.special += 1;
+          tasks.push({
+            priority: 3,
+            sortDate: r.workflow_stage_updated_at || '',
+            kind: 'Exemplar liberado para circulação',
+            who,
+            book: bookLabel,
+            ref,
+            when: fmtDateTime(r.workflow_stage_updated_at),
+            statusLabel: stageLabel,
+            statusClass: reservationWorkflowStageClass(stage),
+            detail: detail || 'A reserva segue ativa, mas o exemplar não fica mais separado.',
+            actionLabel: 'Abrir reserva',
+            tab: 'reservas',
+            reservationRowId: r.id,
+          });
+        }
+      });
+
+      activeBatches.forEach((b) => {
+        const diff = compareDateOnlyToToday(b.due_date, todayBel);
+        const refs = (b.bib_refs || []).join(', ') || '—';
+        if (diff === 0) {
+          summary.dueToday += 1;
+          tasks.push({
+            priority: 1,
+            sortDate: b.due_date || '',
+            kind: 'Devolução prevista hoje',
+            who: b.user_name || '—',
+            book: `${b.quantity} item(ns)`,
+            ref: refs,
+            when: fmtDate(b.due_date),
+            statusLabel: b.status_text || 'Em curso',
+            statusClass: b.status_class || 'warn',
+            detail: `Empréstimo #${b.batch_label}.`,
+            actionLabel: 'Abrir empréstimo',
+            tab: 'emprestimos-lote',
+            batchId: b.emprestimo_id || b.batch_label,
+          });
+        } else if (diff != null && diff < 0) {
+          summary.overdue += 1;
+          tasks.push({
+            priority: 1,
+            sortDate: b.due_date || '',
+            kind: 'Empréstimo em atraso',
+            who: b.user_name || '—',
+            book: `${b.quantity} item(ns)`,
+            ref: refs,
+            when: fmtDate(b.due_date),
+            statusLabel: b.status_text || 'Com atraso',
+            statusClass: 'bad',
+            detail: `Empréstimo #${b.batch_label}.`,
+            actionLabel: 'Abrir empréstimo',
+            tab: 'emprestimos-lote',
+            batchId: b.emprestimo_id || b.batch_label,
+          });
+        }
+      });
+
+      tasks.sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        return String(a.sortDate || '').localeCompare(String(b.sortDate || '')) || String(a.kind).localeCompare(String(b.kind));
+      });
+
+      return { tasks, summary };
+    }
+
+    function renderWorkday(){
+      const tbody = $('tbodyWorkday');
+      if (!tbody) return;
+      const { tasks, summary } = buildWorkdayTasks();
+      setChip('chipTaskTodayPickup', `Retiradas hoje: ${summary.todayPickup}`);
+      setChip('chipTaskReady', `Prontas para retirada: ${summary.ready}`);
+      setChip('chipTaskReplies', `Respostas do leitor: ${summary.replies}`);
+      setChip('chipTaskDueToday', `Devoluções hoje: ${summary.dueToday}`);
+      setChip('chipTaskOverdue', `Em atraso: ${summary.overdue}`);
+      setChip('chipTaskSpecial', `Exceções: ${summary.special}`);
+
+      if (!tasks.length) {
+        tbody.innerHTML = '<tr><td colspan="7">Nada urgente por agora. O trabalho automático do dia está vazio.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = tasks.map((task) => {
+        const pr = workdayPriorityMeta(task.priority);
+        const action = task.tab
+          ? `<button class="btn mini" type="button" data-work-open-tab="${esc(task.tab)}"${task.reservationRowId ? ` data-work-reserva-row="${esc(task.reservationRowId)}"` : ''}${task.batchId ? ` data-work-batch-row="${esc(task.batchId)}"` : ''}>${esc(task.actionLabel || 'Abrir')}</button>`
+          : '—';
+        return `
+          <tr>
+            <td><span class="pill ${esc(pr.className)}">${esc(pr.label)}</span></td>
+            <td>${esc(task.kind)}</td>
+            <td>${esc(task.who)}</td>
+            <td>${esc(task.book)}<br><span class="mini subtle mono">${esc(task.ref)}</span></td>
+            <td>${esc(task.when || '—')}</td>
+            <td><span class="pill ${esc(task.statusClass || 'warn')}">${esc(task.statusLabel || '—')}</span>${task.detail ? `<br><span class="mini subtle">${esc(task.detail)}</span>` : ''}</td>
+            <td>${action}</td>
+          </tr>`;
+      }).join('');
+    }
+
     function renderCounts(){
       setChip('chipResCount', `Reservas ativas: ${activeReservations.length}`);
       setChip('chipLoanCount', `Empréstimos ativos: ${activeLoans.length}`);
@@ -2135,6 +2440,7 @@
       const runId = ++refreshSerial;
       if (!silent) {
         $('tbodyRes').innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
+        if ($('tbodyWorkday')) $('tbodyWorkday').innerHTML = '<tr><td colspan="7">Carregando…</td></tr>';
         $('tbodyLoans').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
         $('tbodyBatches').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
       }
@@ -2160,6 +2466,7 @@
         setStatus('statusBatches', msg, 'bad', false);
       }
       renderCounts();
+      renderWorkday();
       renderProfileLists();
     }
 
@@ -2899,6 +3206,22 @@
 
     function bindDynamicActions(){
       document.body.addEventListener('click', async (ev) => {
+        const openWorkBtn = ev.target.closest('[data-work-open-tab]');
+        if (openWorkBtn) {
+          const tab = String(openWorkBtn.getAttribute('data-work-open-tab') || '').trim();
+          const reservaRowId = Number(openWorkBtn.getAttribute('data-work-reserva-row'));
+          const batchRowIdRaw = openWorkBtn.getAttribute('data-work-batch-row');
+          if (tab) activateMainTab(tab);
+          if (Number.isFinite(reservaRowId) && reservaRowId > 0) {
+            selectedReservaIds = new Set([reservaRowId]);
+            renderReservationTable();
+            setTimeout(() => document.querySelector(`[data-reserva-row="${reservaRowId}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }), 80);
+          } else if (batchRowIdRaw) {
+            setTimeout(() => document.querySelector(`[data-batch-row="${CSS.escape(String(batchRowIdRaw))}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }), 80);
+          }
+          return;
+        }
+
         const renewBatchV2Btn = ev.target.closest('[data-renew-batch-v2]');
         if (renewBatchV2Btn) {
           const emprestimoId = Number(renewBatchV2Btn.getAttribute('data-renew-batch-v2'));
@@ -3075,6 +3398,7 @@
       note: $('resWorkflowNote')?.value.trim() || '',
       targetStatusId: 'statusRes'
     }));
+    $('btnRecarregarTrabalhoDia')?.addEventListener('click', () => refreshCollections());
     $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
     $('btnRecarregarLoans').addEventListener('click', () => refreshCollections());
     $('btnRecarregarLotes').addEventListener('click', () => refreshCollections());
