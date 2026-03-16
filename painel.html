@@ -445,6 +445,17 @@
     .task-form-grid-2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
     .task-form-grid-3{display:grid;grid-template-columns:1fr;gap:12px}
     .task-empty{padding:14px;border:1px dashed rgba(255,255,255,.14);border-radius:14px;color:#cfcfcf}
+    .suggest-wrap{position:relative}
+    .suggest-list{
+      position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:20;
+      border:1px solid rgba(255,255,255,.10);background:rgba(12,12,12,.98);border-radius:14px;
+      box-shadow:var(--shadow);max-height:220px;overflow:auto;padding:6px;
+    }
+    .suggest-item{
+      width:100%;border:none;background:transparent;color:var(--text);text-align:left;cursor:pointer;
+      border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;
+    }
+    .suggest-item:hover,.suggest-item:focus{background:rgba(255,255,255,.07);outline:none}
     @media (max-width:980px){
       .task-form-grid,.task-form-grid-2{grid-template-columns:1fr}
     }
@@ -682,7 +693,10 @@
               <div class="task-form-grid-2" style="margin-top:12px">
                 <div>
                   <label for="taskInternalOwner">Responsável (opcional)</label>
-                  <input class="input" id="taskInternalOwner" type="text" placeholder="Ex.: mutirão de sábado">
+                  <div class="suggest-wrap">
+                    <input class="input" id="taskInternalOwner" type="text" placeholder="compa@exemplo.org" autocomplete="off" spellcheck="false">
+                    <div class="suggest-list hidden" id="taskInternalOwnerSuggest" role="listbox" aria-label="Sugestões de compas responsáveis"></div>
+                  </div>
                 </div>
                 <div>
                   <label for="taskInternalDue">Prazo (opcional)</label>
@@ -1281,6 +1295,8 @@
     let reservationFollowUpFilter = 'all';
     let manualInternalTasks = [];
     const INTERNAL_TASKS_TABLE = 'painel_internal_tasks';
+    let internalTaskLibrarians = [];
+    let internalTaskOwnerHideTimer = null;
     let activateMainTab = null;
 
     function clearStatus(id){
@@ -1600,6 +1616,117 @@
       })[String(status || '')] || 'A fazer';
     }
 
+    function normalizeSearchText(value){
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .trim();
+    }
+
+    function internalTaskLibrarianLabel(row){
+      const name = profileName(row);
+      const email = String(row?.email || '').trim();
+      return (name && email && name !== email) ? `${name} — ${email}` : (email || name || '—');
+    }
+
+    async function loadInternalTaskLibrarians(){
+      try {
+        const { data, error } = await supabase
+          .schema('api')
+          .from('profiles')
+          .select('*')
+          .eq('is_librarian', true)
+          .order('email', { ascending:true })
+          .limit(200);
+        if (error) throw error;
+        internalTaskLibrarians = Array.isArray(data) ? data.filter((row) => String(row?.email || '').trim()) : [];
+      } catch (_e) {
+        internalTaskLibrarians = [];
+      }
+    }
+
+    function getInternalTaskOwnerMatches(raw){
+      const q = normalizeSearchText(raw);
+      if (!q) return internalTaskLibrarians.slice(0, 8);
+      return internalTaskLibrarians.filter((row) => {
+        const email = normalizeSearchText(row?.email || '');
+        const name = normalizeSearchText(profileName(row));
+        return email.includes(q) || name.includes(q);
+      }).slice(0, 8);
+    }
+
+    function hideInternalTaskOwnerSuggestions(){
+      const box = $('taskInternalOwnerSuggest');
+      if (!box) return;
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      box.removeAttribute('data-open');
+    }
+
+    function selectInternalTaskOwnerSuggestion(index){
+      const input = $('taskInternalOwner');
+      if (!input) return;
+      const matches = getInternalTaskOwnerMatches(input.value);
+      const row = matches[index];
+      if (!row) return;
+      input.value = String(row.email || '').trim();
+      hideInternalTaskOwnerSuggestions();
+      input.focus();
+      try { input.setSelectionRange(input.value.length, input.value.length); } catch (_e) {}
+    }
+
+    function renderInternalTaskOwnerSuggestions(raw){
+      const box = $('taskInternalOwnerSuggest');
+      if (!box) return;
+      const matches = getInternalTaskOwnerMatches(raw);
+      if (!matches.length) {
+        hideInternalTaskOwnerSuggestions();
+        return;
+      }
+      box.innerHTML = matches.map((row, index) => `
+        <button class="suggest-item" type="button" data-task-owner-suggestion="${index}" role="option" aria-selected="false">
+          <span>${esc(internalTaskLibrarianLabel(row))}</span>
+        </button>
+      `).join('');
+      box.classList.remove('hidden');
+      box.setAttribute('data-open', 'true');
+    }
+
+    function bindInternalTaskOwnerSuggestions(){
+      const input = $('taskInternalOwner');
+      const box = $('taskInternalOwnerSuggest');
+      if (!input || !box) return;
+
+      const scheduleHide = () => {
+        if (internalTaskOwnerHideTimer) clearTimeout(internalTaskOwnerHideTimer);
+        internalTaskOwnerHideTimer = setTimeout(() => hideInternalTaskOwnerSuggestions(), 120);
+      };
+
+      const cancelHide = () => {
+        if (internalTaskOwnerHideTimer) {
+          clearTimeout(internalTaskOwnerHideTimer);
+          internalTaskOwnerHideTimer = null;
+        }
+      };
+
+      input.addEventListener('input', () => {
+        cancelHide();
+        renderInternalTaskOwnerSuggestions(input.value);
+      });
+      input.addEventListener('focus', () => {
+        cancelHide();
+        renderInternalTaskOwnerSuggestions(input.value);
+      });
+      input.addEventListener('blur', scheduleHide);
+      box.addEventListener('mousedown', cancelHide);
+      box.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('[data-task-owner-suggestion]');
+        if (!btn) return;
+        selectInternalTaskOwnerSuggestion(Number(btn.getAttribute('data-task-owner-suggestion')));
+      });
+    }
+
     function internalTaskStatusClass(status){
       return ({
         a_fazer: 'warn',
@@ -1706,6 +1833,7 @@
       if ($('taskInternalDue')) $('taskInternalDue').value = '';
       if ($('taskInternalTags')) $('taskInternalTags').value = '';
       if ($('taskInternalDesc')) $('taskInternalDesc').value = '';
+      hideInternalTaskOwnerSuggestions();
     }
 
     function renderInternalTasks(){
@@ -3636,6 +3764,7 @@
     renderInternalTasks();
     bindReservationSelection();
     bindDynamicActions();
+    bindInternalTaskOwnerSuggestions();
 
     function setupRefreshHooks(){
       if (refreshTimer) clearInterval(refreshTimer);
@@ -3651,6 +3780,7 @@
       if (isLibrarian){
         await fillHeader();
         await loadLibraryServiceState();
+        await loadInternalTaskLibrarians();
         await loadInternalTasks({ silent:true });
         await refreshCollections();
         setupRefreshHooks();
