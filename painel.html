@@ -1273,11 +1273,6 @@
     $("btnCatalogacao").href = ROUTES.CATALOGACAO;
     $("btnModoLeitor").href = ROUTES.CONTA;
 
-    $("btnCatalogo").addEventListener("click", (ev) => {
-      ev.preventDefault();
-      window.location.assign(ROUTES.CATALOGO);
-    });
-
     const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzcHRmbW9renlrd3psc2hzbmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzcxNzcsImV4cCI6MjA4ODExMzE3N30.JkMLHPCV2AH5ELZV_1RfcoW250QEofLGvnDKSDpkcn0";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -2696,12 +2691,12 @@
 
     function translateReturnScheduleStatus(status){
       return ({
-        sem_agendamento: 'Sem agendamento de devolução',
-        devolucao_agendada: 'Devolução agendada',
-        devolucao_realizada: 'Devolução realizada',
-        devolucao_nao_realizada: 'Devolução não realizada',
-        emprestimo_prorrogado: 'Empréstimo prorrogado'
-      })[String(status || '')] || 'Sem agendamento de devolução';
+        sem_agendamento: 'Situação da devolução: sem agendamento',
+        devolucao_agendada: 'Situação da devolução: agendada',
+        devolucao_realizada: 'Situação da devolução: realizada',
+        devolucao_nao_realizada: 'Situação da devolução: não realizada',
+        emprestimo_prorrogado: 'Situação da devolução: prazo prorrogado'
+      })[String(status || '')] || 'Situação da devolução: sem agendamento';
     }
 
     function getReturnScheduleActionLabel(entry){
