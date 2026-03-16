@@ -3430,22 +3430,16 @@
       const createdLoanId = Number(result.loanIds?.[0] || 0);
       if (!createdLoanId) throw new Error(`Não consegui criar o empréstimo para a reserva ${reservaId}.`);
 
-      const { data: updatedRows, error: updateError } = await supabase
-        .from('reservas')
-        .update({
-          status: 'fulfilled',
-          fulfilled_at: nowISO(),
-          fulfilled_loan_id: createdLoanId,
-          fulfilled_by: session?.user?.id || null
-        })
-        .eq('id', reservaId)
-        .eq('status', 'pending')
-        .select('id');
-      if (updateError) {
+      const fulfillRpc = await supabase.rpc('fn_confirm_reserva_legacy_to_loan_as_biblioteca', {
+        p_reserva_id: reservaId,
+        p_fulfilled_loan_id: createdLoanId
+      });
+      if (fulfillRpc.error) {
         await supabase.from('loans').update({ returned_date: todayISO() }).eq('id', createdLoanId).is('returned_date', null);
-        throw updateError;
+        throw fulfillRpc.error;
       }
-      if (!(updatedRows || []).length) {
+      const updatedCount = Number(Array.isArray(fulfillRpc.data) ? fulfillRpc.data[0] : fulfillRpc.data) || 0;
+      if (updatedCount < 1) {
         await supabase.from('loans').update({ returned_date: todayISO() }).eq('id', createdLoanId).is('returned_date', null);
         throw new Error(`A reserva ${reservaId} mudou de estado antes da confirmação.`);
       }
