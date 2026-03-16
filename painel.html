@@ -472,6 +472,7 @@
         <a class="btn" id="btnBlog" href="#">Voltar ao blogue</a>
         <a class="btn" id="btnCatalogo" href="#">Voltar ao catálogo</a>
         <a class="btn" id="btnCatalogacao" href="#">Catalogação</a>
+        <a class="btn" id="btnManual" href="#" target="_blank" rel="noopener noreferrer">Manual do AnarBib</a>
         <a class="btn hidden" id="btnModoLeitor" href="#">Ir para modo leitor</a>
         <button class="btn primary" id="btnSair" type="button">Sair</button>
       </div>
@@ -1267,10 +1268,12 @@
       CATALOGACAO: `${GH_BASE}/blmf-catalogo/catalogacao.html`,
       CADASTRO: `${GH_BASE}/blmf-conta/cadastro.html`,
       CONTA: `${GH_BASE}/blmf-conta/conta.html`,
+      MANUAL: `${GH_BASE}/blmf-catalogo/Manual_do_AnarBib.pdf`,
     };
     $("btnBlog").href = ROUTES.BLOG_HOME;
     $("btnCatalogo").href = ROUTES.CATALOGO;
     $("btnCatalogacao").href = ROUTES.CATALOGACAO;
+    $("btnManual").href = ROUTES.MANUAL;
     $("btnModoLeitor").href = ROUTES.CONTA;
 
     const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
@@ -2120,20 +2123,28 @@
     function setupMainTabs(){
       const btns = $$('.tab-btn[data-tab]');
       const panels = $$('.tab-panel[data-tab]');
-      function activate(tab){
+      const validTabs = new Set(btns.map((btn) => btn.dataset.tab).filter(Boolean));
+      function activate(tab, { pushHash = true } = {}){
+        const nextTab = validTabs.has(tab) ? tab : 'funcionamento';
         btns.forEach((btn) => {
-          const active = btn.dataset.tab === tab;
+          const active = btn.dataset.tab === nextTab;
           btn.classList.toggle('active', active);
           btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
-        panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.tab === tab));
+        panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.tab === nextTab));
+        if (pushHash) location.hash = `#${nextTab}`;
       }
       activateMainTab = activate;
       btns.forEach((btn) => btn.addEventListener('click', async () => {
         activate(btn.dataset.tab);
         if (session && isLibrarian) await refreshCollections({silent:true});
       }));
-      activate('funcionamento');
+      window.addEventListener('hashchange', () => {
+        const current = (location.hash || '').replace('#', '');
+        if (validTabs.has(current)) activate(current, { pushHash: false });
+      });
+      const initial = (location.hash || '').replace('#', '');
+      activate(validTabs.has(initial) ? initial : 'funcionamento', { pushHash: false });
     }
 
     function setupProfileTabs(){
@@ -3708,14 +3719,22 @@
         }
 
         if (oldRows.length) {
-          for (const row of oldRows) {
-            const rpc = await supabase.rpc('fn_cancel_reserva_legacy_as_biblioteca', {
-              p_reserva_id: Number(row.reserva_id),
-              p_notes: 'Cancelamento registrado pela biblioteca no painel.'
-            });
-            if (rpc.error) throw rpc.error;
-            total += Number(rpc.data || 0) || 0;
-          }
+          const payload = {
+            status: 'cancelled_by_staff_temp',
+            cancelled_at: nowISO(),
+            cancelled_by: session.user.id,
+            cancelled_by_role: 'staff',
+            cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
+          };
+          const oldIds = oldRows.map((r) => Number(r.reserva_id));
+          const { data, error } = await supabase
+            .from('reservas')
+            .update(payload)
+            .in('id', oldIds)
+            .eq('status', 'pending')
+            .select('id');
+          if (error) throw error;
+          total += (data || []).length;
         }
 
         selectedReservaIds = new Set([...selectedReservaIds].filter((id) => !ids.includes(id)));
