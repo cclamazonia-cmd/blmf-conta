@@ -1708,7 +1708,10 @@
 
       const scheduleHide = () => {
         if (internalTaskOwnerHideTimer) clearTimeout(internalTaskOwnerHideTimer);
-        internalTaskOwnerHideTimer = setTimeout(() => hideInternalTaskOwnerSuggestions(), 120);
+        internalTaskOwnerHideTimer = setTimeout(() => {
+          internalTaskOwnerHideTimer = null;
+          hideInternalTaskOwnerSuggestions();
+        }, 120);
       };
 
       const cancelHide = () => {
@@ -1727,11 +1730,18 @@
         renderInternalTaskOwnerSuggestions(input.value);
       });
       input.addEventListener('blur', scheduleHide);
-      box.addEventListener('mousedown', cancelHide);
+      box.addEventListener('mousedown', (ev) => {
+        const btn = ev.target.closest('[data-task-owner-suggestion]');
+        cancelHide();
+        if (!btn) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        selectInternalTaskOwnerSuggestion(Number(btn.getAttribute('data-task-owner-suggestion')));
+      });
       box.addEventListener('click', (ev) => {
         const btn = ev.target.closest('[data-task-owner-suggestion]');
         if (!btn) return;
-        selectInternalTaskOwnerSuggestion(Number(btn.getAttribute('data-task-owner-suggestion')));
+        ev.preventDefault();
       });
     }
 
@@ -1837,10 +1847,17 @@
       if ($('taskInternalTitle')) $('taskInternalTitle').value = '';
       if ($('taskInternalPriority')) $('taskInternalPriority').value = 'media';
       if ($('taskInternalStatus')) $('taskInternalStatus').value = 'a_fazer';
-      if ($('taskInternalOwner')) $('taskInternalOwner').value = '';
+      if ($('taskInternalOwner')) {
+        $('taskInternalOwner').value = '';
+        $('taskInternalOwner').blur();
+      }
       if ($('taskInternalDue')) $('taskInternalDue').value = '';
       if ($('taskInternalTags')) $('taskInternalTags').value = '';
       if ($('taskInternalDesc')) $('taskInternalDesc').value = '';
+      if (internalTaskOwnerHideTimer) {
+        clearTimeout(internalTaskOwnerHideTimer);
+        internalTaskOwnerHideTimer = null;
+      }
       hideInternalTaskOwnerSuggestions();
     }
 
