@@ -452,7 +452,7 @@ button[type="submit"] *,
         </div>
 
         <div class="header-actions">
-          <a class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
+          <a id="btnCatalogo" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
           <a id="goPainelBiblio" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none;">Ir para modo bibliotecário</a>
           <a class="header-btn" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
           <button id="logout" class="logout-btn" type="button">Sair</button>
@@ -890,6 +890,10 @@ button[type="submit"] *,
     };
 
     const $ = (id) => document.getElementById(id);
+    $("btnCatalogo")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.assign(ROUTES.CATALOGO);
+    });
     $("logout")?.addEventListener("click", async () => {
       await supabase.auth.signOut();
       window.location.href = ROUTES.CADASTRO;
