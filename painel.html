@@ -1836,6 +1836,54 @@
       hideInternalTaskOwnerSuggestions();
     }
 
+    function internalTaskOwnerEmail(raw){
+      const value = String(raw || '').trim();
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : '';
+    }
+
+    function buildInternalTaskMailto(task){
+      const to = internalTaskOwnerEmail(task?.owner || '');
+      if (!to) return '';
+      const subject = `BLMF / AnarBib — tarefa interna: ${String(task?.title || '').trim() || 'sem título'}`;
+      const lines = [
+        'Olá, compa.',
+        '',
+        'Estou te enviando este aviso sobre uma tarefa interna da BLMF / AnarBib.',
+        '',
+        `Tarefa: ${String(task?.title || '').trim() || '—'}`,
+        `Situação: ${translateInternalTaskStatus(task?.status || 'a_fazer')}`,
+        `Prioridade: ${({'alta':'Alta','media':'Média','baixa':'Baixa'})[String(task?.priority || 'media')] || 'Média'}`
+      ];
+      if (task?.due_date) lines.push(`Prazo: ${fmtDate(task.due_date)}`);
+      if (String(task?.tags || '').trim()) lines.push(`Marcador: ${String(task.tags).trim()}`);
+      if (String(task?.description || '').trim()) {
+        lines.push('');
+        lines.push('Observações:');
+        lines.push(String(task.description).trim());
+      }
+      lines.push('');
+      lines.push('Saudações,');
+      lines.push('Equipe da biblioteca');
+      return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join('\n'))}`;
+    }
+
+    function notifyInternalTaskOwner(taskId){
+      const task = manualInternalTasks.find((row) => String(row.id) === String(taskId));
+      if (!task) return;
+      const href = buildInternalTaskMailto(task);
+      if (!href) {
+        setStatus('statusTarefasInternas', 'Preencha o campo Responsável com um e-mail válido para enviar o aviso.', 'warn');
+        return;
+      }
+      clearStatus('statusTarefasInternas');
+      try {
+        window.location.href = href;
+        setStatus('statusTarefasInternas', 'Aviso preparado no seu e-mail.', 'ok', true);
+      } catch (_e) {
+        setStatus('statusTarefasInternas', 'Não consegui abrir o aviso por e-mail no seu dispositivo.', 'bad', false);
+      }
+    }
+
     function renderInternalTasks(){
       const host = $('taskListInternas');
       if (!host) return;
@@ -1867,6 +1915,7 @@
             <span class="mini subtle">Criada em: ${esc(fmtDateTime(task.created_at))}</span>
           </div>
           <div class="task-item-actions">
+            <button class="btn mini" type="button" data-internal-task-notify="${esc(task.id)}">Avisar responsável</button>
             <button class="btn mini" type="button" data-internal-task-next="${esc(task.id)}">Avançar situação</button>
             <button class="btn mini" type="button" data-internal-task-delete="${esc(task.id)}">Excluir</button>
           </div>
@@ -3518,6 +3567,18 @@
         if (openEmpTaskBtn) {
           const emprestimoId = Number(openEmpTaskBtn.getAttribute('data-task-open-emprestimo'));
           if (emprestimoId) openLoanTask(emprestimoId);
+          return;
+        }
+
+        const notifyInternalTaskBtn = ev.target.closest('[data-internal-task-notify]');
+        if (notifyInternalTaskBtn) {
+          if (notifyInternalTaskBtn.disabled) return;
+          notifyInternalTaskBtn.disabled = true;
+          try {
+            notifyInternalTaskOwner(notifyInternalTaskBtn.getAttribute('data-internal-task-notify'));
+          } finally {
+            notifyInternalTaskBtn.disabled = false;
+          }
           return;
         }
 
