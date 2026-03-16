@@ -2757,24 +2757,21 @@
       return supabase.rpc('fn_v2_schedule_emprestimo_return', {
         p_emprestimo_id: emprestimoId,
         p_line_nos: lineNos,
-        p_return_scheduled_for: isoWhen,
-        p_actor_role: 'biblioteca'
+        p_return_scheduled_for: isoWhen
       });
     }
 
     async function clearEmprestimoReturnScheduleV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_clear_emprestimo_return_schedule', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos,
-        p_actor_role: 'biblioteca'
+        p_line_nos: lineNos
       });
     }
 
     async function markEmprestimoReturnMissedV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_mark_emprestimo_return_missed', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos,
-        p_actor_role: 'biblioteca'
+        p_line_nos: lineNos
       });
     }
 
@@ -3711,22 +3708,14 @@
         }
 
         if (oldRows.length) {
-          const payload = {
-            status: 'cancelled_by_staff_temp',
-            cancelled_at: nowISO(),
-            cancelled_by: session.user.id,
-            cancelled_by_role: 'staff',
-            cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
-          };
-          const oldIds = oldRows.map((r) => Number(r.reserva_id));
-          const { data, error } = await supabase
-            .from('reservas')
-            .update(payload)
-            .in('id', oldIds)
-            .eq('status', 'pending')
-            .select('id');
-          if (error) throw error;
-          total += (data || []).length;
+          for (const row of oldRows) {
+            const rpc = await supabase.rpc('fn_cancel_reserva_legacy_as_biblioteca', {
+              p_reserva_id: Number(row.reserva_id),
+              p_notes: 'Cancelamento registrado pela biblioteca no painel.'
+            });
+            if (rpc.error) throw rpc.error;
+            total += Number(rpc.data || 0) || 0;
+          }
         }
 
         selectedReservaIds = new Set([...selectedReservaIds].filter((id) => !ids.includes(id)));
