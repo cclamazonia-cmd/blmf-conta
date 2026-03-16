@@ -133,6 +133,9 @@
     }
     .loan-actions{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:10px; }
     .tag-muted{ color:#cfcfcf; font-size:.9rem; }
+    .return-meta{ margin-top:6px; color:#cfcfcf; font-size:.9rem; line-height:1.35; }
+    .return-editor{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+    .return-editor input[type="datetime-local"]{ max-width:230px; }
 
   
     .list-table{ width:100%; border-collapse:collapse; margin-top:10px; }
@@ -1708,6 +1711,46 @@ button[type="submit"] *,
       return { error: lastErr, data: null };
     }
 
+    function getReturnScheduleLabel(status) {
+      switch (String(status || "").trim()) {
+        case "devolucao_agendada": return "Devolução agendada";
+        case "devolucao_realizada": return "Devolvido";
+        case "devolucao_nao_realizada": return "Devolução não realizada";
+        case "emprestimo_prorrogado": return "Empréstimo prorrogado";
+        case "sem_agendamento":
+        default: return "Sem agendamento";
+      }
+    }
+
+    function toDateTimeLocalValue(v) {
+      if (!v) return "";
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function dateTimeLocalToIso(v) {
+      if (!v) return null;
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    async function scheduleReturnV2(loanId, lineNo, isoWhen) {
+      return supabase.rpc("fn_v2_schedule_emprestimo_return", {
+        p_emprestimo_id: loanId,
+        p_line_nos: [lineNo],
+        p_return_scheduled_for: isoWhen
+      });
+    }
+
+    async function clearReturnScheduleV2(loanId, lineNo) {
+      return supabase.rpc("fn_v2_clear_emprestimo_return_schedule", {
+        p_emprestimo_id: loanId,
+        p_line_nos: [lineNo]
+      });
+    }
+
     async function renderLoans() {
       if (loanMsg && Date.now() >= loanMsgHoldUntil) loanMsg.textContent = "";
       loansEl.textContent = "Carregando...";
@@ -1715,7 +1758,7 @@ button[type="submit"] *,
       const v2 = await supabase
         .schema("api")
         .from("emprestimo_itens_ui")
-        .select("emprestimo_id, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at")
+        .select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, extended_until, extension_note, item_status, returned_at, return_scheduled_for, return_schedule_status, return_completed_at, return_missed_at")
         .eq("user_id", session.user.id)
         .eq("item_status", "aberto")
         .order("emprestimo_id", { ascending: false })
@@ -1741,7 +1784,23 @@ button[type="submit"] *,
 
       if (!v2.error && (v2.data || []).length) {
         const rows = v2.data.map((r) => {
-          const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+          const renewBtn = !userIsRestricted
+            ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>`
+            : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+
+          const key = `${r.emprestimo_id}|${r.line_no}`;
+          const dueShown = r.extended_until || r.due_at;
+          const statusLabel = getReturnScheduleLabel(r.return_schedule_status);
+          const scheduleBtnLabel = r.return_schedule_status === "devolucao_nao_realizada"
+            ? "Reagendar devolução"
+            : (r.return_scheduled_for ? "Alterar devolução" : "Agendar devolução");
+
+          const returnMeta = r.return_scheduled_for
+            ? `Devolução prevista: ${fmtDateTimeBelem(r.return_scheduled_for)} (Belém)`
+            : (r.return_schedule_status === "emprestimo_prorrogado"
+                ? `Prazo prorrogado. Nova devolução: ${fmtDateOnly(dueShown)}`
+                : "Devolução prevista: sem agendamento");
+
           return `<tr>
             <td>#${r.emprestimo_id}</td>
             <td class="mono">${escapeHtml(r.sub_id)}</td>
@@ -1749,13 +1808,46 @@ button[type="submit"] *,
             <td class="mono">${escapeHtml(r.bib_ref || "—")}</td>
             <td class="mono">${escapeHtml(r.rotulo || "—")}</td>
             <td>${escapeHtml(fmtDateOnly(r.emprestimo_created_at))}</td>
-            <td><b>${escapeHtml(fmtDateOnly(r.due_at))}</b></td>
-            <td>${escapeHtml(r.item_status || "—")}</td>
-            <td>${renewBtn}</td>
+            <td><b>${escapeHtml(fmtDateOnly(dueShown))}</b></td>
+            <td>
+              ${escapeHtml(r.item_status || "—")}<br>
+              <small>${escapeHtml(statusLabel)}</small>
+            </td>
+            <td>
+              <div class="loan-actions">
+                ${renewBtn}
+                <button type="button" class="secondary mini-btn" data-open-return-editor="${key}">${scheduleBtnLabel}</button>
+                ${r.return_scheduled_for ? `<button type="button" class="secondary mini-btn" data-clear-return-schedule="${key}">Cancelar agendamento</button>` : ``}
+              </div>
+              <div class="return-meta">
+                ${escapeHtml(returnMeta)}
+                ${r.extension_note ? `<br><small>Obs.: ${escapeHtml(r.extension_note)}</small>` : ``}
+              </div>
+              <div class="return-editor" data-return-editor="${key}" hidden>
+                <input type="datetime-local" value="${escapeHtml(toDateTimeLocalValue(r.return_scheduled_for))}">
+                <button type="button" class="secondary mini-btn" data-save-return-schedule="${key}">Salvar horário</button>
+              </div>
+            </td>
           </tr>`;
         }).join("");
         const mobileCards = v2.data.map((r) => {
-          const renewBtn = !userIsRestricted ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>` : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+          const renewBtn = !userIsRestricted
+            ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>`
+            : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+
+          const key = `${r.emprestimo_id}|${r.line_no}`;
+          const dueShown = r.extended_until || r.due_at;
+          const statusLabel = getReturnScheduleLabel(r.return_schedule_status);
+          const scheduleBtnLabel = r.return_schedule_status === "devolucao_nao_realizada"
+            ? "Reagendar devolução"
+            : (r.return_scheduled_for ? "Alterar devolução" : "Agendar devolução");
+
+          const returnMeta = r.return_scheduled_for
+            ? `Devolução prevista: ${fmtDateTimeBelem(r.return_scheduled_for)} (Belém)`
+            : (r.return_schedule_status === "emprestimo_prorrogado"
+                ? `Prazo prorrogado. Nova devolução: ${fmtDateOnly(dueShown)}`
+                : "Devolução prevista: sem agendamento");
+
           return `
             <article class="mobile-card">
               <h4>${escapeHtml(r.titulo || "Livro")}</h4>
@@ -1766,10 +1858,20 @@ button[type="submit"] *,
                 <div class="k">Referência</div><div class="v mono">${escapeHtml(r.bib_ref || "—")}</div>
                 <div class="k">Rótulo</div><div class="v mono">${escapeHtml(r.rotulo || "—")}</div>
                 <div class="k">Saída em</div><div class="v">${escapeHtml(fmtDateOnly(r.emprestimo_created_at))}</div>
-                <div class="k">Prazo</div><div class="v"><b>${escapeHtml(fmtDateOnly(r.due_at))}</b></div>
-                <div class="k">Situação</div><div class="v">${escapeHtml(r.item_status || "—")}</div>
+                <div class="k">Prazo</div><div class="v"><b>${escapeHtml(fmtDateOnly(dueShown))}</b></div>
+                <div class="k">Situação</div><div class="v">${escapeHtml(r.item_status || "—")} · ${escapeHtml(statusLabel)}</div>
+                <div class="k">Devolução</div><div class="v">${escapeHtml(returnMeta)}</div>
               </div>
-              <div class="mobile-actions">${renewBtn}</div>
+              ${r.extension_note ? `<p class="small" style="margin:8px 0 0;">Obs.: ${escapeHtml(r.extension_note)}</p>` : ""}
+              <div class="mobile-actions">
+                ${renewBtn}
+                <button type="button" class="secondary mini-btn" data-open-return-editor="${key}">${scheduleBtnLabel}</button>
+                ${r.return_scheduled_for ? `<button type="button" class="secondary mini-btn" data-clear-return-schedule="${key}">Cancelar agendamento</button>` : ``}
+              </div>
+              <div class="return-editor" data-return-editor="${key}" hidden>
+                <input type="datetime-local" value="${escapeHtml(toDateTimeLocalValue(r.return_scheduled_for))}">
+                <button type="button" class="secondary mini-btn" data-save-return-schedule="${key}">Salvar horário</button>
+              </div>
             </article>`;
         }).join("");
         sections.push(`<section class="mobile-section"><div class="panel-head"><h3 style="margin:0 0 6px;">Empréstimos por lote</h3><p class="small" style="margin:0;">Visualização por lote e por livro, com prazos previstos e situação detalhada. Cada empréstimo só pode ser renovado uma única vez.</p></div><div class="desktop-only"><div class="table-scroll"><table class="list-table"><thead><tr><th>Lote</th><th>Livro</th><th>Título</th><th>Referência</th><th>Rótulo</th><th>Saída em</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="mobile-only mobile-cards">${mobileCards}</div></section>`);
@@ -1844,6 +1946,95 @@ button[type="submit"] *,
         return;
       }
       loansEl.innerHTML = sections.join("");
+
+      loansEl.querySelectorAll("[data-open-return-editor]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.getAttribute("data-open-return-editor");
+          if (!key) return;
+          const editor = loansEl.querySelector(`[data-return-editor="${key}"]`);
+          if (!editor) return;
+          editor.hidden = !editor.hidden;
+          if (!editor.hidden) {
+            const input = editor.querySelector('input[type="datetime-local"]');
+            if (input) input.focus();
+          }
+        });
+      });
+
+      loansEl.querySelectorAll("[data-save-return-schedule]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const key = btn.getAttribute("data-save-return-schedule");
+          if (!key) return;
+          const [loanIdStr, lineNoStr] = key.split("|");
+          const loanId = Number(loanIdStr);
+          const lineNo = Number(lineNoStr);
+          if (!loanId || !lineNo) return;
+
+          const editor = btn.closest("[data-return-editor]");
+          const input = editor?.querySelector('input[type="datetime-local"]');
+          const raw = input?.value || "";
+          const isoWhen = dateTimeLocalToIso(raw);
+
+          if (!isoWhen) {
+            setLoanMsgText("Informe data e hora para a devolução.", 2200);
+            return;
+          }
+
+          btn.disabled = true;
+          setLoanMsgText("Registrando agendamento de devolução...");
+          const res = await scheduleReturnV2(loanId, lineNo, isoWhen);
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+
+          if (res.error) {
+            setLoanMsgText("Erro ao agendar devolução: " + res.error.message, 2600);
+            btn.disabled = false;
+            return;
+          }
+          if (row?.ok === false) {
+            setLoanMsgText("Erro ao agendar devolução: " + (row?.message || "Operação indisponível."), 2600);
+            btn.disabled = false;
+            return;
+          }
+
+          const msg = row?.message || "Agendamento de devolução registrado.";
+          const whenMsg = row?.return_scheduled_for ? ` Horário: ${fmtDateTimeBelem(row.return_scheduled_for)} (Belém).` : "";
+          setLoanMsgText(msg + whenMsg);
+          await renderLoans();
+        });
+      });
+
+      loansEl.querySelectorAll("[data-clear-return-schedule]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const key = btn.getAttribute("data-clear-return-schedule");
+          if (!key) return;
+          const [loanIdStr, lineNoStr] = key.split("|");
+          const loanId = Number(loanIdStr);
+          const lineNo = Number(lineNoStr);
+          if (!loanId || !lineNo) return;
+
+          const proceed = window.confirm("Deseja cancelar o agendamento de devolução deste item?");
+          if (!proceed) return;
+
+          btn.disabled = true;
+          setLoanMsgText("Cancelando agendamento de devolução...");
+          const res = await clearReturnScheduleV2(loanId, lineNo);
+          const row = Array.isArray(res.data) ? res.data[0] : res.data;
+
+          if (res.error) {
+            setLoanMsgText("Erro ao cancelar agendamento: " + res.error.message, 2600);
+            btn.disabled = false;
+            return;
+          }
+          if (row?.ok === false) {
+            setLoanMsgText("Erro ao cancelar agendamento: " + (row?.message || "Operação indisponível."), 2600);
+            btn.disabled = false;
+            return;
+          }
+
+          setLoanMsgText(row?.message || "Agendamento de devolução cancelado.");
+          await renderLoans();
+        });
+      });
 
       loansEl.querySelectorAll("[data-renew-v2]").forEach((btn) => {
         btn.addEventListener("click", async () => {
