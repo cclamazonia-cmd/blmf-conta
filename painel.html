@@ -136,7 +136,6 @@
     @media (max-width:980px){
       .tableWrap{overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
       #tab-reservas table{min-width:760px;table-layout:fixed}
-      #tab-trabalho-dia table{min-width:920px;table-layout:fixed}
       #tab-emprestimos-livro table{min-width:900px;table-layout:fixed}
       #tab-emprestimos-lote table{min-width:880px;table-layout:fixed}
       #profilePaneReservas table{min-width:720px;table-layout:fixed}
@@ -391,14 +390,6 @@
       #tab-reservas td:nth-child(7)::before{content:"Reserva"}
       #tab-reservas td:nth-child(8)::before{content:"Validade"}
 
-      #tab-trabalho-dia td:nth-child(1)::before{content:"Prioridade"}
-      #tab-trabalho-dia td:nth-child(2)::before{content:"Tipo"}
-      #tab-trabalho-dia td:nth-child(3)::before{content:"Pessoa"}
-      #tab-trabalho-dia td:nth-child(4)::before{content:"Livro / referência"}
-      #tab-trabalho-dia td:nth-child(5)::before{content:"Quando"}
-      #tab-trabalho-dia td:nth-child(6)::before{content:"Situação"}
-      #tab-trabalho-dia td:nth-child(7)::before{content:"Ação"}
-
       #tab-emprestimos-livro td:nth-child(1)::before{content:"ID do item"}
       #tab-emprestimos-livro td:nth-child(2)::before{content:"ID do empréstimo"}
       #tab-emprestimos-livro td:nth-child(3)::before{content:"Leitor(a/e)"}
@@ -435,6 +426,27 @@
       #profilePaneEmprestimos td:nth-child(6)::before{content:"Prazo"}
       #profilePaneEmprestimos td:nth-child(7)::before{content:"Situação"}
       #profilePaneEmprestimos td:nth-child(8)::before{content:"Ações"}
+    }
+
+  
+    /* trabalho do dia + tarefas internas */
+    .task-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+    .task-split{display:grid;grid-template-columns:1fr;gap:14px}
+    .task-list{display:flex;flex-direction:column;gap:10px}
+    .task-item{border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px;background:rgba(255,255,255,.03)}
+    .task-item-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+    .task-item-title{font-weight:700}
+    .task-item-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .task-item-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .priority-pill.alta{background:rgba(200,0,0,.22);border-color:rgba(200,0,0,.42);color:#ffd2d2}
+    .priority-pill.media{background:rgba(255,193,7,.16);border-color:rgba(255,193,7,.35);color:#ffe8a3}
+    .priority-pill.baixa{background:rgba(120,120,120,.16);border-color:rgba(200,200,200,.25);color:#ddd}
+    .task-form-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+    .task-form-grid-2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .task-form-grid-3{display:grid;grid-template-columns:1fr;gap:12px}
+    .task-empty{padding:14px;border:1px dashed rgba(255,255,255,.14);border-radius:14px;color:#cfcfcf}
+    @media (max-width:980px){
+      .task-form-grid,.task-form-grid-2{grid-template-columns:1fr}
     }
 
   </style>
@@ -474,14 +486,20 @@
           Funcionamento
           <span class="hint">Modo global e reservas públicas</span>
         </button>
-        <button class="tab-btn" type="button" data-tab="trabalho-dia" role="tab" aria-selected="false" aria-controls="tab-trabalho-dia">
-          Trabalho do dia
-          <span class="hint">Prioridades automáticas da biblioteca</span>
-        </button>
         <button class="tab-btn" type="button" data-tab="acoes" role="tab" aria-selected="false" aria-controls="tab-acoes">
           Ações
           <span class="hint">Registrar saída e devolução</span>
         </button>
+
+        <button class="tab-btn" type="button" data-tab="trabalho-do-dia" role="tab" aria-selected="false" aria-controls="tab-trabalho-do-dia">
+          Trabalho do dia
+          <span class="hint">Prioridades automáticas da BLMF</span>
+        </button>
+        <button class="tab-btn" type="button" data-tab="tarefas-internas" role="tab" aria-selected="false" aria-controls="tab-tarefas-internas">
+          Tarefas internas
+          <span class="hint">Organização prática da biblioteca</span>
+        </button>
+
         <button class="tab-btn" type="button" data-tab="reservas" role="tab" aria-selected="false" aria-controls="tab-reservas">
           Reservas ativas
           <span class="hint">Confirmar retirada ou cancelar</span>
@@ -545,46 +563,6 @@
           </div>
         </section>
 
-        <section id="tab-trabalho-dia" class="tab-panel" data-tab="trabalho-dia" role="tabpanel">
-          <div class="card">
-            <div class="section-head">
-              <div>
-                <h2>Trabalho do dia</h2>
-                <div class="mini">Acompanhamento automático do que pede atenção agora, a partir das reservas e dos empréstimos em curso.</div>
-              </div>
-              <div class="actions" style="margin-top:0">
-                <button class="btn" id="btnRecarregarTrabalhoDia" type="button">Recarregar</button>
-              </div>
-            </div>
-            <div class="chips" style="margin-top:12px">
-              <span class="chip" id="chipTaskTodayPickup">Retiradas hoje: —</span>
-              <span class="chip" id="chipTaskReady">Prontas para retirada: —</span>
-              <span class="chip" id="chipTaskReplies">Respostas do leitor: —</span>
-              <span class="chip" id="chipTaskDueToday">Devoluções hoje: —</span>
-              <span class="chip" id="chipTaskOverdue">Em atraso: —</span>
-              <span class="chip" id="chipTaskSpecial">Exceções: —</span>
-            </div>
-            <div class="sep"></div>
-            <div class="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Prioridade</th>
-                    <th>Tipo</th>
-                    <th>Pessoa</th>
-                    <th>Livro / referência</th>
-                    <th>Quando</th>
-                    <th>Situação</th>
-                    <th>Ação sugerida</th>
-                  </tr>
-                </thead>
-                <tbody id="tbodyWorkday"><tr><td colspan="7">Carregando…</td></tr></tbody>
-              </table>
-            </div>
-            <div class="status" id="statusTrabalhoDia"></div>
-          </div>
-        </section>
-
         <section id="tab-acoes" class="tab-panel" data-tab="acoes" role="tabpanel">
           <div class="grid">
             <div class="card">
@@ -642,6 +620,99 @@
           </div>
         </section>
 
+
+        <section id="tab-trabalho-do-dia" class="tab-panel" data-tab="trabalho-do-dia" role="tabpanel">
+          <div class="grid">
+            <div class="card">
+              <div class="section-head">
+                <div>
+                  <h2>Trabalho do dia</h2>
+                  <div class="mini">Vista automática das prioridades da BLMF, sempre calculada no horário de Belém.</div>
+                </div>
+                <div class="actions" style="margin-top:0">
+                  <button class="btn" id="btnRecarregarTrabalhoDia" type="button">Recalcular</button>
+                </div>
+              </div>
+              <div class="task-summary" id="taskSummaryTrabalhoDia">
+                <span class="chip" id="chipTaskHoje">Hoje: —</span>
+                <span class="chip" id="chipTaskAtencao">Atenção: —</span>
+                <span class="chip" id="chipTaskAcompanhamento">Acompanhamento: —</span>
+                <span class="chip" id="chipTaskAgoraBelem">Agora em Belém: —</span>
+              </div>
+              <div class="task-list" id="taskListTrabalhoDia">
+                <div class="task-empty">Carregando prioridades…</div>
+              </div>
+              <div class="status" id="statusTrabalhoDia"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-tarefas-internas" class="tab-panel" data-tab="tarefas-internas" role="tabpanel">
+          <div class="grid">
+            <div class="card">
+              <div class="section-head">
+                <div>
+                  <h2>Tarefas internas</h2>
+                  <div class="mini">Lista manual para limpeza dos livros, arrumação das estantes, revisão do espaço e mutirões.</div>
+                </div>
+              </div>
+              <div class="task-form-grid">
+                <div>
+                  <label for="taskInternalTitle">Título da tarefa</label>
+                  <input class="input" id="taskInternalTitle" type="text" placeholder="Ex.: limpeza dos livros de teoria política">
+                </div>
+                <div>
+                  <label for="taskInternalPriority">Prioridade</label>
+                  <select class="select" id="taskInternalPriority">
+                    <option value="media">Média</option>
+                    <option value="alta">Alta</option>
+                    <option value="baixa">Baixa</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="taskInternalStatus">Situação</label>
+                  <select class="select" id="taskInternalStatus">
+                    <option value="a_fazer">A fazer</option>
+                    <option value="em_andamento">Em andamento</option>
+                    <option value="concluida">Concluída</option>
+                    <option value="cancelada">Cancelada</option>
+                  </select>
+                </div>
+              </div>
+              <div class="task-form-grid-2" style="margin-top:12px">
+                <div>
+                  <label for="taskInternalOwner">Responsável (opcional)</label>
+                  <input class="input" id="taskInternalOwner" type="text" placeholder="Ex.: mutirão de sábado">
+                </div>
+                <div>
+                  <label for="taskInternalDue">Prazo (opcional)</label>
+                  <input class="input" id="taskInternalDue" type="date">
+                </div>
+                <div>
+                  <label for="taskInternalTags">Marcador curto (opcional)</label>
+                  <input class="input" id="taskInternalTags" type="text" placeholder="Ex.: estantes, etiquetas, limpeza">
+                </div>
+              </div>
+              <div class="task-form-grid-3" style="margin-top:12px">
+                <div>
+                  <label for="taskInternalDesc">Descrição / observações</label>
+                  <textarea class="textarea" id="taskInternalDesc" placeholder="Detalhes úteis para a equipe da biblioteca."></textarea>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn primary" id="btnAddInternalTask" type="button">Adicionar tarefa</button>
+                <button class="btn" id="btnClearInternalTaskForm" type="button">Limpar formulário</button>
+              </div>
+              <div class="sep"></div>
+              <div class="task-list" id="taskListInternas">
+                <div class="task-empty">Nenhuma tarefa interna cadastrada por enquanto.</div>
+              </div>
+              <div class="status" id="statusTarefasInternas"></div>
+            </div>
+          </div>
+        </section>
+
+
         <section id="tab-reservas" class="tab-panel" data-tab="reservas" role="tabpanel">
           <div class="card">
             <div class="section-head">
@@ -673,8 +744,6 @@
                 <button class="btn" id="btnResCombinar" type="button">Marcar retirada a combinar</button>
                 <button class="btn" id="btnResAgendar" type="button">Agendar retirada</button>
                 <button class="btn" id="btnResPronta" type="button">Marcar pronta para retirada</button>
-                <button class="btn" id="btnResNaoRetirada" type="button">Marcar como não retirada</button>
-                <button class="btn" id="btnResLiberarCirculacao" type="button">Liberar para circulação</button>
               </div>
             </div>
             <div class="sep"></div>
@@ -1210,7 +1279,9 @@
     let refreshSerial = 0;
     let libraryServiceState = null;
     let reservationFollowUpFilter = 'all';
-    let activateMainTab = () => {};
+    let manualInternalTasks = [];
+    const INTERNAL_TASKS_STORAGE_KEY = 'blmf_painel_tarefas_internas_v1';
+    let activateMainTab = null;
 
     function clearStatus(id){
       const el = $(id);
@@ -1223,7 +1294,7 @@
       }
     }
 
-    function setStatus(id, msg='', cls='', autoclear=true){
+    function setStatus(id, msg='', cls='', autoclear=false){
       const el = $(id);
       if (!el) return;
       if (statusTimers.has(id)) {
@@ -1456,6 +1527,270 @@
 
     function setupServiceStateActions(){
       $('btnSaveServiceState')?.addEventListener('click', saveLibraryServiceState);
+    }
+
+
+    function belemNowParts(){
+      const d = new Date();
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Belem',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(d);
+      const get = (type) => parts.find((p) => p.type === type)?.value || '';
+      return { ymd: `${get('year')}-${get('month')}-${get('day')}`, hm: `${get('hour')}:${get('minute')}` };
+    }
+
+    function belemDateYmd(dateLike){
+      if (!dateLike) return '';
+      const d = new Date(dateLike);
+      if (Number.isNaN(d.getTime())) return '';
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Belem',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(d);
+      const get = (type) => parts.find((p) => p.type === type)?.value || '';
+      return `${get('year')}-${get('month')}-${get('day')}`;
+    }
+
+    function daysDiffFromToday(dateLike){
+      const s = String(dateLike || '').slice(0,10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+      const today = new Date(todayISO() + 'T00:00:00');
+      const target = new Date(s + 'T00:00:00');
+      return Math.floor((target - today) / 86400000);
+    }
+
+    function priorityRank(p){
+      return ({alta:0, media:1, baixa:2})[String(p || '')] ?? 9;
+    }
+
+    function openReservationTask(reservaId){
+      if (typeof activateMainTab === 'function') activateMainTab('reservas');
+      reservationFollowUpFilter = 'all';
+      const ids = activeReservations.filter((r) => Number(r.reserva_id) === Number(reservaId)).map((r) => r.id);
+      selectedReservaIds = new Set(ids);
+      renderReservationTable();
+      requestAnimationFrame(() => {
+        const row = document.querySelector(`[data-reserva-row="${ids[0] || ''}"]`);
+        if (row) row.scrollIntoView({behavior:'smooth', block:'center'});
+      });
+    }
+
+    function openLoanTask(emprestimoId){
+      if (typeof activateMainTab === 'function') activateMainTab('emprestimos-livro');
+      requestAnimationFrame(() => {
+        const row = document.querySelector(`[data-loan-emp-id="${Number(emprestimoId)}"]`);
+        if (row) row.scrollIntoView({behavior:'smooth', block:'center'});
+      });
+    }
+
+    function translateInternalTaskStatus(status){
+      return ({
+        a_fazer: 'A fazer',
+        em_andamento: 'Em andamento',
+        concluida: 'Concluída',
+        cancelada: 'Cancelada'
+      })[String(status || '')] || 'A fazer';
+    }
+
+    function internalTaskStatusClass(status){
+      return ({
+        a_fazer: 'warn',
+        em_andamento: 'ok',
+        concluida: 'ok',
+        cancelada: 'bad'
+      })[String(status || '')] || 'warn';
+    }
+
+    function loadInternalTasks(){
+      try {
+        const raw = window.localStorage.getItem(INTERNAL_TASKS_STORAGE_KEY);
+        manualInternalTasks = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(manualInternalTasks)) manualInternalTasks = [];
+      } catch {
+        manualInternalTasks = [];
+      }
+    }
+
+    function saveInternalTasks(){
+      window.localStorage.setItem(INTERNAL_TASKS_STORAGE_KEY, JSON.stringify(manualInternalTasks));
+    }
+
+    function clearInternalTaskForm(){
+      if ($('taskInternalTitle')) $('taskInternalTitle').value = '';
+      if ($('taskInternalPriority')) $('taskInternalPriority').value = 'media';
+      if ($('taskInternalStatus')) $('taskInternalStatus').value = 'a_fazer';
+      if ($('taskInternalOwner')) $('taskInternalOwner').value = '';
+      if ($('taskInternalDue')) $('taskInternalDue').value = '';
+      if ($('taskInternalTags')) $('taskInternalTags').value = '';
+      if ($('taskInternalDesc')) $('taskInternalDesc').value = '';
+    }
+
+    function renderInternalTasks(){
+      const host = $('taskListInternas');
+      if (!host) return;
+      const rows = [...manualInternalTasks].sort((a,b) => {
+        const p = priorityRank(a.priority) - priorityRank(b.priority);
+        if (p) return p;
+        return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+      });
+      if (!rows.length){
+        host.innerHTML = '<div class="task-empty">Nenhuma tarefa interna cadastrada por enquanto.</div>';
+        return;
+      }
+      host.innerHTML = rows.map((task) => `
+        <div class="task-item" data-internal-task-id="${esc(task.id)}">
+          <div class="task-item-head">
+            <div>
+              <div class="task-item-title">${esc(task.title)}</div>
+              ${task.description ? `<div class="mini subtle" style="margin-top:6px">${esc(task.description)}</div>` : ''}
+            </div>
+            <div class="task-item-meta">
+              <span class="pill priority-pill ${esc(task.priority)}">${esc(({'alta':'Alta','media':'Média','baixa':'Baixa'})[task.priority] || 'Média')}</span>
+              <span class="pill ${esc(internalTaskStatusClass(task.status))}">${esc(translateInternalTaskStatus(task.status))}</span>
+            </div>
+          </div>
+          <div class="task-item-meta">
+            ${task.owner ? `<span class="mini subtle">Responsável: ${esc(task.owner)}</span>` : ''}
+            ${task.due_date ? `<span class="mini subtle">Prazo: ${esc(fmtDate(task.due_date))}</span>` : ''}
+            ${task.tags ? `<span class="mini subtle">Marcador: ${esc(task.tags)}</span>` : ''}
+            <span class="mini subtle">Criada em: ${esc(fmtDateTime(task.created_at))}</span>
+          </div>
+          <div class="task-item-actions">
+            <button class="btn mini" type="button" data-internal-task-next="${esc(task.id)}">Avançar situação</button>
+            <button class="btn mini" type="button" data-internal-task-delete="${esc(task.id)}">Excluir</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addInternalTask(){
+      clearStatus('statusTarefasInternas');
+      const title = $('taskInternalTitle')?.value.trim() || '';
+      if (!title) return setStatus('statusTarefasInternas', 'Informe ao menos o título da tarefa.', 'warn');
+      manualInternalTasks.push({
+        id: (window.crypto?.randomUUID?.() || String(Date.now())),
+        title,
+        description: $('taskInternalDesc')?.value.trim() || '',
+        priority: $('taskInternalPriority')?.value || 'media',
+        status: $('taskInternalStatus')?.value || 'a_fazer',
+        owner: $('taskInternalOwner')?.value.trim() || '',
+        due_date: $('taskInternalDue')?.value || '',
+        tags: $('taskInternalTags')?.value.trim() || '',
+        created_at: nowISO()
+      });
+      saveInternalTasks();
+      renderInternalTasks();
+      clearInternalTaskForm();
+      setStatus('statusTarefasInternas', 'Tarefa interna adicionada.', 'ok');
+    }
+
+    function cycleInternalTaskStatus(taskId){
+      const idx = manualInternalTasks.findIndex((t) => String(t.id) === String(taskId));
+      if (idx < 0) return;
+      const order = ['a_fazer', 'em_andamento', 'concluida'];
+      const current = manualInternalTasks[idx].status || 'a_fazer';
+      const pos = order.indexOf(current);
+      manualInternalTasks[idx].status = order[(pos + 1) % order.length];
+      saveInternalTasks();
+      renderInternalTasks();
+    }
+
+    function deleteInternalTask(taskId){
+      manualInternalTasks = manualInternalTasks.filter((t) => String(t.id) !== String(taskId));
+      saveInternalTasks();
+      renderInternalTasks();
+    }
+
+    function buildDailyTasks(){
+      const tasks = [];
+      const belemNow = belemNowParts();
+
+      activeReservations.forEach((r) => {
+        const stage = String(r.workflow_stage || '');
+        const pickupDayBelem = belemDateYmd(r.pickup_scheduled_for);
+        const validadeDiff = reservationDateDiff(r.validade);
+
+        if (stage === 'retirada_agendada' && pickupDayBelem && pickupDayBelem === belemNow.ymd){
+          tasks.push({ priority:'alta', bucket:'hoje', kind:'Retirada agendada para hoje', label:`${r.user_name} · ${r.titulo}`, detail:`Retirada: ${fmtDateTimeBelem(r.pickup_scheduled_for)} (Belém)`, actionType:'reserva', reserva_id:r.reserva_id });
+        }
+        if (stage === 'pronta_para_retirada'){
+          tasks.push({ priority: validadeDiff != null && validadeDiff <= 1 ? 'alta' : 'media', bucket: validadeDiff != null && validadeDiff <= 1 ? 'hoje' : 'atencao', kind:'Reserva pronta para retirada', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTime(r.validade)}${r.workflow_note ? ' · ' + r.workflow_note : ''}`, actionType:'reserva', reserva_id:r.reserva_id });
+        }
+        if (String(r.pickup_reply_status || '') === 'recusado_leitor'){
+          tasks.push({ priority:'alta', bucket:'atencao', kind:'Leitor recusou o horário', label:`${r.user_name} · ${r.titulo}`, detail:r.pickup_reply_note || 'Reagendar retirada.', actionType:'reserva', reserva_id:r.reserva_id });
+        }
+        if (stage === 'nao_retirada'){
+          tasks.push({ priority:'alta', bucket:'atencao', kind:'Não retirada', label:`${r.user_name} · ${r.titulo}`, detail:r.workflow_note || 'Verificar se a reserva será remarcada, liberada ou encerrada.', actionType:'reserva', reserva_id:r.reserva_id });
+        }
+        if (stage === 'liberada_para_circulacao'){
+          tasks.push({ priority:'media', bucket:'acompanhamento', kind:'Exemplar liberado para circulação', label:`${r.user_name} · ${r.titulo}`, detail:r.workflow_note || 'Reserva ainda ativa, mas sem exemplar separado.', actionType:'reserva', reserva_id:r.reserva_id });
+        }
+        if (validadeDiff != null && validadeDiff < 0){
+          tasks.push({ priority:'alta', bucket:'atencao', kind:'Reserva com prazo vencido', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTime(r.validade)}`, actionType:'reserva', reserva_id:r.reserva_id });
+        }
+      });
+
+      activeLoans.forEach((l) => {
+        const dueDiff = daysDiffFromToday(l.due_date);
+        if (dueDiff === 0){
+          tasks.push({ priority:'media', bucket:'hoje', kind:'Devolução prevista hoje', label:`${l.user_name} · ${l.titulo}`, detail:`Prazo: ${fmtDate(l.due_date)} · ${l.sub_id}`, actionType:'emprestimo', emprestimo_id:l.emprestimo_id || l.loan_id });
+        } else if (dueDiff != null && dueDiff < 0){
+          tasks.push({ priority:'alta', bucket:'atencao', kind:'Empréstimo em atraso', label:`${l.user_name} · ${l.titulo}`, detail:`Prazo: ${fmtDate(l.due_date)} · ${Math.abs(dueDiff)} dia(s) de atraso`, actionType:'emprestimo', emprestimo_id:l.emprestimo_id || l.loan_id });
+        }
+      });
+
+      return tasks.sort((a,b) => {
+        const p = priorityRank(a.priority) - priorityRank(b.priority);
+        if (p) return p;
+        return String(a.kind).localeCompare(String(b.kind));
+      });
+    }
+
+    function renderTrabalhoDoDia(){
+      const host = $('taskListTrabalhoDia');
+      if (!host) return;
+      const tasks = buildDailyTasks();
+      const counts = {hoje:0, atencao:0, acompanhamento:0};
+      tasks.forEach((t) => { if (counts[t.bucket] != null) counts[t.bucket] += 1; });
+      setChip('chipTaskHoje', `Hoje: ${counts.hoje}`);
+      setChip('chipTaskAtencao', `Atenção: ${counts.atencao}`);
+      setChip('chipTaskAcompanhamento', `Acompanhamento: ${counts.acompanhamento}`);
+      const nowParts = belemNowParts();
+      setChip('chipTaskAgoraBelem', `Agora em Belém: ${nowParts.hm}`);
+      if (!tasks.length){
+        host.innerHTML = '<div class="task-empty">Sem tarefas automáticas para o momento.</div>';
+        return;
+      }
+      host.innerHTML = tasks.map((task) => `
+        <div class="task-item">
+          <div class="task-item-head">
+            <div>
+              <div class="task-item-title">${esc(task.kind)}</div>
+              <div class="mini subtle" style="margin-top:6px">${esc(task.label)}</div>
+            </div>
+            <div class="task-item-meta">
+              <span class="pill priority-pill ${esc(task.priority)}">${esc(({'alta':'Alta','media':'Média','baixa':'Baixa'})[task.priority] || 'Média')}</span>
+              <span class="pill ${task.bucket === 'atencao' ? 'bad' : (task.bucket === 'hoje' ? 'warn' : 'ok')}">${esc(task.bucket === 'atencao' ? 'Atenção' : (task.bucket === 'hoje' ? 'Hoje' : 'Acompanhamento'))}</span>
+            </div>
+          </div>
+          <div class="task-item-meta">
+            <span class="mini subtle">${esc(task.detail || '—')}</span>
+          </div>
+          <div class="task-item-actions">
+            ${task.actionType === 'reserva'
+              ? `<button class="btn mini" type="button" data-task-open-reserva="${esc(task.reserva_id)}">Abrir reserva</button>`
+              : `<button class="btn mini" type="button" data-task-open-emprestimo="${esc(task.emprestimo_id)}">Abrir empréstimo</button>`}
+          </div>
+        </div>
+      `).join('');
     }
 
     function setupMainTabs(){
@@ -1839,256 +2174,6 @@
     }
 
 
-
-    function dateToISOInTimeZone(value, timeZone='America/Belem'){
-      if (!value) return null;
-      const d = value instanceof Date ? value : new Date(value);
-      if (Number.isNaN(d.getTime())) {
-        const s = String(value || '').slice(0,10);
-        return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
-      }
-      const parts = new Intl.DateTimeFormat('en-CA', {
-        timeZone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).formatToParts(d);
-      const get = (type) => parts.find((p) => p.type === type)?.value || '';
-      const y = get('year');
-      const m = get('month');
-      const day = get('day');
-      return (y && m && day) ? `${y}-${m}-${day}` : null;
-    }
-
-    function todayBelemISO(){
-      return dateToISOInTimeZone(new Date(), 'America/Belem') || todayISO();
-    }
-
-    function compareDateOnlyToToday(dateLike, todayRef=todayBelemISO()){
-      const s = String(dateLike || '').slice(0,10);
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-      const today = new Date(String(todayRef) + 'T00:00:00');
-      const target = new Date(s + 'T00:00:00');
-      return Math.floor((target - today) / 86400000);
-    }
-
-    function workdayPriorityMeta(priority){
-      if (priority <= 1) return { label:'Hoje', className:'bad' };
-      if (priority === 2) return { label:'Atenção', className:'warn' };
-      return { label:'Acompanhar', className:'ok' };
-    }
-
-    function buildWorkdayTasks(){
-      const tasks = [];
-      const summary = { todayPickup:0, ready:0, replies:0, dueToday:0, overdue:0, special:0 };
-      const todayBel = todayBelemISO();
-
-      activeReservations.forEach((r) => {
-        const stage = String(r.workflow_stage || '');
-        const stageLabel = translateReservationWorkflowStage(stage);
-        const bookLabel = r.titulo || `Referência ${r.bib_ref}`;
-        const who = r.user_name || '—';
-        const ref = r.bib_ref || '—';
-        const pickupDay = dateToISOInTimeZone(r.pickup_scheduled_for, 'America/Belem');
-        const detail = reservationWorkflowDetail(r);
-
-        if (stage === 'retirada_agendada' && pickupDay === todayBel) {
-          summary.todayPickup += 1;
-          tasks.push({
-            priority: 1,
-            sortDate: r.pickup_scheduled_for || r.validade || '',
-            kind: 'Retirada agendada para hoje',
-            who,
-            book: bookLabel,
-            ref,
-            when: fmtDateTimeBelem(r.pickup_scheduled_for) + ' (Belém)',
-            statusLabel: stageLabel,
-            statusClass: reservationWorkflowStageClass(stage),
-            detail: detail || 'Confirmar presença e separar o exemplar.',
-            actionLabel: 'Abrir reserva',
-            tab: 'reservas',
-            reservationRowId: r.id,
-          });
-        }
-
-        if (stage === 'pronta_para_retirada') {
-          summary.ready += 1;
-          tasks.push({
-            priority: 1,
-            sortDate: r.workflow_stage_updated_at || r.validade || '',
-            kind: 'Reserva pronta para retirada',
-            who,
-            book: bookLabel,
-            ref,
-            when: fmtDateTime(r.workflow_stage_updated_at || r.validade),
-            statusLabel: stageLabel,
-            statusClass: reservationWorkflowStageClass(stage),
-            detail: detail || 'Aguardar retirada ou entrar em contato.',
-            actionLabel: 'Abrir reserva',
-            tab: 'reservas',
-            reservationRowId: r.id,
-          });
-        }
-
-        if (String(r.pickup_reply_status || '') === 'recusado_leitor') {
-          summary.replies += 1;
-          tasks.push({
-            priority: 1,
-            sortDate: r.pickup_reply_at || r.workflow_stage_updated_at || '',
-            kind: 'Leitor recusou o horário',
-            who,
-            book: bookLabel,
-            ref,
-            when: fmtDateTimeBelem(r.pickup_reply_at || r.pickup_scheduled_for) + ' (Belém)',
-            statusLabel: stageLabel,
-            statusClass: 'warn',
-            detail: detail || 'Combinar novo horário de retirada.',
-            actionLabel: 'Abrir reserva',
-            tab: 'reservas',
-            reservationRowId: r.id,
-          });
-        }
-
-        if (stage === 'nao_retirada') {
-          summary.special += 1;
-          tasks.push({
-            priority: 2,
-            sortDate: r.workflow_stage_updated_at || '',
-            kind: 'Não retirada',
-            who,
-            book: bookLabel,
-            ref,
-            when: fmtDateTime(r.workflow_stage_updated_at),
-            statusLabel: stageLabel,
-            statusClass: reservationWorkflowStageClass(stage),
-            detail: detail || 'Decidir se remarcar ou liberar para circulação.',
-            actionLabel: 'Abrir reserva',
-            tab: 'reservas',
-            reservationRowId: r.id,
-          });
-        }
-
-        if (stage === 'expirada') {
-          summary.special += 1;
-          tasks.push({
-            priority: 2,
-            sortDate: r.validade || r.workflow_stage_updated_at || '',
-            kind: 'Reserva expirada',
-            who,
-            book: bookLabel,
-            ref,
-            when: fmtDateTime(r.validade),
-            statusLabel: stageLabel,
-            statusClass: reservationWorkflowStageClass(stage),
-            detail: detail || 'Verificar se ainda requer alguma ação manual.',
-            actionLabel: 'Abrir reserva',
-            tab: 'reservas',
-            reservationRowId: r.id,
-          });
-        }
-
-        if (stage === 'liberada_para_circulacao') {
-          summary.special += 1;
-          tasks.push({
-            priority: 3,
-            sortDate: r.workflow_stage_updated_at || '',
-            kind: 'Exemplar liberado para circulação',
-            who,
-            book: bookLabel,
-            ref,
-            when: fmtDateTime(r.workflow_stage_updated_at),
-            statusLabel: stageLabel,
-            statusClass: reservationWorkflowStageClass(stage),
-            detail: detail || 'A reserva segue ativa, mas o exemplar não fica mais separado.',
-            actionLabel: 'Abrir reserva',
-            tab: 'reservas',
-            reservationRowId: r.id,
-          });
-        }
-      });
-
-      activeBatches.forEach((b) => {
-        const diff = compareDateOnlyToToday(b.due_date, todayBel);
-        const refs = (b.bib_refs || []).join(', ') || '—';
-        if (diff === 0) {
-          summary.dueToday += 1;
-          tasks.push({
-            priority: 1,
-            sortDate: b.due_date || '',
-            kind: 'Devolução prevista hoje',
-            who: b.user_name || '—',
-            book: `${b.quantity} item(ns)`,
-            ref: refs,
-            when: fmtDate(b.due_date),
-            statusLabel: b.status_text || 'Em curso',
-            statusClass: b.status_class || 'warn',
-            detail: `Empréstimo #${b.batch_label}.`,
-            actionLabel: 'Abrir empréstimo',
-            tab: 'emprestimos-lote',
-            batchId: b.emprestimo_id || b.batch_label,
-          });
-        } else if (diff != null && diff < 0) {
-          summary.overdue += 1;
-          tasks.push({
-            priority: 1,
-            sortDate: b.due_date || '',
-            kind: 'Empréstimo em atraso',
-            who: b.user_name || '—',
-            book: `${b.quantity} item(ns)`,
-            ref: refs,
-            when: fmtDate(b.due_date),
-            statusLabel: b.status_text || 'Com atraso',
-            statusClass: 'bad',
-            detail: `Empréstimo #${b.batch_label}.`,
-            actionLabel: 'Abrir empréstimo',
-            tab: 'emprestimos-lote',
-            batchId: b.emprestimo_id || b.batch_label,
-          });
-        }
-      });
-
-      tasks.sort((a, b) => {
-        if (a.priority !== b.priority) return a.priority - b.priority;
-        return String(a.sortDate || '').localeCompare(String(b.sortDate || '')) || String(a.kind).localeCompare(String(b.kind));
-      });
-
-      return { tasks, summary };
-    }
-
-    function renderWorkday(){
-      const tbody = $('tbodyWorkday');
-      if (!tbody) return;
-      const { tasks, summary } = buildWorkdayTasks();
-      setChip('chipTaskTodayPickup', `Retiradas hoje: ${summary.todayPickup}`);
-      setChip('chipTaskReady', `Prontas para retirada: ${summary.ready}`);
-      setChip('chipTaskReplies', `Respostas do leitor: ${summary.replies}`);
-      setChip('chipTaskDueToday', `Devoluções hoje: ${summary.dueToday}`);
-      setChip('chipTaskOverdue', `Em atraso: ${summary.overdue}`);
-      setChip('chipTaskSpecial', `Exceções: ${summary.special}`);
-
-      if (!tasks.length) {
-        tbody.innerHTML = '<tr><td colspan="7">Nada urgente por agora. O trabalho automático do dia está vazio.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = tasks.map((task) => {
-        const pr = workdayPriorityMeta(task.priority);
-        const action = task.tab
-          ? `<button class="btn mini" type="button" data-work-open-tab="${esc(task.tab)}"${task.reservationRowId ? ` data-work-reserva-row="${esc(task.reservationRowId)}"` : ''}${task.batchId ? ` data-work-batch-row="${esc(task.batchId)}"` : ''}>${esc(task.actionLabel || 'Abrir')}</button>`
-          : '—';
-        return `
-          <tr>
-            <td><span class="pill ${esc(pr.className)}">${esc(pr.label)}</span></td>
-            <td>${esc(task.kind)}</td>
-            <td>${esc(task.who)}</td>
-            <td>${esc(task.book)}<br><span class="mini subtle mono">${esc(task.ref)}</span></td>
-            <td>${esc(task.when || '—')}</td>
-            <td><span class="pill ${esc(task.statusClass || 'warn')}">${esc(task.statusLabel || '—')}</span>${task.detail ? `<br><span class="mini subtle">${esc(task.detail)}</span>` : ''}</td>
-            <td>${action}</td>
-          </tr>`;
-      }).join('');
-    }
-
     function renderCounts(){
       setChip('chipResCount', `Reservas ativas: ${activeReservations.length}`);
       setChip('chipLoanCount', `Empréstimos ativos: ${activeLoans.length}`);
@@ -2123,8 +2208,6 @@
         retirada_a_combinar: 'Retirada a combinar',
         retirada_agendada: 'Retirada agendada',
         pronta_para_retirada: 'Pronta para retirada',
-        nao_retirada: 'Não retirada',
-        liberada_para_circulacao: 'Liberada para circulação',
         retirada_efetivada: 'Retirada efetivada',
         cancelada_leitor: 'Cancelada pelo leitor',
         cancelada_biblioteca: 'Cancelada pela biblioteca',
@@ -2140,8 +2223,6 @@
         retirada_a_combinar: 'warn',
         retirada_agendada: 'ok',
         pronta_para_retirada: 'ok',
-        nao_retirada: 'bad',
-        liberada_para_circulacao: 'warn',
         retirada_efetivada: 'ok',
         cancelada_leitor: 'bad',
         cancelada_biblioteca: 'bad',
@@ -2392,7 +2473,7 @@
           ? `<button class="btn mini" type="button" data-return-emp-v2="${esc(l.emprestimo_id)}" data-return-line-v2="${esc(l.line_no)}">Devolver</button>`
           : `<button class="btn mini" type="button" data-return-loan="${esc(l.loan_id)}">Devolver</button>`;
         return `
-          <tr>
+          <tr data-loan-emp-id="${esc(l.emprestimo_id || l.loan_id)}">
             <td class="mono">${esc(l.sub_id)}</td>
             <td class="mono">#${esc(l.batch_label)}</td>
             <td>${esc(l.user_name)}${l.user_email && l.user_email !== '—' ? `<br><span class="mini subtle">${esc(l.user_email)}</span>` : ''}</td>
@@ -2440,7 +2521,6 @@
       const runId = ++refreshSerial;
       if (!silent) {
         $('tbodyRes').innerHTML = '<tr><td colspan="8">Carregando…</td></tr>';
-        if ($('tbodyWorkday')) $('tbodyWorkday').innerHTML = '<tr><td colspan="7">Carregando…</td></tr>';
         $('tbodyLoans').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
         $('tbodyBatches').innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
       }
@@ -2466,8 +2546,8 @@
         setStatus('statusBatches', msg, 'bad', false);
       }
       renderCounts();
-      renderWorkday();
       renderProfileLists();
+      renderTrabalhoDoDia();
     }
 
     function findProfileReservations(userId){
@@ -2510,7 +2590,7 @@
         tbodyLoans.innerHTML = '<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>';
       } else {
         tbodyLoans.innerHTML = myLoans.map((l) => `
-          <tr>
+          <tr data-loan-emp-id="${esc(l.emprestimo_id || l.loan_id)}">
             <td class="mono">${esc(l.sub_id)}</td>
             <td class="mono">#${esc(l.batch_label)}</td>
             <td>${esc(l.titulo)}${l.autor ? `<br><span class="mini subtle">${esc(l.autor)}</span>` : ''}</td>
@@ -3206,19 +3286,29 @@
 
     function bindDynamicActions(){
       document.body.addEventListener('click', async (ev) => {
-        const openWorkBtn = ev.target.closest('[data-work-open-tab]');
-        if (openWorkBtn) {
-          const tab = String(openWorkBtn.getAttribute('data-work-open-tab') || '').trim();
-          const reservaRowId = Number(openWorkBtn.getAttribute('data-work-reserva-row'));
-          const batchRowIdRaw = openWorkBtn.getAttribute('data-work-batch-row');
-          if (tab) activateMainTab(tab);
-          if (Number.isFinite(reservaRowId) && reservaRowId > 0) {
-            selectedReservaIds = new Set([reservaRowId]);
-            renderReservationTable();
-            setTimeout(() => document.querySelector(`[data-reserva-row="${reservaRowId}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }), 80);
-          } else if (batchRowIdRaw) {
-            setTimeout(() => document.querySelector(`[data-batch-row="${CSS.escape(String(batchRowIdRaw))}"]`)?.scrollIntoView({ behavior:'smooth', block:'center' }), 80);
-          }
+        const openReservaTaskBtn = ev.target.closest('[data-task-open-reserva]');
+        if (openReservaTaskBtn) {
+          const reservaId = Number(openReservaTaskBtn.getAttribute('data-task-open-reserva'));
+          if (reservaId) openReservationTask(reservaId);
+          return;
+        }
+
+        const openEmpTaskBtn = ev.target.closest('[data-task-open-emprestimo]');
+        if (openEmpTaskBtn) {
+          const emprestimoId = Number(openEmpTaskBtn.getAttribute('data-task-open-emprestimo'));
+          if (emprestimoId) openLoanTask(emprestimoId);
+          return;
+        }
+
+        const nextInternalTaskBtn = ev.target.closest('[data-internal-task-next]');
+        if (nextInternalTaskBtn) {
+          cycleInternalTaskStatus(nextInternalTaskBtn.getAttribute('data-internal-task-next'));
+          return;
+        }
+
+        const deleteInternalTaskBtn = ev.target.closest('[data-internal-task-delete]');
+        if (deleteInternalTaskBtn) {
+          deleteInternalTask(deleteInternalTaskBtn.getAttribute('data-internal-task-delete'));
           return;
         }
 
@@ -3390,16 +3480,10 @@
       note: $('resWorkflowNote')?.value.trim() || '',
       targetStatusId: 'statusRes'
     }));
-    $('btnResNaoRetirada')?.addEventListener('click', () => setReservationWorkflowStage('nao_retirada', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResLiberarCirculacao')?.addEventListener('click', () => setReservationWorkflowStage('liberada_para_circulacao', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
-    $('btnRecarregarTrabalhoDia')?.addEventListener('click', () => refreshCollections());
     $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
+    $('btnRecarregarTrabalhoDia')?.addEventListener('click', () => { renderTrabalhoDoDia(); setStatus('statusTrabalhoDia', 'Prioridades recalculadas.', 'ok'); });
+    $('btnAddInternalTask')?.addEventListener('click', addInternalTask);
+    $('btnClearInternalTaskForm')?.addEventListener('click', clearInternalTaskForm);
     $('btnRecarregarLoans').addEventListener('click', () => refreshCollections());
     $('btnRecarregarLotes').addEventListener('click', () => refreshCollections());
     $('btnBuscarPerfil').addEventListener('click', async () => {
@@ -3438,6 +3522,8 @@
       finally { $('btnSair').disabled = false; }
     });
 
+    loadInternalTasks();
+    renderInternalTasks();
     bindReservationSelection();
     bindDynamicActions();
 
