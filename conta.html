@@ -1759,14 +1759,16 @@ button[type="submit"] *,
       return supabase.rpc("fn_v2_schedule_emprestimo_return", {
         p_emprestimo_id: loanId,
         p_line_nos: [lineNo],
-        p_return_scheduled_for: isoWhen
+        p_return_scheduled_for: isoWhen,
+        p_actor_role: "leitor"
       });
     }
 
     async function clearReturnScheduleV2(loanId, lineNo) {
       return supabase.rpc("fn_v2_clear_emprestimo_return_schedule", {
         p_emprestimo_id: loanId,
-        p_line_nos: [lineNo]
+        p_line_nos: [lineNo],
+        p_actor_role: "leitor"
       });
     }
 
