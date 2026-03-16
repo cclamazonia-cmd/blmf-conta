@@ -1607,6 +1607,14 @@
       });
     }
 
+    function openInternalTask(taskId){
+      if (typeof activateMainTab === 'function') activateMainTab('tarefas-internas');
+      requestAnimationFrame(() => {
+        const row = document.querySelector(`[data-internal-task-id="${CSS.escape(String(taskId || ''))}"]`);
+        if (row) row.scrollIntoView({behavior:'smooth', block:'center'});
+      });
+    }
+
     function translateInternalTaskStatus(status){
       return ({
         a_fazer: 'A fazer',
@@ -2017,6 +2025,33 @@
         }
       });
 
+      manualInternalTasks.forEach((task) => {
+        if (!task?.due_date) return;
+        if (['concluida', 'cancelada'].includes(String(task.status || ''))) return;
+        const dueDiff = daysDiffFromToday(task.due_date);
+        if (dueDiff === 0){
+          tasks.push({
+            priority: task.priority === 'alta' ? 'alta' : 'media',
+            bucket:'hoje',
+            kind:'Tarefa interna para hoje',
+            label: task.owner ? `${task.title} · ${task.owner}` : task.title,
+            detail: `${translateInternalTaskStatus(task.status)} · Prazo: ${fmtDate(task.due_date)}${task.tags ? ` · ${task.tags}` : ''}`,
+            actionType:'tarefa_interna',
+            internal_task_id: task.id
+          });
+        } else if (dueDiff != null && dueDiff < 0){
+          tasks.push({
+            priority:'alta',
+            bucket:'atencao',
+            kind:'Tarefa interna em atraso',
+            label: task.owner ? `${task.title} · ${task.owner}` : task.title,
+            detail: `${translateInternalTaskStatus(task.status)} · Prazo: ${fmtDate(task.due_date)} · ${Math.abs(dueDiff)} dia(s) de atraso${task.tags ? ` · ${task.tags}` : ''}`,
+            actionType:'tarefa_interna',
+            internal_task_id: task.id
+          });
+        }
+      });
+
       return tasks.sort((a,b) => {
         const p = priorityRank(a.priority) - priorityRank(b.priority);
         if (p) return p;
@@ -2057,7 +2092,9 @@
           <div class="task-item-actions">
             ${task.actionType === 'reserva'
               ? `<button class="btn mini" type="button" data-task-open-reserva="${esc(task.reserva_id)}">Abrir reserva</button>`
-              : `<button class="btn mini" type="button" data-task-open-emprestimo="${esc(task.emprestimo_id)}">Abrir empréstimo</button>`}
+              : task.actionType === 'emprestimo'
+                ? `<button class="btn mini" type="button" data-task-open-emprestimo="${esc(task.emprestimo_id)}">Abrir empréstimo</button>`
+                : `<button class="btn mini" type="button" data-task-open-internal-task="${esc(task.internal_task_id)}">Abrir tarefa interna</button>`}
           </div>
         </div>
       `).join('');
@@ -3567,6 +3604,13 @@
         if (openEmpTaskBtn) {
           const emprestimoId = Number(openEmpTaskBtn.getAttribute('data-task-open-emprestimo'));
           if (emprestimoId) openLoanTask(emprestimoId);
+          return;
+        }
+
+        const openInternalTaskBtn = ev.target.closest('[data-task-open-internal-task]');
+        if (openInternalTaskBtn) {
+          const taskId = String(openInternalTaskBtn.getAttribute('data-task-open-internal-task') || '').trim();
+          if (taskId) openInternalTask(taskId);
           return;
         }
 
