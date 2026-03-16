@@ -1680,6 +1680,7 @@
       if ($('taskInternalDue')) $('taskInternalDue').value = '';
       if ($('taskInternalTags')) $('taskInternalTags').value = '';
       if ($('taskInternalDesc')) $('taskInternalDesc').value = '';
+      renderInternalOwnerHint();
     }
 
     function internalTaskOwnerLabel(task){
@@ -1738,38 +1739,86 @@
       clearStatus('statusTarefasInternas');
       const title = $('taskInternalTitle')?.value.trim() || '';
       if (!title) return setStatus('statusTarefasInternas', 'Informe ao menos o título da tarefa.', 'warn');
-      manualInternalTasks.push({
-        id: (window.crypto?.randomUUID?.() || String(Date.now())),
+      const responsibleEmail = $('taskInternalOwner')?.value.trim() || '';
+      const responsibleMatch = resolveLibrarianContactByEmail(responsibleEmail);
+      const payload = {
         title,
-        description: $('taskInternalDesc')?.value.trim() || '',
+        description: $('taskInternalDesc')?.value.trim() || null,
         priority: $('taskInternalPriority')?.value || 'media',
         status: $('taskInternalStatus')?.value || 'a_fazer',
-        owner: $('taskInternalOwner')?.value.trim() || '',
-        due_date: $('taskInternalDue')?.value || '',
-        tags: $('taskInternalTags')?.value.trim() || '',
-        created_at: nowISO()
-      });
-      saveInternalTasks();
+        responsible_user_id: responsibleMatch?.user_id || null,
+        responsible_email: responsibleEmail || null,
+        responsible_name: responsibleMatch?.full_name || null,
+        due_date: $('taskInternalDue')?.value || null,
+        tags: $('taskInternalTags')?.value.trim() || null,
+        notes: null
+      };
+      const { error } = await supabase
+        .from('internal_tasks_biblioteca')
+        .insert(payload);
+      if (error) throw error;
+      await loadInternalTasks();
       renderInternalTasks();
       clearInternalTaskForm();
       setStatus('statusTarefasInternas', 'Tarefa interna adicionada.', 'ok');
     }
 
-    function cycleInternalTaskStatus(taskId){
-      const idx = manualInternalTasks.findIndex((t) => String(t.id) === String(taskId));
-      if (idx < 0) return;
+    async function cycleInternalTaskStatus(taskId){
+      clearStatus('statusTarefasInternas');
+      const row = manualInternalTasks.find((t) => String(t.id) === String(taskId));
+      if (!row) return setStatus('statusTarefasInternas', 'Tarefa não encontrada.', 'warn');
       const order = ['a_fazer', 'em_andamento', 'concluida'];
-      const current = manualInternalTasks[idx].status || 'a_fazer';
+      const current = row.status || 'a_fazer';
       const pos = order.indexOf(current);
-      manualInternalTasks[idx].status = order[(pos + 1) % order.length];
-      saveInternalTasks();
+      const nextStatus = order[(pos + 1) % order.length];
+      const { error } = await supabase
+        .from('internal_tasks_biblioteca')
+        .update({ status: nextStatus })
+        .eq('id', Number(taskId));
+      if (error) throw error;
+      await loadInternalTasks();
       renderInternalTasks();
+      setStatus('statusTarefasInternas', 'Situação da tarefa atualizada.', 'ok');
     }
 
-    function deleteInternalTask(taskId){
-      manualInternalTasks = manualInternalTasks.filter((t) => String(t.id) !== String(taskId));
-      saveInternalTasks();
+    async function deleteInternalTask(taskId){
+      clearStatus('statusTarefasInternas');
+      const { error } = await supabase
+        .from('internal_tasks_biblioteca')
+        .delete()
+        .eq('id', Number(taskId));
+      if (error) throw error;
+      await loadInternalTasks();
       renderInternalTasks();
+      setStatus('statusTarefasInternas', 'Tarefa excluída.', 'ok');
+    }
+
+    async function alertInternalTaskResponsible(taskId){
+      clearStatus('statusTarefasInternas');
+      const task = manualInternalTasks.find((t) => String(t.id) === String(taskId));
+      if (!task) return setStatus('statusTarefasInternas', 'Tarefa não encontrada.', 'warn');
+      const email = String(task.responsible_email || '').trim();
+      if (!email) return setStatus('statusTarefasInternas', 'Defina primeiro um e-mail de responsável.', 'warn');
+      const subject = `BLMF · tarefa interna · ${task.title}`;
+      const lines = [
+        `Oi, compa!`,
+        '',
+        `Você foi indicado/a/e como responsável por esta tarefa interna da BLMF:`,
+        '',
+        `Título: ${task.title}`,
+        task.description ? `Descrição: ${task.description}` : null,
+        task.tags ? `Marcador: ${task.tags}` : null,
+        task.due_date ? `Prazo: ${task.due_date}` : null,
+        `Situação: ${translateInternalTaskStatus(task.status)}`,
+        '',
+        `Abra o Painel da BLMF para acompanhar ou atualizar esta tarefa.`
+      ].filter(Boolean).join('
+');
+      window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines)}`;
+      await markInternalTaskAlerted(taskId, 'mailto');
+      await loadInternalTasks();
+      renderInternalTasks();
+      setStatus('statusTarefasInternas', 'Aviso preparado no seu aplicativo de e-mail.', 'ok');
     }
 
     function buildDailyTasks(){
@@ -3365,7 +3414,7 @@
 
         const nextInternalTaskBtn = ev.target.closest('[data-internal-task-next]');
         if (nextInternalTaskBtn) {
-          cycleInternalTaskStatus(nextInternalTaskBtn.getAttribute('data-internal-task-next'));
+          await cycleInternalTaskStatus(nextInternalTaskBtn.getAttribute('data-internal-task-next'));
           return;
         }
 
@@ -3551,7 +3600,10 @@
     }));
     $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
     $('btnRecarregarTrabalhoDia')?.addEventListener('click', () => { renderTrabalhoDoDia(); setStatus('statusTrabalhoDia', 'Prioridades recalculadas.', 'ok'); });
-    $('btnAddInternalTask')?.addEventListener('click', async () => { await addInternalTask(); });
+    $('btnAddInternalTask')?.addEventListener('click', async () => {
+      try { await addInternalTask(); }
+      catch (e) { setStatus('statusTarefasInternas', 'Não consegui adicionar a tarefa: ' + (e.message || String(e)), 'bad', false); }
+    });
     $('btnClearInternalTaskForm')?.addEventListener('click', clearInternalTaskForm);
     $('btnReloadInternalTasks')?.addEventListener('click', async () => {
       try {
