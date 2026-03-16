@@ -1270,6 +1270,10 @@
     };
     $("btnBlog").href = ROUTES.BLOG_HOME;
     $("btnCatalogo").href = ROUTES.CATALOGO;
+    $("btnCatalogo")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.assign(ROUTES.CATALOGO);
+    });
     $("btnCatalogacao").href = ROUTES.CATALOGACAO;
     $("btnModoLeitor").href = ROUTES.CONTA;
 
@@ -2345,8 +2349,7 @@
 
         const mappedV2Loans = rows.map((r) => {
           const user = profilesMap.get(String(r.user_id)) || {};
-          const dueSource = r.extended_until || r.due_at;
-          const due = dueSource ? new Date(String(dueSource) + 'T00:00:00') : null;
+          const due = r.due_at ? new Date(String(r.due_at) + 'T00:00:00') : null;
           const today = new Date(todayISO() + 'T00:00:00');
           const overdueDays = due ? Math.floor((today - due) / 86400000) : 0;
           return {
@@ -2365,14 +2368,8 @@
             autor: r.autor || '',
             bib_ref: r.bib_ref || '—',
             checkout_date: r.emprestimo_created_at,
-            due_date: dueSource,
-            extended_until: r.extended_until || r.due_at || null,
-            extension_note: r.extension_note || '',
+            due_date: r.due_at,
             returned_date: r.returned_at,
-            return_scheduled_for: r.return_scheduled_for || null,
-            return_schedule_status: r.return_schedule_status || (r.returned_at ? 'devolucao_realizada' : 'sem_agendamento'),
-            return_completed_at: r.return_completed_at || null,
-            return_missed_at: r.return_missed_at || null,
             extended_once: !!r.extended_once,
             can_renew: overdueDays <= 0 && !r.extended_once,
             status_text: overdueDays > 0 ? `Atrasado (${overdueDays} dia(s))` : (r.extended_once ? 'Renovado' : 'Em curso'),
@@ -2384,35 +2381,24 @@
         activeLoans = dedupeBy(mappedV2Loans, (x) => `${x.source}|${x.emprestimo_id}|${x.line_no}|${x.sub_id}`);
 
         const groups = groupBy(activeLoans, (x) => x.emprestimo_id);
-        activeBatches = Array.from(groups.entries()).map(([emprestimoId, items]) => {
-          const returnStatuses = dedupeBy(items.map((x) => x.return_schedule_status || 'sem_agendamento'), (x) => x);
-          const returnMoments = dedupeBy(items.map((x) => x.return_scheduled_for || ''), (x) => x).filter(Boolean);
-          const extensionNotes = dedupeBy(items.map((x) => x.extension_note || '').filter(Boolean), (x) => x);
-          return {
-            batch_key: `v2-${emprestimoId}`,
-            batch_label: String(emprestimoId),
-            user_id: items[0]?.user_id || null,
-            user_name: items[0]?.user_name || '—',
-            user_email: items[0]?.user_email || '—',
-            quantity: items.length,
-            sub_ids: dedupeBy(items.map((x) => x.sub_id), (x) => x),
-            line_nos: dedupeBy(items.map((x) => x.line_no), (x) => x),
-            bib_refs: dedupeBy(items.map((x) => x.bib_ref), (x) => x),
-            checkout_date: items[0]?.checkout_date || null,
-            due_date: items[0]?.due_date || null,
-            extended_until: items[0]?.extended_until || items[0]?.due_date || null,
-            extension_note: extensionNotes.join(' · '),
-            return_schedule_status: returnStatuses.length === 1 ? returnStatuses[0] : null,
-            return_schedule_mixed: returnStatuses.length > 1 || returnMoments.length > 1,
-            return_scheduled_for: returnMoments.length === 1 ? returnMoments[0] : null,
-            status_text: items.some((x) => x.status_class === 'bad') ? 'Com atraso' : (items.some((x) => x.extended_once) ? 'Renovado' : 'Em curso'),
-            status_class: items.some((x) => x.status_class === 'bad') ? 'bad' : (items.some((x) => x.extended_once) ? 'warn' : 'ok'),
-            can_renew: items.every((x) => !!x.can_renew),
-            source: 'v2',
-            loan_ids: dedupeBy(items.map((x) => x.loan_id), (x) => x),
-            emprestimo_id: Number(emprestimoId),
-          };
-        });
+        activeBatches = Array.from(groups.entries()).map(([emprestimoId, items]) => ({
+          batch_key: `v2-${emprestimoId}`,
+          batch_label: String(emprestimoId),
+          user_id: items[0]?.user_id || null,
+          user_name: items[0]?.user_name || '—',
+          user_email: items[0]?.user_email || '—',
+          quantity: items.length,
+          sub_ids: dedupeBy(items.map((x) => x.sub_id), (x) => x),
+          bib_refs: dedupeBy(items.map((x) => x.bib_ref), (x) => x),
+          checkout_date: items[0]?.checkout_date || null,
+          due_date: items[0]?.due_date || null,
+          status_text: items.some((x) => x.status_class === 'bad') ? 'Com atraso' : (items.some((x) => x.extended_once) ? 'Renovado' : 'Em curso'),
+          status_class: items.some((x) => x.status_class === 'bad') ? 'bad' : (items.some((x) => x.extended_once) ? 'warn' : 'ok'),
+          can_renew: items.every((x) => !!x.can_renew),
+          source: 'v2',
+          loan_ids: dedupeBy(items.map((x) => x.loan_id), (x) => x),
+          emprestimo_id: Number(emprestimoId),
+        }));
 
         return;
       }
@@ -2672,74 +2658,6 @@
       return new Date(utc).toISOString();
     }
 
-    function belemDateTimeLocalValue(dateLike){
-      if (!dateLike) return '';
-      const d = new Date(dateLike);
-      if (Number.isNaN(d.getTime())) return '';
-      const parts = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Belem',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }).formatToParts(d);
-      const get = (type) => parts.find((p) => p.type === type)?.value || '';
-      return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
-    }
-
-    function translateReturnScheduleStatus(status){
-      return ({
-        sem_agendamento: 'Sem agendamento de devolução',
-        devolucao_agendada: 'Devolução agendada',
-        devolucao_realizada: 'Devolução realizada',
-        devolucao_nao_realizada: 'Devolução não realizada',
-        emprestimo_prorrogado: 'Empréstimo prorrogado'
-      })[String(status || '')] || 'Sem agendamento de devolução';
-    }
-
-    function getReturnScheduleActionLabel(entry){
-      if (String(entry?.return_schedule_status || '') === 'devolucao_nao_realizada') return 'Reagendar devolução';
-      return entry?.return_scheduled_for ? 'Alterar devolução' : 'Agendar devolução';
-    }
-
-    function getReturnScheduleDetail(entry){
-      if (!entry) return 'Sem agendamento de devolução.';
-      if (entry.return_schedule_mixed) return 'Há agendamentos diferentes entre os itens deste empréstimo.';
-      if (entry.return_scheduled_for) return `Devolução: ${fmtDateTimeBelem(entry.return_scheduled_for)} (Belém)`;
-      if (String(entry.return_schedule_status || '') === 'emprestimo_prorrogado') {
-        return `Prazo prorrogado. Nova devolução: ${fmtDate(entry.extended_until || entry.due_date)}`;
-      }
-      if (String(entry.return_schedule_status || '') === 'devolucao_nao_realizada') {
-        return 'O último horário de devolução não foi realizado.';
-      }
-      return 'Sem agendamento de devolução.';
-    }
-
-    async function scheduleEmprestimoReturnV2(emprestimoId, lineNos, isoWhen){
-      return supabase.rpc('fn_v2_schedule_emprestimo_return', {
-        p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos,
-        p_return_scheduled_for: isoWhen
-      });
-    }
-
-    async function clearEmprestimoReturnScheduleV2(emprestimoId, lineNos){
-      return supabase.rpc('fn_v2_clear_emprestimo_return_schedule', {
-        p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos
-      });
-    }
-
-    async function markEmprestimoReturnMissedV2(emprestimoId, lineNos){
-      return supabase.rpc('fn_v2_mark_emprestimo_return_missed', {
-        p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos
-      });
-    }
-
-
     function workflowPayloadForStage(stage, note='', pickupScheduledFor=null){
       const now = nowISO();
       const payload = {
@@ -2882,14 +2800,6 @@
         const returnBtn = l.source === 'v2'
           ? `<button class="btn mini" type="button" data-return-emp-v2="${esc(l.emprestimo_id)}" data-return-line-v2="${esc(l.line_no)}">Devolver</button>`
           : `<button class="btn mini" type="button" data-return-loan="${esc(l.loan_id)}">Devolver</button>`;
-        const scheduleLabel = getReturnScheduleActionLabel(l);
-        const returnLabel = l.source === 'v2' ? translateReturnScheduleStatus(l.return_schedule_status) : '';
-        const returnDetail = l.source === 'v2' ? getReturnScheduleDetail(l) : '';
-        const scheduleActions = l.source === 'v2'
-          ? `<button class="btn mini" type="button" data-schedule-return-emp-v2="${esc(l.emprestimo_id)}" data-schedule-return-line-v2="${esc(l.line_no)}">${esc(scheduleLabel)}</button>
-             ${l.return_scheduled_for ? `<button class="btn mini" type="button" data-clear-return-schedule-emp-v2="${esc(l.emprestimo_id)}" data-clear-return-schedule-line-v2="${esc(l.line_no)}">Cancelar agendamento</button>` : ''}
-             <button class="btn mini" type="button" data-missed-return-emp-v2="${esc(l.emprestimo_id)}" data-missed-return-line-v2="${esc(l.line_no)}">Não realizado</button>`
-          : '';
         return `
           <tr data-loan-emp-id="${esc(l.emprestimo_id || l.loan_id)}">
             <td class="mono">${esc(l.sub_id)}</td>
@@ -2899,8 +2809,8 @@
             <td class="mono">${esc(l.bib_ref)}</td>
             <td>${esc(fmtDate(l.checkout_date))}</td>
             <td>${esc(fmtDate(l.due_date))}</td>
-            <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span>${returnLabel ? `<br><span class="mini subtle">${esc(returnLabel)}</span>` : ''}${returnDetail ? `<br><span class="mini subtle">${esc(returnDetail)}</span>` : ''}${l.extension_note ? `<br><span class="mini subtle">Obs.: ${esc(l.extension_note)}</span>` : ''}</td>
-            <td><div class="actions" style="margin-top:0">${renewBtn}${returnBtn}${scheduleActions}</div></td>
+            <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span></td>
+            <td><div class="actions" style="margin-top:0">${renewBtn}${returnBtn}</div></td>
           </tr>`;
       }).join('');
     }
@@ -2919,14 +2829,6 @@
         const returnBtn = b.source === 'v2'
           ? `<button class="btn mini" type="button" data-return-batch-v2="${esc(b.emprestimo_id)}">Devolver empréstimo</button>`
           : `<button class="btn mini" type="button" data-return-batch-old="${esc((b.loan_ids || []).join(','))}">Devolver empréstimo</button>`;
-        const scheduleLabel = getReturnScheduleActionLabel(b);
-        const returnLabel = b.source === 'v2' ? translateReturnScheduleStatus(b.return_schedule_status) : '';
-        const returnDetail = b.source === 'v2' ? getReturnScheduleDetail(b) : '';
-        const scheduleActions = b.source === 'v2'
-          ? `<button class="btn mini" type="button" data-schedule-return-batch-v2="${esc(b.emprestimo_id)}" data-schedule-return-line-nos-v2="${esc((b.line_nos || []).join(','))}">${esc(scheduleLabel)}</button>
-             ${b.return_scheduled_for || b.return_schedule_mixed ? `<button class="btn mini" type="button" data-clear-return-schedule-batch-v2="${esc(b.emprestimo_id)}" data-clear-return-schedule-line-nos-v2="${esc((b.line_nos || []).join(','))}">Cancelar agendamento</button>` : ''}
-             <button class="btn mini" type="button" data-missed-return-batch-v2="${esc(b.emprestimo_id)}" data-missed-return-line-nos-v2="${esc((b.line_nos || []).join(','))}">Não realizado</button>`
-          : '';
         return `
         <tr>
           <td class="mono">#${esc(b.batch_label)}</td>
@@ -2936,8 +2838,8 @@
           <td class="mono">${esc((b.bib_refs || []).join(', '))}</td>
           <td>${esc(fmtDate(b.checkout_date))}</td>
           <td>${esc(fmtDate(b.due_date))}</td>
-          <td><span class="pill ${esc(b.status_class)}">${esc(b.status_text)}</span>${returnLabel ? `<br><span class="mini subtle">${esc(returnLabel)}</span>` : ''}${returnDetail ? `<br><span class="mini subtle">${esc(returnDetail)}</span>` : ''}${b.extension_note ? `<br><span class="mini subtle">Obs.: ${esc(b.extension_note)}</span>` : ''}</td>
-          <td><div class="actions" style="margin-top:0">${renewBtn}${returnBtn}${scheduleActions}</div></td>
+          <td><span class="pill ${esc(b.status_class)}">${esc(b.status_text)}</span></td>
+          <td><div class="actions" style="margin-top:0">${renewBtn}${returnBtn}</div></td>
         </tr>`;
       }).join('');
     }
@@ -3015,11 +2917,7 @@
       if (!myLoans.length){
         tbodyLoans.innerHTML = '<tr><td colspan="8">Sem empréstimos ativos para esse perfil.</td></tr>';
       } else {
-        tbodyLoans.innerHTML = myLoans.map((l) => {
-          const returnLabel = l.source === 'v2' ? translateReturnScheduleStatus(l.return_schedule_status) : '';
-          const returnDetail = l.source === 'v2' ? getReturnScheduleDetail(l) : '';
-          const scheduleLabel = getReturnScheduleActionLabel(l);
-          return `
+        tbodyLoans.innerHTML = myLoans.map((l) => `
           <tr data-loan-emp-id="${esc(l.emprestimo_id || l.loan_id)}">
             <td class="mono">${esc(l.sub_id)}</td>
             <td class="mono">#${esc(l.batch_label)}</td>
@@ -3027,21 +2925,17 @@
             <td class="mono">${esc(l.bib_ref)}</td>
             <td>${esc(fmtDate(l.checkout_date))}</td>
             <td>${esc(fmtDate(l.due_date))}</td>
-            <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span>${returnLabel ? `<br><span class="mini subtle">${esc(returnLabel)}</span>` : ''}${returnDetail ? `<br><span class="mini subtle">${esc(returnDetail)}</span>` : ''}${l.extension_note ? `<br><span class="mini subtle">Obs.: ${esc(l.extension_note)}</span>` : ''}</td>
+            <td><span class="pill ${esc(l.status_class)}">${esc(l.status_text)}</span></td>
             <td>
               <div class="actions" style="margin-top:0">
                 ${l.source === 'v2'
                   ? `<button class="btn mini" type="button" data-renew-emp-v2="${l.emprestimo_id}" ${l.can_renew ? '' : 'disabled'}>Renovar</button>
-                     <button class="btn mini" type="button" data-return-emp-v2="${l.emprestimo_id}" data-return-line-v2="${l.line_no}">Devolver</button>
-                     <button class="btn mini" type="button" data-schedule-return-emp-v2="${l.emprestimo_id}" data-schedule-return-line-v2="${l.line_no}">${esc(scheduleLabel)}</button>
-                     ${l.return_scheduled_for ? `<button class="btn mini" type="button" data-clear-return-schedule-emp-v2="${l.emprestimo_id}" data-clear-return-schedule-line-v2="${l.line_no}">Cancelar agendamento</button>` : ''}
-                     <button class="btn mini" type="button" data-missed-return-emp-v2="${l.emprestimo_id}" data-missed-return-line-v2="${l.line_no}">Não realizado</button>`
+                     <button class="btn mini" type="button" data-return-emp-v2="${l.emprestimo_id}" data-return-line-v2="${l.line_no}">Devolver</button>`
                   : `<button class="btn mini" type="button" data-renew-loan="${l.loan_id}" ${l.can_renew ? '' : 'disabled'}>Renovar</button>
                      <button class="btn mini" type="button" data-return-loan="${l.loan_id}">Devolver</button>`}
               </div>
             </td>
-          </tr>`;
-        }).join('');
+          </tr>`).join('');
       }
     }
 
@@ -3773,166 +3667,6 @@
             await deleteInternalTask(deleteInternalTaskBtn.getAttribute('data-internal-task-delete'));
           } finally {
             deleteInternalTaskBtn.disabled = false;
-          }
-          return;
-        }
-
-
-        const scheduleReturnBatchV2Btn = ev.target.closest('[data-schedule-return-batch-v2]');
-        if (scheduleReturnBatchV2Btn) {
-          const emprestimoId = Number(scheduleReturnBatchV2Btn.getAttribute('data-schedule-return-batch-v2'));
-          const lineNos = String(scheduleReturnBatchV2Btn.getAttribute('data-schedule-return-line-nos-v2') || '').split(',').map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
-          if (!emprestimoId || !lineNos.length || scheduleReturnBatchV2Btn.disabled) return;
-          const currentValue = (() => {
-            const batch = activeBatches.find((b) => Number(b.emprestimo_id) === emprestimoId);
-            return batch?.return_scheduled_for ? belemDateTimeLocalValue(batch.return_scheduled_for) : '';
-          })();
-          const raw = window.prompt('Informe a data e a hora da devolução em horário de Belém (AAAA-MM-DDTHH:MM).', currentValue);
-          if (raw == null) return;
-          const isoWhen = toIsoFromLocalInput(raw);
-          if (!isoWhen) {
-            setStatus('statusBatches', 'Informe a data e a hora no formato AAAA-MM-DDTHH:MM, sempre em horário de Belém.', 'bad', false);
-            return;
-          }
-          scheduleReturnBatchV2Btn.disabled = true;
-          try {
-            const rpc = await scheduleEmprestimoReturnV2(emprestimoId, lineNos, isoWhen);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível agendar a devolução.');
-            setStatus('statusBatches', `${row?.message || 'Agendamento de devolução registrado.'} Horário: ${fmtDateTimeBelem(row?.return_scheduled_for || isoWhen)} (Belém).`, 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus('statusBatches', 'Erro ao agendar devolução: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            scheduleReturnBatchV2Btn.disabled = false;
-          }
-          return;
-        }
-
-        const clearReturnBatchV2Btn = ev.target.closest('[data-clear-return-schedule-batch-v2]');
-        if (clearReturnBatchV2Btn) {
-          const emprestimoId = Number(clearReturnBatchV2Btn.getAttribute('data-clear-return-schedule-batch-v2'));
-          const lineNos = String(clearReturnBatchV2Btn.getAttribute('data-clear-return-schedule-line-nos-v2') || '').split(',').map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
-          if (!emprestimoId || !lineNos.length || clearReturnBatchV2Btn.disabled) return;
-          const proceed = window.confirm('Deseja cancelar o agendamento de devolução deste empréstimo?');
-          if (!proceed) return;
-          clearReturnBatchV2Btn.disabled = true;
-          try {
-            const rpc = await clearEmprestimoReturnScheduleV2(emprestimoId, lineNos);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível cancelar o agendamento.');
-            setStatus('statusBatches', row?.message || 'Agendamento de devolução cancelado.', 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus('statusBatches', 'Erro ao cancelar agendamento: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            clearReturnBatchV2Btn.disabled = false;
-          }
-          return;
-        }
-
-        const missedReturnBatchV2Btn = ev.target.closest('[data-missed-return-batch-v2]');
-        if (missedReturnBatchV2Btn) {
-          const emprestimoId = Number(missedReturnBatchV2Btn.getAttribute('data-missed-return-batch-v2'));
-          const lineNos = String(missedReturnBatchV2Btn.getAttribute('data-missed-return-line-nos-v2') || '').split(',').map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
-          if (!emprestimoId || !lineNos.length || missedReturnBatchV2Btn.disabled) return;
-          const proceed = window.confirm('Marcar este retorno como não realizado?');
-          if (!proceed) return;
-          missedReturnBatchV2Btn.disabled = true;
-          try {
-            const rpc = await markEmprestimoReturnMissedV2(emprestimoId, lineNos);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível marcar como não realizado.');
-            setStatus('statusBatches', row?.message || 'Devolução marcada como não realizada.', 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus('statusBatches', 'Erro ao marcar devolução como não realizada: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            missedReturnBatchV2Btn.disabled = false;
-          }
-          return;
-        }
-
-        const scheduleReturnV2Btn = ev.target.closest('[data-schedule-return-emp-v2]');
-        if (scheduleReturnV2Btn) {
-          const emprestimoId = Number(scheduleReturnV2Btn.getAttribute('data-schedule-return-emp-v2'));
-          const lineNo = Number(scheduleReturnV2Btn.getAttribute('data-schedule-return-line-v2'));
-          if (!emprestimoId || !lineNo || scheduleReturnV2Btn.disabled) return;
-          const target = scheduleReturnV2Btn.closest('#profilePaneEmprestimos') ? 'statusPerfil' : 'statusLoans';
-          const currentValue = (() => {
-            const loan = activeLoans.find((l) => Number(l.emprestimo_id) === emprestimoId && Number(l.line_no) === lineNo);
-            return loan?.return_scheduled_for ? belemDateTimeLocalValue(loan.return_scheduled_for) : '';
-          })();
-          const raw = window.prompt('Informe a data e a hora da devolução em horário de Belém (AAAA-MM-DDTHH:MM).', currentValue);
-          if (raw == null) return;
-          const isoWhen = toIsoFromLocalInput(raw);
-          if (!isoWhen) {
-            setStatus(target, 'Informe a data e a hora no formato AAAA-MM-DDTHH:MM, sempre em horário de Belém.', 'bad', false);
-            return;
-          }
-          scheduleReturnV2Btn.disabled = true;
-          try {
-            const rpc = await scheduleEmprestimoReturnV2(emprestimoId, [lineNo], isoWhen);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível agendar a devolução.');
-            setStatus(target, `${row?.message || 'Agendamento de devolução registrado.'} Horário: ${fmtDateTimeBelem(row?.return_scheduled_for || isoWhen)} (Belém).`, 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus(target, 'Erro ao agendar devolução: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            scheduleReturnV2Btn.disabled = false;
-          }
-          return;
-        }
-
-        const clearReturnV2Btn = ev.target.closest('[data-clear-return-schedule-emp-v2]');
-        if (clearReturnV2Btn) {
-          const emprestimoId = Number(clearReturnV2Btn.getAttribute('data-clear-return-schedule-emp-v2'));
-          const lineNo = Number(clearReturnV2Btn.getAttribute('data-clear-return-schedule-line-v2'));
-          if (!emprestimoId || !lineNo || clearReturnV2Btn.disabled) return;
-          const target = clearReturnV2Btn.closest('#profilePaneEmprestimos') ? 'statusPerfil' : 'statusLoans';
-          const proceed = window.confirm('Deseja cancelar o agendamento de devolução deste item?');
-          if (!proceed) return;
-          clearReturnV2Btn.disabled = true;
-          try {
-            const rpc = await clearEmprestimoReturnScheduleV2(emprestimoId, [lineNo]);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível cancelar o agendamento.');
-            setStatus(target, row?.message || 'Agendamento de devolução cancelado.', 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus(target, 'Erro ao cancelar agendamento: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            clearReturnV2Btn.disabled = false;
-          }
-          return;
-        }
-
-        const missedReturnV2Btn = ev.target.closest('[data-missed-return-emp-v2]');
-        if (missedReturnV2Btn) {
-          const emprestimoId = Number(missedReturnV2Btn.getAttribute('data-missed-return-emp-v2'));
-          const lineNo = Number(missedReturnV2Btn.getAttribute('data-missed-return-line-v2'));
-          if (!emprestimoId || !lineNo || missedReturnV2Btn.disabled) return;
-          const target = missedReturnV2Btn.closest('#profilePaneEmprestimos') ? 'statusPerfil' : 'statusLoans';
-          const proceed = window.confirm('Marcar este retorno como não realizado?');
-          if (!proceed) return;
-          missedReturnV2Btn.disabled = true;
-          try {
-            const rpc = await markEmprestimoReturnMissedV2(emprestimoId, [lineNo]);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível marcar como não realizado.');
-            setStatus(target, row?.message || 'Devolução marcada como não realizada.', 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus(target, 'Erro ao marcar devolução como não realizada: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            missedReturnV2Btn.disabled = false;
           }
           return;
         }
