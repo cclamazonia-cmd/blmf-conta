@@ -460,6 +460,18 @@
       .task-form-grid,.task-form-grid-2{grid-template-columns:1fr}
     }
 
+    .return-editor-backdrop{
+      position:fixed;inset:0;z-index:90;
+      display:flex;align-items:center;justify-content:center;
+      padding:24px;background:rgba(0,0,0,.62);
+    }
+    .return-editor-dialog{
+      width:min(680px,100%);max-height:calc(100vh - 48px);overflow:auto;
+    }
+    @media (max-width:980px){
+      .return-editor-backdrop{padding:14px}
+    }
+
   </style>
 </head>
 <body>
@@ -472,7 +484,6 @@
         <a class="btn" id="btnBlog" href="#">Voltar ao blogue</a>
         <a class="btn" id="btnCatalogo" href="#">Voltar ao catálogo</a>
         <a class="btn" id="btnCatalogacao" href="#">Catalogação</a>
-        <a class="btn" id="btnManual" href="#" target="_blank" rel="noopener noreferrer">Manual do AnarBib</a>
         <a class="btn hidden" id="btnModoLeitor" href="#">Ir para modo leitor</a>
         <button class="btn primary" id="btnSair" type="button">Sair</button>
       </div>
@@ -1255,6 +1266,32 @@
     </div>
   </div>
 
+  <div id="returnScheduleEditor" class="return-editor-backdrop hidden" aria-hidden="true">
+    <div class="card return-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="returnScheduleEditorTitle">
+      <div class="section-head">
+        <div>
+          <h2 id="returnScheduleEditorTitle">Agendar devolução</h2>
+          <div class="mini" id="returnScheduleEditorHint">Define a data e a hora em horário de Belém.</div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label for="returnScheduleEditorDate">Data</label>
+          <input class="input" id="returnScheduleEditorDate" type="date">
+        </div>
+        <div>
+          <label for="returnScheduleEditorTime">Hora (Belém)</label>
+          <input class="input" id="returnScheduleEditorTime" type="time" step="60">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btnConfirmReturnScheduleEditor" type="button">Confirmar agendamento</button>
+        <button class="btn" id="btnCancelReturnScheduleEditor" type="button">Fechar</button>
+      </div>
+      <div class="status" id="returnScheduleEditorStatus"></div>
+    </div>
+  </div>
+
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -1268,12 +1305,10 @@
       CATALOGACAO: `${GH_BASE}/blmf-catalogo/catalogacao.html`,
       CADASTRO: `${GH_BASE}/blmf-conta/cadastro.html`,
       CONTA: `${GH_BASE}/blmf-conta/conta.html`,
-      MANUAL: `${GH_BASE}/blmf-catalogo/Manual_do_AnarBib.pdf`,
     };
     $("btnBlog").href = ROUTES.BLOG_HOME;
     $("btnCatalogo").href = ROUTES.CATALOGO;
     $("btnCatalogacao").href = ROUTES.CATALOGACAO;
-    $("btnManual").href = ROUTES.MANUAL;
     $("btnModoLeitor").href = ROUTES.CONTA;
 
     const SUPABASE_URL = "https://asptfmokzykwzlshsncw.supabase.co";
@@ -1301,6 +1336,7 @@
     let internalTaskLibrarians = [];
     let internalTaskOwnerHideTimer = null;
     let activateMainTab = null;
+    let returnScheduleEditorState = null;
 
     function clearStatus(id){
       const el = $(id);
@@ -2123,28 +2159,20 @@
     function setupMainTabs(){
       const btns = $$('.tab-btn[data-tab]');
       const panels = $$('.tab-panel[data-tab]');
-      const validTabs = new Set(btns.map((btn) => btn.dataset.tab).filter(Boolean));
-      function activate(tab, { pushHash = true } = {}){
-        const nextTab = validTabs.has(tab) ? tab : 'funcionamento';
+      function activate(tab){
         btns.forEach((btn) => {
-          const active = btn.dataset.tab === nextTab;
+          const active = btn.dataset.tab === tab;
           btn.classList.toggle('active', active);
           btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
-        panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.tab === nextTab));
-        if (pushHash) location.hash = `#${nextTab}`;
+        panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.tab === tab));
       }
       activateMainTab = activate;
       btns.forEach((btn) => btn.addEventListener('click', async () => {
         activate(btn.dataset.tab);
         if (session && isLibrarian) await refreshCollections({silent:true});
       }));
-      window.addEventListener('hashchange', () => {
-        const current = (location.hash || '').replace('#', '');
-        if (validTabs.has(current)) activate(current, { pushHash: false });
-      });
-      const initial = (location.hash || '').replace('#', '');
-      activate(validTabs.has(initial) ? initial : 'funcionamento', { pushHash: false });
+      activate('funcionamento');
     }
 
     function setupProfileTabs(){
@@ -2179,6 +2207,7 @@
     setupMainTabs();
     setupServiceStateActions();
     bindResScheduleAtParts();
+    setupReturnScheduleEditor();
 
     async function requireSession(){
       const { data: { session: sess } } = await supabase.auth.getSession();
@@ -2736,6 +2765,86 @@
       return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
     }
 
+
+    function splitLocalDateTimeValue(value){
+      const raw = String(value || '').trim();
+      const m = raw.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+      return { date: m?.[1] || '', time: m?.[2] || '' };
+    }
+
+    function closeReturnScheduleEditor(){
+      const backdrop = $('returnScheduleEditor');
+      if (!backdrop) return;
+      backdrop.classList.add('hidden');
+      backdrop.setAttribute('aria-hidden', 'true');
+      clearStatus('returnScheduleEditorStatus');
+      returnScheduleEditorState = null;
+    }
+
+    function openReturnScheduleEditor({ emprestimoId, lineNos, targetStatusId, currentValue='', title='', hint='' } = {}){
+      const backdrop = $('returnScheduleEditor');
+      const dateInput = $('returnScheduleEditorDate');
+      const timeInput = $('returnScheduleEditorTime');
+      if (!backdrop || !dateInput || !timeInput) return;
+      const localValue = currentValue ? belemDateTimeLocalValue(currentValue) : '';
+      const parts = splitLocalDateTimeValue(localValue);
+      const fallbackNow = belemNowParts();
+      returnScheduleEditorState = {
+        emprestimoId: Number(emprestimoId),
+        lineNos: Array.isArray(lineNos) ? lineNos.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0) : [],
+        targetStatusId: targetStatusId || 'statusLoans'
+      };
+      $('returnScheduleEditorTitle').textContent = title || 'Agendar devolução';
+      $('returnScheduleEditorHint').textContent = hint || 'Define a data e a hora em horário de Belém.';
+      dateInput.value = parts.date || fallbackNow.ymd;
+      timeInput.value = parts.time || fallbackNow.hm;
+      clearStatus('returnScheduleEditorStatus');
+      backdrop.classList.remove('hidden');
+      backdrop.setAttribute('aria-hidden', 'false');
+      requestAnimationFrame(() => {
+        dateInput.focus();
+        try { if (typeof dateInput.showPicker === 'function') dateInput.showPicker(); } catch {}
+      });
+    }
+
+    async function submitReturnScheduleEditor(){
+      const state = returnScheduleEditorState;
+      if (!state?.emprestimoId || !state?.lineNos?.length) return;
+      const date = String($('returnScheduleEditorDate')?.value || '').trim();
+      const time = String($('returnScheduleEditorTime')?.value || '').trim();
+      const isoWhen = toIsoFromLocalInput((date && time) ? `${date}T${time}` : '');
+      if (!isoWhen) {
+        setStatus('returnScheduleEditorStatus', 'Escolha uma data e uma hora válidas, sempre em horário de Belém.', 'bad', false);
+        return;
+      }
+      const confirmBtn = $('btnConfirmReturnScheduleEditor');
+      confirmBtn.disabled = true;
+      try {
+        const rpc = await scheduleEmprestimoReturnV2(state.emprestimoId, state.lineNos, isoWhen);
+        if (rpc.error) throw rpc.error;
+        const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+        if (row?.ok === false) throw new Error(row.message || 'Não foi possível agendar a devolução.');
+        closeReturnScheduleEditor();
+        setStatus(state.targetStatusId, `${row?.message || 'Agendamento de devolução registrado.'} Horário: ${fmtDateTimeBelem(row?.return_scheduled_for || isoWhen)} (Belém).`, 'ok');
+        await refreshCollections({silent:true});
+      } catch (e) {
+        setStatus('returnScheduleEditorStatus', 'Erro ao agendar devolução: ' + (e.message || String(e)), 'bad', false);
+      } finally {
+        confirmBtn.disabled = false;
+      }
+    }
+
+    function setupReturnScheduleEditor(){
+      $('btnCancelReturnScheduleEditor')?.addEventListener('click', closeReturnScheduleEditor);
+      $('btnConfirmReturnScheduleEditor')?.addEventListener('click', submitReturnScheduleEditor);
+      $('returnScheduleEditor')?.addEventListener('click', (ev) => {
+        if (ev.target === $('returnScheduleEditor')) closeReturnScheduleEditor();
+      });
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape' && returnScheduleEditorState) closeReturnScheduleEditor();
+      });
+    }
+
     function translateReturnScheduleStatus(status){
       return ({
         sem_agendamento: 'Sem agendamento de devolução',
@@ -2768,24 +2877,21 @@
       return supabase.rpc('fn_v2_schedule_emprestimo_return', {
         p_emprestimo_id: emprestimoId,
         p_line_nos: lineNos,
-        p_return_scheduled_for: isoWhen,
-        p_actor_role: 'biblioteca'
+        p_return_scheduled_for: isoWhen
       });
     }
 
     async function clearEmprestimoReturnScheduleV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_clear_emprestimo_return_schedule', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos,
-        p_actor_role: 'biblioteca'
+        p_line_nos: lineNos
       });
     }
 
     async function markEmprestimoReturnMissedV2(emprestimoId, lineNos){
       return supabase.rpc('fn_v2_mark_emprestimo_return_missed', {
         p_emprestimo_id: emprestimoId,
-        p_line_nos: lineNos,
-        p_actor_role: 'biblioteca'
+        p_line_nos: lineNos
       });
     }
 
@@ -3129,41 +3235,13 @@
       return data && typeof data === 'object' ? data : null;
     }
 
-    async function queryProfileByIdDirect(profileId, select = '*'){
-      const normalizedId = String(profileId || '').trim();
-      if (!normalizedId) return null;
-      let lastError = null;
-      const attempts = [
-        () => supabase.schema('api').from('profiles').select(select).eq('id', normalizedId).maybeSingle(),
-        () => supabase.from('profiles').select(select).eq('id', normalizedId).maybeSingle(),
-      ];
-      for (const run of attempts){
-        try {
-          const { data, error } = await run();
-          if (error) { lastError = error; continue; }
-          if (data?.id) return data;
-        } catch (error) {
-          lastError = error;
-        }
-      }
-      if (lastError) throw lastError;
-      return null;
-    }
-
     async function resolveProfileByEmail(email, select = '*'){
       const normalized = normalizeEmail(email);
       if (!normalized) throw new Error('Informe um e-mail.');
 
       try {
         const rpcData = await queryProfileByEmailRpc(normalized);
-        if (rpcData?.id) {
-          if (select === 'id,email') return { id: rpcData.id, email: rpcData.email || normalized };
-          try {
-            const freshData = await queryProfileByIdDirect(rpcData.id, select);
-            if (freshData?.id) return freshData;
-          } catch (_e) {}
-          return rpcData;
-        }
+        if (rpcData?.id) return select === 'id,email' ? { id: rpcData.id, email: rpcData.email || normalized } : rpcData;
       } catch (error) {
         if (!isMissingFunctionError(error)) throw error;
       }
@@ -3430,16 +3508,22 @@
       const createdLoanId = Number(result.loanIds?.[0] || 0);
       if (!createdLoanId) throw new Error(`Não consegui criar o empréstimo para a reserva ${reservaId}.`);
 
-      const fulfillRpc = await supabase.rpc('fn_confirm_reserva_legacy_to_loan_as_biblioteca', {
-        p_reserva_id: reservaId,
-        p_fulfilled_loan_id: createdLoanId
-      });
-      if (fulfillRpc.error) {
+      const { data: updatedRows, error: updateError } = await supabase
+        .from('reservas')
+        .update({
+          status: 'fulfilled',
+          fulfilled_at: nowISO(),
+          fulfilled_loan_id: createdLoanId,
+          fulfilled_by: session?.user?.id || null
+        })
+        .eq('id', reservaId)
+        .eq('status', 'pending')
+        .select('id');
+      if (updateError) {
         await supabase.from('loans').update({ returned_date: todayISO() }).eq('id', createdLoanId).is('returned_date', null);
-        throw fulfillRpc.error;
+        throw updateError;
       }
-      const updatedCount = Number(Array.isArray(fulfillRpc.data) ? fulfillRpc.data[0] : fulfillRpc.data) || 0;
-      if (updatedCount < 1) {
+      if (!(updatedRows || []).length) {
         await supabase.from('loans').update({ returned_date: todayISO() }).eq('id', createdLoanId).is('returned_date', null);
         throw new Error(`A reserva ${reservaId} mudou de estado antes da confirmação.`);
       }
@@ -3744,15 +3828,22 @@
         }
 
         if (oldRows.length) {
-          const oldIds = Array.from(new Set(oldRows.map((r) => Number(r.reserva_id)).filter((v) => Number.isFinite(v) && v > 0)));
-          for (const oldId of oldIds) {
-            const rpc = await supabase.rpc('fn_cancel_reserva_legacy_as_biblioteca', {
-              p_reserva_id: oldId,
-              p_notes: 'Cancelamento registrado pela biblioteca no painel.'
-            });
-            if (rpc.error) throw rpc.error;
-            total += Number(rpc.data || 0) || 0;
-          }
+          const payload = {
+            status: 'cancelled_by_staff_temp',
+            cancelled_at: nowISO(),
+            cancelled_by: session.user.id,
+            cancelled_by_role: 'staff',
+            cancelled_reason: 'Cancelamento registrado pela biblioteca no painel.'
+          };
+          const oldIds = oldRows.map((r) => Number(r.reserva_id));
+          const { data, error } = await supabase
+            .from('reservas')
+            .update(payload)
+            .in('id', oldIds)
+            .eq('status', 'pending')
+            .select('id');
+          if (error) throw error;
+          total += (data || []).length;
         }
 
         selectedReservaIds = new Set([...selectedReservaIds].filter((id) => !ids.includes(id)));
@@ -3848,30 +3939,17 @@
           const emprestimoId = Number(scheduleReturnBatchV2Btn.getAttribute('data-schedule-return-batch-v2'));
           const lineNos = String(scheduleReturnBatchV2Btn.getAttribute('data-schedule-return-line-nos-v2') || '').split(',').map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0);
           if (!emprestimoId || !lineNos.length || scheduleReturnBatchV2Btn.disabled) return;
-          const currentValue = (() => {
-            const batch = activeBatches.find((b) => Number(b.emprestimo_id) === emprestimoId);
-            return batch?.return_scheduled_for ? belemDateTimeLocalValue(batch.return_scheduled_for) : '';
-          })();
-          const raw = window.prompt('Informe a data e a hora da devolução em horário de Belém (AAAA-MM-DDTHH:MM).', currentValue);
-          if (raw == null) return;
-          const isoWhen = toIsoFromLocalInput(raw);
-          if (!isoWhen) {
-            setStatus('statusBatches', 'Informe a data e a hora no formato AAAA-MM-DDTHH:MM, sempre em horário de Belém.', 'bad', false);
-            return;
-          }
-          scheduleReturnBatchV2Btn.disabled = true;
-          try {
-            const rpc = await scheduleEmprestimoReturnV2(emprestimoId, lineNos, isoWhen);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível agendar a devolução.');
-            setStatus('statusBatches', `${row?.message || 'Agendamento de devolução registrado.'} Horário: ${fmtDateTimeBelem(row?.return_scheduled_for || isoWhen)} (Belém).`, 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus('statusBatches', 'Erro ao agendar devolução: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            scheduleReturnBatchV2Btn.disabled = false;
-          }
+          const batch = activeBatches.find((b) => Number(b.emprestimo_id) === emprestimoId);
+          openReturnScheduleEditor({
+            emprestimoId,
+            lineNos,
+            targetStatusId: 'statusBatches',
+            currentValue: batch?.return_scheduled_for || '',
+            title: `${getReturnScheduleActionLabel(batch || {})} do empréstimo`,
+            hint: batch?.return_schedule_mixed
+              ? `Empréstimo #${batch?.batch_label || emprestimoId}. Há horários diferentes entre os itens. O novo horário será aplicado a todo o empréstimo.`
+              : `Empréstimo #${batch?.batch_label || emprestimoId}. Define a data e a hora em horário de Belém.`
+          });
           return;
         }
 
@@ -3927,30 +4005,17 @@
           const lineNo = Number(scheduleReturnV2Btn.getAttribute('data-schedule-return-line-v2'));
           if (!emprestimoId || !lineNo || scheduleReturnV2Btn.disabled) return;
           const target = scheduleReturnV2Btn.closest('#profilePaneEmprestimos') ? 'statusPerfil' : 'statusLoans';
-          const currentValue = (() => {
-            const loan = activeLoans.find((l) => Number(l.emprestimo_id) === emprestimoId && Number(l.line_no) === lineNo);
-            return loan?.return_scheduled_for ? belemDateTimeLocalValue(loan.return_scheduled_for) : '';
-          })();
-          const raw = window.prompt('Informe a data e a hora da devolução em horário de Belém (AAAA-MM-DDTHH:MM).', currentValue);
-          if (raw == null) return;
-          const isoWhen = toIsoFromLocalInput(raw);
-          if (!isoWhen) {
-            setStatus(target, 'Informe a data e a hora no formato AAAA-MM-DDTHH:MM, sempre em horário de Belém.', 'bad', false);
-            return;
-          }
-          scheduleReturnV2Btn.disabled = true;
-          try {
-            const rpc = await scheduleEmprestimoReturnV2(emprestimoId, [lineNo], isoWhen);
-            if (rpc.error) throw rpc.error;
-            const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-            if (row?.ok === false) throw new Error(row.message || 'Não foi possível agendar a devolução.');
-            setStatus(target, `${row?.message || 'Agendamento de devolução registrado.'} Horário: ${fmtDateTimeBelem(row?.return_scheduled_for || isoWhen)} (Belém).`, 'ok');
-            await refreshCollections({silent:true});
-          } catch (e) {
-            setStatus(target, 'Erro ao agendar devolução: ' + (e.message || String(e)), 'bad', false);
-          } finally {
-            scheduleReturnV2Btn.disabled = false;
-          }
+          const loan = activeLoans.find((l) => Number(l.emprestimo_id) === emprestimoId && Number(l.line_no) === lineNo);
+          openReturnScheduleEditor({
+            emprestimoId,
+            lineNos: [lineNo],
+            targetStatusId: target,
+            currentValue: loan?.return_scheduled_for || '',
+            title: `${getReturnScheduleActionLabel(loan || {})} do item`,
+            hint: loan?.sub_id
+              ? `Item ${loan.sub_id} do empréstimo #${loan.batch_label || emprestimoId}. Define a data e a hora em horário de Belém.`
+              : `Empréstimo #${loan?.batch_label || emprestimoId}. Define a data e a hora em horário de Belém.`
+          });
           return;
         }
 
