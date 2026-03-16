@@ -681,8 +681,10 @@
               </div>
               <div class="task-form-grid-2" style="margin-top:12px">
                 <div>
-                  <label for="taskInternalOwner">Responsável (opcional)</label>
-                  <input class="input" id="taskInternalOwner" type="text" placeholder="Ex.: mutirão de sábado">
+                  <label for="taskInternalOwner">Compa responsável (opcional)</label>
+                  <input class="input" id="taskInternalOwner" type="email" list="taskInternalOwnerList" placeholder="Ex.: compa.biblioteca@ccla.org.br">
+                  <datalist id="taskInternalOwnerList"></datalist>
+                  <div class="mini subtle" id="taskInternalOwnerHint" style="margin-top:6px">Digite ou escolha o e-mail de um/a/e compa bibliotecário/a.</div>
                 </div>
                 <div>
                   <label for="taskInternalDue">Prazo (opcional)</label>
@@ -702,6 +704,7 @@
               <div class="actions">
                 <button class="btn primary" id="btnAddInternalTask" type="button">Adicionar tarefa</button>
                 <button class="btn" id="btnClearInternalTaskForm" type="button">Limpar formulário</button>
+                <button class="btn" id="btnReloadInternalTasks" type="button">Recarregar tarefas</button>
               </div>
               <div class="sep"></div>
               <div class="task-list" id="taskListInternas">
@@ -1280,7 +1283,7 @@
     let libraryServiceState = null;
     let reservationFollowUpFilter = 'all';
     let manualInternalTasks = [];
-    const INTERNAL_TASKS_STORAGE_KEY = 'blmf_painel_tarefas_internas_v1';
+    let librarianContacts = [];
     let activateMainTab = null;
 
     function clearStatus(id){
@@ -1609,18 +1612,64 @@
       })[String(status || '')] || 'warn';
     }
 
-    function loadInternalTasks(){
-      try {
-        const raw = window.localStorage.getItem(INTERNAL_TASKS_STORAGE_KEY);
-        manualInternalTasks = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(manualInternalTasks)) manualInternalTasks = [];
-      } catch {
-        manualInternalTasks = [];
-      }
+    function fullNameFromParts(firstName, lastName, fallback='—'){
+      const first = String(firstName || '').trim();
+      const last = String(lastName || '').trim();
+      const joined = [first, last].filter(Boolean).join(' ');
+      return joined || fallback;
     }
 
-    function saveInternalTasks(){
-      window.localStorage.setItem(INTERNAL_TASKS_STORAGE_KEY, JSON.stringify(manualInternalTasks));
+    function resolveLibrarianContactByEmail(email){
+      const key = String(email || '').trim().toLowerCase();
+      if (!key) return null;
+      return librarianContacts.find((c) => String(c.email || '').trim().toLowerCase() === key) || null;
+    }
+
+    function renderLibrarianOwnerDatalist(){
+      const host = $('taskInternalOwnerList');
+      if (!host) return;
+      host.innerHTML = librarianContacts.map((c) => `<option value="${esc(c.email)}">${esc(c.full_name)}</option>`).join('');
+    }
+
+    function renderInternalOwnerHint(){
+      const hint = $('taskInternalOwnerHint');
+      const input = $('taskInternalOwner');
+      if (!hint || !input) return;
+      const value = String(input.value || '').trim();
+      if (!value){
+        hint.textContent = 'Digite ou escolha o e-mail de um/a/e compa bibliotecário/a.';
+        return;
+      }
+      const match = resolveLibrarianContactByEmail(value);
+      hint.textContent = match
+        ? `Compa identificado/a/e: ${match.full_name} <${match.email}>`
+        : 'E-mail livre. Se corresponder a um perfil bibliotecário, a tarefa ficará conectada a esse perfil.';
+    }
+
+    async function loadLibrarianContacts(){
+      const { data, error } = await supabase.rpc('list_librarian_contacts');
+      if (error) throw error;
+      librarianContacts = Array.isArray(data) ? data.map((row) => ({
+        user_id: row.user_id,
+        full_name: row.full_name || row.email || '—',
+        email: row.email || ''
+      })) : [];
+      renderLibrarianOwnerDatalist();
+      renderInternalOwnerHint();
+    }
+
+    async function loadInternalTasks(){
+      const { data, error } = await supabase
+        .from('internal_tasks_biblioteca')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      manualInternalTasks = Array.isArray(data) ? data : [];
+    }
+
+    async function markInternalTaskAlerted(taskId, method='mailto'){
+      const { error } = await supabase.rpc('mark_internal_task_alerted', { p_task_id: Number(taskId), p_method: method });
+      if (error) throw error;
     }
 
     function clearInternalTaskForm(){
@@ -1631,6 +1680,15 @@
       if ($('taskInternalDue')) $('taskInternalDue').value = '';
       if ($('taskInternalTags')) $('taskInternalTags').value = '';
       if ($('taskInternalDesc')) $('taskInternalDesc').value = '';
+    }
+
+    function internalTaskOwnerLabel(task){
+      const email = String(task.responsible_email || '').trim();
+      const fullName = String(task.responsible_name || '').trim();
+      if (fullName && email) return `${fullName} <${email}>`;
+      if (fullName) return fullName;
+      if (email) return email;
+      return '';
     }
 
     function renderInternalTasks(){
@@ -1645,7 +1703,10 @@
         host.innerHTML = '<div class="task-empty">Nenhuma tarefa interna cadastrada por enquanto.</div>';
         return;
       }
-      host.innerHTML = rows.map((task) => `
+      host.innerHTML = rows.map((task) => {
+        const ownerLabel = internalTaskOwnerLabel(task);
+        const canAlert = !!String(task.responsible_email || '').trim();
+        return `
         <div class="task-item" data-internal-task-id="${esc(task.id)}">
           <div class="task-item-head">
             <div>
@@ -1658,20 +1719,22 @@
             </div>
           </div>
           <div class="task-item-meta">
-            ${task.owner ? `<span class="mini subtle">Responsável: ${esc(task.owner)}</span>` : ''}
+            ${ownerLabel ? `<span class="mini subtle">Compa responsável: ${esc(ownerLabel)}</span>` : ''}
             ${task.due_date ? `<span class="mini subtle">Prazo: ${esc(fmtDate(task.due_date))}</span>` : ''}
             ${task.tags ? `<span class="mini subtle">Marcador: ${esc(task.tags)}</span>` : ''}
+            ${task.alerted_at ? `<span class="mini subtle">Último aviso: ${esc(fmtDateTime(task.alerted_at))}</span>` : ''}
             <span class="mini subtle">Criada em: ${esc(fmtDateTime(task.created_at))}</span>
           </div>
           <div class="task-item-actions">
             <button class="btn mini" type="button" data-internal-task-next="${esc(task.id)}">Avançar situação</button>
+            ${canAlert ? `<button class="btn mini" type="button" data-internal-task-alert="${esc(task.id)}">Avisar responsável</button>` : ''}
             <button class="btn mini" type="button" data-internal-task-delete="${esc(task.id)}">Excluir</button>
           </div>
         </div>
-      `).join('');
+      `;}).join('');
     }
 
-    function addInternalTask(){
+    async function addInternalTask(){
       clearStatus('statusTarefasInternas');
       const title = $('taskInternalTitle')?.value.trim() || '';
       if (!title) return setStatus('statusTarefasInternas', 'Informe ao menos o título da tarefa.', 'warn');
@@ -3306,9 +3369,15 @@
           return;
         }
 
+        const alertInternalTaskBtn = ev.target.closest('[data-internal-task-alert]');
+        if (alertInternalTaskBtn) {
+          await alertInternalTaskResponsible(alertInternalTaskBtn.getAttribute('data-internal-task-alert'));
+          return;
+        }
+
         const deleteInternalTaskBtn = ev.target.closest('[data-internal-task-delete]');
         if (deleteInternalTaskBtn) {
-          deleteInternalTask(deleteInternalTaskBtn.getAttribute('data-internal-task-delete'));
+          await deleteInternalTask(deleteInternalTaskBtn.getAttribute('data-internal-task-delete'));
           return;
         }
 
@@ -3482,8 +3551,19 @@
     }));
     $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
     $('btnRecarregarTrabalhoDia')?.addEventListener('click', () => { renderTrabalhoDoDia(); setStatus('statusTrabalhoDia', 'Prioridades recalculadas.', 'ok'); });
-    $('btnAddInternalTask')?.addEventListener('click', addInternalTask);
+    $('btnAddInternalTask')?.addEventListener('click', async () => { await addInternalTask(); });
     $('btnClearInternalTaskForm')?.addEventListener('click', clearInternalTaskForm);
+    $('btnReloadInternalTasks')?.addEventListener('click', async () => {
+      try {
+        await loadInternalTasks();
+        renderInternalTasks();
+        setStatus('statusTarefasInternas', 'Tarefas internas recarregadas.', 'ok');
+      } catch (e) {
+        setStatus('statusTarefasInternas', 'Não consegui recarregar as tarefas: ' + (e.message || String(e)), 'bad', false);
+      }
+    });
+    $('taskInternalOwner')?.addEventListener('input', renderInternalOwnerHint);
+    $('taskInternalOwner')?.addEventListener('change', renderInternalOwnerHint);
     $('btnRecarregarLoans').addEventListener('click', () => refreshCollections());
     $('btnRecarregarLotes').addEventListener('click', () => refreshCollections());
     $('btnBuscarPerfil').addEventListener('click', async () => {
@@ -3522,8 +3602,6 @@
       finally { $('btnSair').disabled = false; }
     });
 
-    loadInternalTasks();
-    renderInternalTasks();
     bindReservationSelection();
     bindDynamicActions();
 
@@ -3541,6 +3619,9 @@
       if (isLibrarian){
         await fillHeader();
         await loadLibraryServiceState();
+        await loadLibrarianContacts();
+        await loadInternalTasks();
+        renderInternalTasks();
         await refreshCollections();
         setupRefreshHooks();
       }
