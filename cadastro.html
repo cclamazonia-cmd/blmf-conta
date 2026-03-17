@@ -190,7 +190,7 @@
 
       <div class="actions">
         <button id="backBlog" class="btn" type="button">Voltar ao blogue</button>
-        <a id="backCatalog" class="btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
+        <button id="backCatalog" class="btn" type="button">Voltar ao catálogo</button>
         <button id="goCriarConta" class="btn" type="button">Criar conta</button>
         <button id="goRegimento" class="btn" type="button">Regimento</button>
       </div>
@@ -300,6 +300,11 @@
     document.getElementById("backBlog").addEventListener("click", (e) => {
       e.preventDefault();
       window.location.href = BLOG_URL;
+    });
+
+    document.getElementById("backCatalog").addEventListener("click", (e) => {
+      e.preventDefault();
+      window.location.href = ROUTES.CATALOGO;
     });
 
     document.getElementById("goCriarConta").addEventListener("click", () => {
