@@ -1701,6 +1701,7 @@ button[type="submit"] *,
         aviso_enviado: "Aviso recebido",
         retirada_a_combinar: "Retirada a combinar",
         retirada_agendada: "Retirada agendada",
+        "re-retirada_agendada": "Retirada reagendada",
         pronta_para_retirada: "Livro pronto para retirada",
         nao_retirada: "Não retirada",
         liberada_para_circulacao: "Liberada para circulação",
@@ -1770,7 +1771,7 @@ button[type="submit"] *,
 
     function reservationPickupReplyActions(row) {
       const cancelBtn = `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
-      if (String(row?.workflow_stage_effective || "") !== "retirada_agendada") {
+      if (!["retirada_agendada", "re-retirada_agendada"].includes(String(row?.workflow_stage_effective || ""))) {
         return buildActionGrid([actionSlotEmpty(), actionSlotEmpty(), cancelBtn], "reservation-actions");
       }
       if (String(row?.pickup_reply_status || "").trim()) {
