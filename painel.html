@@ -2997,7 +2997,7 @@
             break;
           }
           lastErr = rpc.error;
-          if (!isMissingFunctionError(rpc.error)) throw rpc.error;
+          if (!isMissingFunctionError(rpc.error) && !canFallbackReservationWorkflowStageError(rpc.error, stage)) throw rpc.error;
         }
 
         if (done) continue;
@@ -3361,6 +3361,13 @@
     function isMissingFunctionError(error){
       const msg = String(error?.message || error || '');
       return /function|does not exist|not exist|não existe|Could not find the function/i.test(msg);
+    }
+
+    function canFallbackReservationWorkflowStageError(error, stage){
+      const normalizedStage = String(stage || '');
+      if (!['re-retirada_agendada', 'pronta_para_retirada'].includes(normalizedStage)) return false;
+      const msg = String(error?.message || error || '');
+      return /invalid input value|enum|constraint|check constraint|violates|workflow[_ ]stage|p_stage|p_workflow_stage/i.test(msg);
     }
 
     async function loadBooksForLoanBibRefs(refs){
@@ -4262,7 +4269,7 @@
     $('btnConfirmarSelecionados').addEventListener('click', () => confirmReservations([...selectedReservaIds]));
     $('btnCancelarSelecionados').addEventListener('click', () => cancelReservations([...selectedReservaIds]));
     const reservationStageNeedsSchedule = (stage) => ['retirada_agendada', 're-retirada_agendada'].includes(String(stage || ''));
-    $('btnApplyResWorkflowStage')?.addEventListener('click', () => {
+    $('btnApplyResWorkflowStage')?.addEventListener('click', async () => {
       const stage = $('resWorkflowStage')?.value || '';
       const pickupScheduledFor = toIsoFromLocalInput($('resScheduleAt')?.value);
       if (!stage) {
@@ -4275,11 +4282,15 @@
           : 'Informe data e hora para agendar a retirada.', 'warn');
         return;
       }
-      setReservationWorkflowStage(stage, selectedReservationRows(), {
-        note: $('resWorkflowNote')?.value.trim() || '',
-        pickupScheduledFor: reservationStageNeedsSchedule(stage) ? pickupScheduledFor : null,
-        targetStatusId: 'statusRes'
-      });
+      try {
+        await setReservationWorkflowStage(stage, selectedReservationRows(), {
+          note: $('resWorkflowNote')?.value.trim() || '',
+          pickupScheduledFor: reservationStageNeedsSchedule(stage) ? pickupScheduledFor : null,
+          targetStatusId: 'statusRes'
+        });
+      } catch (error) {
+        setStatus('statusRes', error?.message || 'Erro ao aplicar etapa.', 'bad');
+      }
     });
     $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
     $('btnRecarregarTrabalhoDia')?.addEventListener('click', () => { renderTrabalhoDoDia(); setStatus('statusTrabalhoDia', 'Prioridades recalculadas.', 'ok'); });
