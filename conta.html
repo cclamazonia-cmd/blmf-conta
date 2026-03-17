@@ -1491,15 +1491,6 @@ button[type="submit"] *,
       setActiveTab("perfil", { pushHash: false });
     }
 
-    function buildAddress2Combined() {
-      const bairro = $("bairro").value.trim();
-      const complemento = $("addr2").value.trim();
-      return [
-        bairro ? `Bairro: ${bairro}` : "",
-        complemento ? `Complemento: ${complemento}` : ""
-      ].filter(Boolean).join(" | ");
-    }
-
     function packAddress() {
       const lines = [
         $("addr1").value.trim(),
@@ -1520,14 +1511,46 @@ button[type="submit"] *,
       return m ? m[1].trim() : "";
     }
 
+    function parseCombinedAddress2(addressText) {
+      const raw = extract("Bairro", addressText);
+      if (!raw) return { bairro: "", complemento: "" };
+      const parts = raw.split("|").map((part) => part.trim()).filter(Boolean);
+      if (!parts.length) return { bairro: raw.trim(), complemento: "" };
+
+      let bairro = "";
+      let complemento = "";
+      for (const part of parts) {
+        if (/^Complemento\s*:/i.test(part)) {
+          complemento = part.replace(/^Complemento\s*:/i, "").trim();
+        } else if (/^Bairro\s*:/i.test(part)) {
+          bairro = part.replace(/^Bairro\s*:/i, "").trim();
+        } else if (!bairro) {
+          bairro = part.trim();
+        } else if (!complemento) {
+          complemento = part.trim();
+        }
+      }
+      return { bairro, complemento };
+    }
+
+    function buildAddress2Combined() {
+      const parts = [];
+      const bairro = $("bairro").value.trim();
+      const complemento = $("addr2").value.trim();
+      if (bairro) parts.push(`Bairro: ${bairro}`);
+      if (complemento) parts.push(`Complemento: ${complemento}`);
+      return parts.join(" | ");
+    }
+
     function loadAddressFields(addressText) {
       const lines = String(addressText || "").split("\n").map((l) => l.trim()).filter(Boolean);
       const free = lines.filter((l) => !/^(Casa\/Apto:|CEP:|Bairro:|Cidade:|Estado:|País:)/i.test(l));
+      const combined = parseCombinedAddress2(addressText);
       $("addr1").value = free[0] || "";
-      $("addr2").value = free[1] || "";
+      $("addr2").value = free[1] || combined.complemento || "";
       $("unit").value = extract("Casa\/Apto", addressText);
       $("cep").value = extract("CEP", addressText);
-      $("bairro").value = extract("Bairro", addressText);
+      $("bairro").value = combined.bairro || extract("Bairro", addressText);
       $("city").value = extract("Cidade", addressText);
       $("state").value = extract("Estado", addressText);
       $("country").value = extract("País", addressText) || "Brasil";
@@ -2591,7 +2614,20 @@ button[type="submit"] *,
         last_name: $("lastName").value.trim(),
         phone: $("phone").value.trim(),
         gender: $("gender").value,
-        address: packAddress(),
+        address: packAddress()
+      };
+      const { error } = await supabase.from("profiles").update(payload).eq("id", session.user.id);
+      if (error) {
+        profileMsg.textContent = "Erro ao salvar: " + error.message;
+        return;
+      }
+
+      const metadataPatch = {
+        ...(session?.user?.user_metadata || {}),
+        first_name: $("firstName").value.trim(),
+        last_name: $("lastName").value.trim(),
+        phone: $("phone").value.trim(),
+        gender: $("gender").value,
         address_1: $("addr1").value.trim(),
         address_2: buildAddress2Combined(),
         address_unit: $("unit").value.trim(),
@@ -2600,13 +2636,8 @@ button[type="submit"] *,
         state: $("state").value,
         country: $("country").value
       };
-      const { error } = await supabase.from("profiles").update(payload).eq("id", session.user.id);
-      if (error) {
-        profileMsg.textContent = "Erro ao salvar: " + error.message;
-        return;
-      }
-      profileMsg.textContent = "Dados atualizados com sucesso.";
-      await loadProfile();
+      const { error: authError } = await supabase.auth.updateUser({ data: metadataPatch });
+      profileMsg.textContent = authError ? ("Dados salvos, mas houve um problema ao atualizar o cadastro: " + authError.message) : "Dados atualizados com sucesso.";
     });
 
     const pwInput = $("newPassword");
