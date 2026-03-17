@@ -34,44 +34,46 @@
       background-repeat:no-repeat;
     }
     a,a:visited{color:inherit;text-decoration:none}
-    main.card{
+    .wrap{
       max-width:1680px;
       margin:0 auto;
       padding:24px;
       display:flex;
       flex-direction:column;
       gap:14px;
-      background:none !important;
-      border:none !important;
-      box-shadow:none !important;
-      backdrop-filter:none !important;
     }
-    .topActions{order:0;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-    .brand{
-      order:1;
+    .topbar{
       display:flex;
-      gap:14px;
       align-items:center;
-      border:1px solid rgba(255,255,255,.08);
-      background:linear-gradient(135deg, rgba(179,0,24,.95), rgba(90,0,12,.96));
-      border-radius:22px;
-      padding:18px;
-      box-shadow:var(--shadow);
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
     }
-    .brand img{
-      width:64px;
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+    .logo{
       height:64px;
+      width:auto;
+      max-width:170px;
       object-fit:contain;
       display:block;
       flex-shrink:0;
       filter:drop-shadow(0 8px 18px rgba(0,0,0,.35));
     }
-    .brand h1{margin:0 0 6px;font-size:1.5rem}
-    .subtitle{margin:0;color:rgba(255,255,255,.92);font-size:.98rem;line-height:1.35}
-    .topActions .secondary,
-    .topActions a.secondary,
-    button,
-    .secondary{
+    .brand-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .brand-title{font-size:1rem;font-weight:900;line-height:1.1}
+    .brand-subtitle{color:var(--muted);font-size:.9rem;line-height:1.2}
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    button,.btn{
       border:1px solid var(--line);
       background:rgba(18,18,18,.92);
       color:var(--text) !important;
@@ -89,15 +91,25 @@
       text-decoration:none;
       appearance:none;
       -webkit-appearance:none;
+      line-height:1.2;
     }
-    button:hover,button:focus,.secondary:hover,.secondary:focus{
+    button:hover,button:focus,.btn:hover,.btn:focus{
       border-color:rgba(255,255,255,.22) !important;
       color:var(--text) !important;
     }
-    button[type="submit"]:not(.secondary){
+    button[type="submit"]:not(.btn), .btn.primary{
       border:none;
       background:linear-gradient(135deg,var(--red2),var(--red));
     }
+    .hero{
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(135deg, rgba(179,0,24,.95), rgba(90,0,12,.96));
+      border-radius:22px;
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+    .hero h1{margin:0 0 6px;font-size:1.5rem}
+    .hero p{margin:0;color:rgba(255,255,255,.92);font-size:.98rem;line-height:1.35}
     .notice,.rules,#cadastroForm{
       border:1px solid rgba(255,255,255,.08);
       background:var(--panel);
@@ -108,6 +120,7 @@
     .notice{
       background:linear-gradient(180deg, rgba(179,0,24,.18), rgba(18,18,18,.96));
     }
+    .notice small{display:block;line-height:1.45;margin-top:6px;color:#f0f0f0}
     .rules summary{cursor:pointer}
     .rules ul{margin:10px 0 0 18px;color:#f0f0f0}
     .rules a,.rules a:visited,.notice a,.notice a:visited,label.checkbox a,label.checkbox a:visited{
@@ -135,7 +148,7 @@
       font:inherit;
       margin:0 0 12px;
     }
-    input:focus,select:focus,textarea:focus{
+    input:focus,select:focus,textarea:focus,button:focus,.btn:focus{
       border-color:rgba(225,29,47,.85) !important;
       box-shadow:0 0 0 3px rgba(225,29,47,.18) !important;
     }
@@ -175,36 +188,44 @@
     .msg.warn{color:var(--warn)}
     .msg.bad{color:var(--bad)}
     @media (max-width:980px){
-      main.card{padding:16px}
-      .brand{align-items:flex-start}
+      .wrap{padding:16px}
+      .topbar{align-items:flex-start}
       .grid2,.grid3{grid-template-columns:1fr}
-      .topActions{width:100%}
-      .topActions a.secondary,button,.secondary{width:auto;max-width:100%}
+      .actions{width:100%}
+      .actions .btn, .actions button{width:auto;max-width:100%}
     }
   </style>
 
 </head>
 
 <body>
-  <main class="card">
-    <div class="brand">
-      <img
-        src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png"
-        alt="Logotipo BLMF"
-        onerror="this.style.display='none'"
-      />
-      <div>
-        <h1 style="margin:0;">Criar conta — Biblioteca Libertária Maxwell Ferreira</h1>
-        <p class="subtitle">Abertura de conta (leitor/a/e)</p>
+  <main class="wrap">
+    <div class="topbar">
+      <div class="brand" aria-label="Biblioteca Libertária Maxwell Ferreira">
+        <img
+          class="logo"
+          src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png"
+          alt="Logotipo BLMF"
+          onerror="this.style.display='none'"
+        />
+        <div class="brand-copy">
+          <div class="brand-title">BLMF</div>
+          <div class="brand-subtitle">Biblioteca Libertária Maxwell Ferreira</div>
+        </div>
       </div>
-</div>
 
-<div class="topActions">
-  <a class="secondary" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
-  <a class="secondary" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
-  <a class="secondary" href="./cadastro.html">Já tenho conta (entrar)</a>
-  <a class="secondary" href="https://cclamazonia.noblogs.org/regimento-blmf/" rel="noopener">Regimento</a>
-</div>
+      <div class="actions">
+        <a class="btn" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
+        <a class="btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
+        <a class="btn" href="./cadastro.html">Já tenho conta (entrar)</a>
+        <a class="btn" href="https://cclamazonia.noblogs.org/regimento-blmf/" rel="noopener">Regimento</a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Criar conta</h1>
+      <p>Abertura de conta (leitor/a/e)</p>
+    </div>
 
 <div class="notice" role="note" aria-label="Aviso de segurança">
       <b>Importante (segurança):</b>
@@ -569,7 +590,7 @@
       </p>
 
       <button type="submit">Enviar cadastro</button>
-      <button type="button" class="secondary" id="back">Voltar</button>
+      <button type="button" class="btn" id="back">Voltar</button>
 
       <p id="msg" class="msg" aria-live="polite"></p>
     </form>
