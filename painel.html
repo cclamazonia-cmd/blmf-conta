@@ -2058,6 +2058,10 @@
       }
     }
 
+    function isReservationPickupScheduledStage(stage){
+      return ['retirada_agendada', 're-retirada_agendada'].includes(String(stage || ''));
+    }
+
     function buildDailyTasks(){
       const tasks = [];
       const belemNow = belemNowParts();
@@ -2067,8 +2071,16 @@
         const pickupDayBelem = belemDateYmd(r.pickup_scheduled_for);
         const validadeDiff = reservationDateDiff(r.validade);
 
-        if (stage === 'retirada_agendada' && pickupDayBelem && pickupDayBelem === belemNow.ymd){
-          tasks.push({ priority:'alta', bucket:'hoje', kind:'Retirada agendada para hoje', label:`${r.user_name} · ${r.titulo}`, detail:`Retirada: ${fmtDateTimeBelem(r.pickup_scheduled_for)} (Belém)`, actionType:'reserva', reserva_id:r.reserva_id });
+        if (isReservationPickupScheduledStage(stage) && pickupDayBelem && pickupDayBelem === belemNow.ymd){
+          tasks.push({
+            priority:'alta',
+            bucket:'hoje',
+            kind: stage === 're-retirada_agendada' ? 'Retirada reagendada para hoje' : 'Retirada agendada para hoje',
+            label:`${r.user_name} · ${r.titulo}`,
+            detail:`Retirada: ${fmtDateTimeBelem(r.pickup_scheduled_for)} (Belém)`,
+            actionType:'reserva',
+            reserva_id:r.reserva_id
+          });
         }
         if (stage === 'pronta_para_retirada'){
           tasks.push({ priority: validadeDiff != null && validadeDiff <= 1 ? 'alta' : 'media', bucket: validadeDiff != null && validadeDiff <= 1 ? 'hoje' : 'atencao', kind:'Reserva pronta para retirada', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTime(r.validade)}${r.workflow_note ? ' · ' + r.workflow_note : ''}`, actionType:'reserva', reserva_id:r.reserva_id });
@@ -2938,7 +2950,7 @@
       };
       if (stage === 'em_preparacao') payload.prepared_at = now;
       if (stage === 'aviso_enviado') payload.notified_at = now;
-      if (stage === 'retirada_agendada' || stage === 're-retirada_agendada') payload.pickup_scheduled_for = pickupScheduledFor || null;
+      if (isReservationPickupScheduledStage(stage)) payload.pickup_scheduled_for = pickupScheduledFor || null;
       if (['retirada_a_combinar', 'nao_retirada', 'liberada_para_circulacao'].includes(stage)) payload.pickup_scheduled_for = null;
       if (stage === 'pronta_para_retirada') payload.ready_for_pickup_at = now;
       return payload;
@@ -2954,7 +2966,7 @@
         setStatus(targetStatusId, msg, 'warn');
         return;
       }
-      if ((stage === 'retirada_agendada' || stage === 're-retirada_agendada') && !pickupScheduledFor) {
+      if (isReservationPickupScheduledStage(stage) && !pickupScheduledFor) {
         setStatus(targetStatusId, stage === 're-retirada_agendada' ? 'Informe data e hora para reagendar a retirada.' : 'Informe data e hora para agendar a retirada.', 'warn');
         return;
       }
@@ -2997,10 +3009,17 @@
             break;
           }
           lastErr = rpc.error;
-          if (!isMissingFunctionError(rpc.error) && !canFallbackReservationWorkflowStageError(rpc.error, stage)) throw rpc.error;
+          if (!isMissingFunctionError(rpc.error) && !canUseDirectReservationWorkflowFallback(stage, rpc.error)) throw rpc.error;
         }
 
         if (done) continue;
+
+        if (!canUseDirectReservationWorkflowFallback(stage, lastErr)) {
+          if (String(stage || '') === 're-retirada_agendada') {
+            throw new Error('Reagendar retirada ainda não está disponível no backend atual via RPC. O painel não pode gravar isso direto na tabela protegida.');
+          }
+          throw (lastErr || new Error('Não foi possível aplicar a etapa selecionada.'));
+        }
 
         const base = workflowPayloadForStage(stage, note, pickupScheduledFor);
         const rowsToUpsert = lineNos.map((lineNo) => ({
@@ -3365,9 +3384,15 @@
 
     function canFallbackReservationWorkflowStageError(error, stage){
       const normalizedStage = String(stage || '');
-      if (!['re-retirada_agendada', 'pronta_para_retirada'].includes(normalizedStage)) return false;
+      if (normalizedStage !== 'pronta_para_retirada') return false;
       const msg = String(error?.message || error || '');
       return /invalid input value|enum|constraint|check constraint|violates|workflow[_ ]stage|p_stage|p_workflow_stage/i.test(msg);
+    }
+
+    function canUseDirectReservationWorkflowFallback(stage, error){
+      const normalizedStage = String(stage || '');
+      if (normalizedStage !== 'pronta_para_retirada') return false;
+      return isMissingFunctionError(error) || canFallbackReservationWorkflowStageError(error, normalizedStage);
     }
 
     async function loadBooksForLoanBibRefs(refs){
@@ -4268,7 +4293,7 @@
     $('btnDevolverSubIds').addEventListener('click', returnPartialBySubIds);
     $('btnConfirmarSelecionados').addEventListener('click', () => confirmReservations([...selectedReservaIds]));
     $('btnCancelarSelecionados').addEventListener('click', () => cancelReservations([...selectedReservaIds]));
-    const reservationStageNeedsSchedule = (stage) => ['retirada_agendada', 're-retirada_agendada'].includes(String(stage || ''));
+    const reservationStageNeedsSchedule = (stage) => isReservationPickupScheduledStage(stage);
     $('btnApplyResWorkflowStage')?.addEventListener('click', async () => {
       const stage = $('resWorkflowStage')?.value || '';
       const pickupScheduledFor = toIsoFromLocalInput($('resScheduleAt')?.value);
