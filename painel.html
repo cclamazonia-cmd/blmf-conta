@@ -762,19 +762,26 @@
                   <input class="input" id="resWorkflowNote" type="text" placeholder="Ex.: livro separado na estante, leitor avisado, retirada combinada...">
                 </div>
                 <div>
-                  <label for="resScheduleAt">Data e hora da retirada (para “Agendar retirada”)</label>
+                  <label for="resScheduleAt">Data e hora da retirada (para “Agendar” ou “Reagendar retirada”)</label>
                   <input class="input" id="resScheduleAt" type="datetime-local" step="60">
+                </div>
+                <div>
+                  <label for="resWorkflowStage">Próxima etapa</label>
+                  <select class="input" id="resWorkflowStage">
+                    <option value="">Selecione uma etapa…</option>
+                    <option value="em_preparacao">1. Em preparação</option>
+                    <option value="aviso_enviado">2. Aviso enviado</option>
+                    <option value="retirada_a_combinar">3. Retirada a combinar</option>
+                    <option value="retirada_agendada">4. Retirada agendada</option>
+                    <option value="re-retirada_agendada">4b. Retirada reagendada</option>
+                    <option value="pronta_para_retirada">5. Pronta para retirada</option>
+                    <option value="nao_retirada">6. Não retirada</option>
+                    <option value="liberada_para_circulacao">7. Liberada para circulação</option>
+                  </select>
                 </div>
               </div>
               <div class="actions">
-                <button class="btn" id="btnResPreparar" type="button">Marcar em preparação</button>
-                <button class="btn" id="btnResAvisar" type="button">Marcar aviso enviado</button>
-                <button class="btn" id="btnResCombinar" type="button">Marcar retirada a combinar</button>
-                <button class="btn" id="btnResAgendar" type="button">Agendar retirada</button>
-                <button class="btn" id="btnResReagendar" type="button">Reagendar retirada</button>
-                <button class="btn" id="btnResPronta" type="button">Marcar pronta para retirada</button>
-                <button class="btn" id="btnResNaoRetirada" type="button">Marcar não retirada</button>
-                <button class="btn" id="btnResLiberarCirculacao" type="button">Liberar para circulação</button>
+                <button class="btn" id="btnApplyResWorkflowStage" type="button">Aplicar etapa</button>
               </div>
             </div>
             <div class="sep"></div>
@@ -2060,8 +2067,8 @@
         const pickupDayBelem = belemDateYmd(r.pickup_scheduled_for);
         const validadeDiff = reservationDateDiff(r.validade);
 
-        if ((stage === 'retirada_agendada' || stage === 're-retirada_agendada') && pickupDayBelem && pickupDayBelem === belemNow.ymd){
-          tasks.push({ priority:'alta', bucket:'hoje', kind:stage === 're-retirada_agendada' ? 'Retirada reagendada para hoje' : 'Retirada agendada para hoje', label:`${r.user_name} · ${r.titulo}`, detail:`Retirada: ${fmtDateTimeBelem(r.pickup_scheduled_for)} (Belém)`, actionType:'reserva', reserva_id:r.reserva_id });
+        if (stage === 'retirada_agendada' && pickupDayBelem && pickupDayBelem === belemNow.ymd){
+          tasks.push({ priority:'alta', bucket:'hoje', kind:'Retirada agendada para hoje', label:`${r.user_name} · ${r.titulo}`, detail:`Retirada: ${fmtDateTimeBelem(r.pickup_scheduled_for)} (Belém)`, actionType:'reserva', reserva_id:r.reserva_id });
         }
         if (stage === 'pronta_para_retirada'){
           tasks.push({ priority: validadeDiff != null && validadeDiff <= 1 ? 'alta' : 'media', bucket: validadeDiff != null && validadeDiff <= 1 ? 'hoje' : 'atencao', kind:'Reserva pronta para retirada', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTime(r.validade)}${r.workflow_note ? ' · ' + r.workflow_note : ''}`, actionType:'reserva', reserva_id:r.reserva_id });
@@ -2283,7 +2290,7 @@
     }
 
     async function fetchActiveReservations(){
-      const v2Views = ['reserva_itens_followup_ui'];
+      const v2Views = ['reserva_itens_followup_summary_ui', 'reserva_itens_followup_ui'];
       let v2Rows = [];
       let lastV2Error = null;
       let hadV2ReadableSource = false;
@@ -2307,7 +2314,7 @@
           if (r?.fulfilled_at || r?.cancelled_at) return false;
           if (!status) return true;
           return ['ativa', 'ativo', 'pending', 'pendente'].includes(status)
-            || ['solicitada', 'em_preparacao', 'aviso_enviado', 'retirada_a_combinar', 'retirada_agendada', 're-retirada_agendada', 'pronta_para_retirada', 'nao_retirada', 'liberada_para_circulacao'].includes(status);
+            || ['solicitada', 'em_preparacao', 'aviso_enviado', 'retirada_a_combinar', 'retirada_agendada', 'pronta_para_retirada'].includes(status);
         });
 
         if (rows.length) {
@@ -2641,10 +2648,7 @@
         aviso_enviado: 'Aviso enviado',
         retirada_a_combinar: 'Retirada a combinar',
         retirada_agendada: 'Retirada agendada',
-        're-retirada_agendada': 'Retirada reagendada',
         pronta_para_retirada: 'Pronta para retirada',
-        nao_retirada: 'Não retirada',
-        liberada_para_circulacao: 'Liberada para circulação',
         retirada_efetivada: 'Retirada efetivada',
         cancelada_leitor: 'Cancelada pelo leitor',
         cancelada_biblioteca: 'Cancelada pela biblioteca',
@@ -2659,10 +2663,7 @@
         aviso_enviado: 'warn',
         retirada_a_combinar: 'warn',
         retirada_agendada: 'ok',
-        're-retirada_agendada': 'ok',
         pronta_para_retirada: 'ok',
-        nao_retirada: 'bad',
-        liberada_para_circulacao: 'warn',
         retirada_efetivada: 'ok',
         cancelada_leitor: 'bad',
         cancelada_biblioteca: 'bad',
@@ -2931,8 +2932,7 @@
       };
       if (stage === 'em_preparacao') payload.prepared_at = now;
       if (stage === 'aviso_enviado') payload.notified_at = now;
-      if (stage === 'retirada_agendada' || stage === 're-retirada_agendada') payload.pickup_scheduled_for = pickupScheduledFor || null;
-      if (['retirada_a_combinar', 'nao_retirada', 'liberada_para_circulacao'].includes(stage)) payload.pickup_scheduled_for = null;
+      if (stage === 'retirada_agendada') payload.pickup_scheduled_for = pickupScheduledFor || null;
       if (stage === 'pronta_para_retirada') payload.ready_for_pickup_at = now;
       return payload;
     }
@@ -2947,8 +2947,8 @@
         setStatus(targetStatusId, msg, 'warn');
         return;
       }
-      if ((stage === 'retirada_agendada' || stage === 're-retirada_agendada') && !pickupScheduledFor) {
-        setStatus(targetStatusId, stage === 're-retirada_agendada' ? 'Informe data e hora para reagendar a retirada.' : 'Informe data e hora para agendar a retirada.', 'warn');
+      if (stage === 'retirada_agendada' && !pickupScheduledFor) {
+        setStatus(targetStatusId, 'Informe data e hora para agendar a retirada.', 'warn');
         return;
       }
 
@@ -4254,40 +4254,26 @@
     $('btnDevolverSubIds').addEventListener('click', returnPartialBySubIds);
     $('btnConfirmarSelecionados').addEventListener('click', () => confirmReservations([...selectedReservaIds]));
     $('btnCancelarSelecionados').addEventListener('click', () => cancelReservations([...selectedReservaIds]));
-    $('btnResPreparar')?.addEventListener('click', () => setReservationWorkflowStage('em_preparacao', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResAvisar')?.addEventListener('click', () => setReservationWorkflowStage('aviso_enviado', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResCombinar')?.addEventListener('click', () => setReservationWorkflowStage('retirada_a_combinar', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResAgendar')?.addEventListener('click', () => setReservationWorkflowStage('retirada_agendada', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      pickupScheduledFor: toIsoFromLocalInput($('resScheduleAt')?.value),
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResReagendar')?.addEventListener('click', () => setReservationWorkflowStage('re-retirada_agendada', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      pickupScheduledFor: toIsoFromLocalInput($('resScheduleAt')?.value),
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResPronta')?.addEventListener('click', () => setReservationWorkflowStage('pronta_para_retirada', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResNaoRetirada')?.addEventListener('click', () => setReservationWorkflowStage('nao_retirada', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
-    $('btnResLiberarCirculacao')?.addEventListener('click', () => setReservationWorkflowStage('liberada_para_circulacao', selectedReservationRows(), {
-      note: $('resWorkflowNote')?.value.trim() || '',
-      targetStatusId: 'statusRes'
-    }));
+    const reservationStageNeedsSchedule = (stage) => ['retirada_agendada', 're-retirada_agendada'].includes(String(stage || ''));
+    $('btnApplyResWorkflowStage')?.addEventListener('click', () => {
+      const stage = $('resWorkflowStage')?.value || '';
+      const pickupScheduledFor = toIsoFromLocalInput($('resScheduleAt')?.value);
+      if (!stage) {
+        setStatus('statusRes', 'Escolhe uma etapa do fluxo para aplicar.', 'warn');
+        return;
+      }
+      if (reservationStageNeedsSchedule(stage) && !pickupScheduledFor) {
+        setStatus('statusRes', stage === 're-retirada_agendada'
+          ? 'Informe data e hora para reagendar a retirada.'
+          : 'Informe data e hora para agendar a retirada.', 'warn');
+        return;
+      }
+      setReservationWorkflowStage(stage, selectedReservationRows(), {
+        note: $('resWorkflowNote')?.value.trim() || '',
+        pickupScheduledFor: reservationStageNeedsSchedule(stage) ? pickupScheduledFor : null,
+        targetStatusId: 'statusRes'
+      });
+    });
     $('btnRecarregarRes').addEventListener('click', () => refreshCollections());
     $('btnRecarregarTrabalhoDia')?.addEventListener('click', () => { renderTrabalhoDoDia(); setStatus('statusTrabalhoDia', 'Prioridades recalculadas.', 'ok'); });
     $('btnAddInternalTask')?.addEventListener('click', async () => {
