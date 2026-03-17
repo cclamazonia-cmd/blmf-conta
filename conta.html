@@ -1491,6 +1491,15 @@ button[type="submit"] *,
       setActiveTab("perfil", { pushHash: false });
     }
 
+    function buildAddress2Combined() {
+      const bairro = $("bairro").value.trim();
+      const complemento = $("addr2").value.trim();
+      return [
+        bairro ? `Bairro: ${bairro}` : "",
+        complemento ? `Complemento: ${complemento}` : ""
+      ].filter(Boolean).join(" | ");
+    }
+
     function packAddress() {
       const lines = [
         $("addr1").value.trim(),
@@ -2582,10 +2591,22 @@ button[type="submit"] *,
         last_name: $("lastName").value.trim(),
         phone: $("phone").value.trim(),
         gender: $("gender").value,
-        address: packAddress()
+        address: packAddress(),
+        address_1: $("addr1").value.trim(),
+        address_2: buildAddress2Combined(),
+        address_unit: $("unit").value.trim(),
+        cep: $("cep").value.trim(),
+        city: $("city").value.trim(),
+        state: $("state").value,
+        country: $("country").value
       };
       const { error } = await supabase.from("profiles").update(payload).eq("id", session.user.id);
-      profileMsg.textContent = error ? ("Erro ao salvar: " + error.message) : "Dados atualizados com sucesso.";
+      if (error) {
+        profileMsg.textContent = "Erro ao salvar: " + error.message;
+        return;
+      }
+      profileMsg.textContent = "Dados atualizados com sucesso.";
+      await loadProfile();
     });
 
     const pwInput = $("newPassword");
