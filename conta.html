@@ -754,16 +754,16 @@ button[type="submit"] *,
             <div class="grid2">
               <div>
                 <label for="firstName">Nome</label>
-                <input type="text" id="firstName" placeholder="Nome" autocomplete="given-name" required />
+                <input type="text" id="firstName" required />
               </div>
               <div>
                 <label for="lastName">Sobrenome</label>
-                <input type="text" id="lastName" placeholder="SOBRENOME" autocomplete="family-name" required />
+                <input type="text" id="lastName" required />
               </div>
             </div>
 
             <label for="phone">Telefone</label>
-            <input type="tel" id="phone" autocomplete="tel" placeholder="+55 (91) 1234-5678" />
+            <input type="tel" id="phone" placeholder="+55 (xx) xxxxx-xxxx" />
 
             <label for="gender">Gênero</label>
             <select id="gender">
@@ -778,7 +778,7 @@ button[type="submit"] *,
             <h3 style="margin: 0 0 10px;">Endereço</h3>
 
             <label for="addr1">Endereço 1</label>
-            <input type="text" id="addr1" />
+            <input type="text" id="addr1" required />
 
             <label for="addr2">Endereço 2</label>
             <input type="text" id="addr2" />
@@ -790,22 +790,22 @@ button[type="submit"] *,
               </div>
               <div>
                 <label for="cep">CEP</label>
-                <input type="text" id="cep" inputmode="numeric" autocomplete="postal-code" placeholder="XXXXX-XXX ou 01234-567" />
+                <input type="text" id="cep" placeholder="00000-000" required />
               </div>
               <div>
                 <label for="bairro">Bairro</label>
-                <input type="text" id="bairro" autocomplete="address-level3" placeholder="Opcional" />
+                <input type="text" id="bairro" />
               </div>
               <div>
                 <label for="city">Cidade</label>
-                <input type="text" id="city" autocomplete="address-level2" placeholder="NOME DA CIDADE" />
+                <input type="text" id="city" required />
               </div>
             </div>
 
             <div class="grid2">
               <div>
                 <label for="state">Estado</label>
-                <select id="state">
+                <select id="state" required>
                   <option value="">— selecione —</option>
                   <option value="NSA">Não se aplica (NSA)</option>
                   <option value="AC">Acre (AC)</option>
@@ -840,7 +840,7 @@ button[type="submit"] *,
 
               <div>
                 <label for="country">País</label>
-                <select id="country">
+                <select id="country" required>
                   
                   <option value="Brasil">Brasil</option>
                   <option value="">— selecione —</option>
@@ -1496,11 +1496,11 @@ button[type="submit"] *,
         $("addr1").value.trim(),
         $("addr2").value.trim(),
         $("unit").value.trim() ? `Casa/Apto: ${$("unit").value.trim()}` : "",
-        $("cep").value.trim() ? `CEP: ${$("cep").value.trim()}` : "",
-        $("bairro").value.trim() ? `Bairro: ${$("bairro").value.trim()}` : "",
-        $("city").value.trim() ? `Cidade: ${$("city").value.trim()}` : "",
-        $("state").value ? `Estado: ${$("state").value}` : "",
-        $("country").value ? `País: ${$("country").value}` : ""
+        `CEP: ${$("cep").value.trim()}`,
+        `Bairro: ${$("bairro").value.trim()}`,
+        `Cidade: ${$("city").value.trim()}`,
+        `Estado: ${$("state").value}`,
+        `País: ${$("country").value}`
       ].filter(Boolean);
       return lines.join("\n");
     }
@@ -1712,6 +1712,10 @@ button[type="submit"] *,
       })[String(stage || "")] || "Reserva recebida";
     }
 
+    function reservationNeedsPickupReply(stage) {
+      return ["retirada_agendada", "re-retirada_agendada"].includes(String(stage || "").trim());
+    }
+
     function reservationWorkflowLabel(row) {
       const stage = String(row?.workflow_stage_effective || "").trim();
       return stage ? translateReservationWorkflowStage(stage) : reservationStatusLabel(row?.item_status, row);
@@ -1771,7 +1775,7 @@ button[type="submit"] *,
 
     function reservationPickupReplyActions(row) {
       const cancelBtn = `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
-      if (!["retirada_agendada", "re-retirada_agendada"].includes(String(row?.workflow_stage_effective || ""))) {
+      if (!reservationNeedsPickupReply(row?.workflow_stage_effective)) {
         return buildActionGrid([actionSlotEmpty(), actionSlotEmpty(), cancelBtn], "reservation-actions");
       }
       if (String(row?.pickup_reply_status || "").trim()) {
@@ -2610,15 +2614,12 @@ button[type="submit"] *,
     $("profileForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       profileMsg.textContent = "";
-      const packedAddress = packAddress();
-      const bairroValue = $("bairro").value.trim();
-      const complementoValue = $("addr2").value.trim();
       const payload = {
         first_name: $("firstName").value.trim(),
         last_name: $("lastName").value.trim(),
         phone: $("phone").value.trim(),
         gender: $("gender").value,
-        address: packedAddress
+        address: packAddress()
       };
       const { error } = await supabase.from("profiles").update(payload).eq("id", session.user.id);
       if (error) {
@@ -2632,18 +2633,15 @@ button[type="submit"] *,
         last_name: $("lastName").value.trim(),
         phone: $("phone").value.trim(),
         gender: $("gender").value,
-        address: packedAddress,
         address_1: $("addr1").value.trim(),
-        address_2: complementoValue,
+        address_2: buildAddress2Combined(),
         address_unit: $("unit").value.trim(),
-        bairro: bairroValue,
         cep: $("cep").value.trim(),
         city: $("city").value.trim(),
         state: $("state").value,
         country: $("country").value
       };
       const { error: authError } = await supabase.auth.updateUser({ data: metadataPatch });
-      await loadProfile();
       profileMsg.textContent = authError ? ("Dados salvos, mas houve um problema ao atualizar o cadastro: " + authError.message) : "Dados atualizados com sucesso.";
     });
 
