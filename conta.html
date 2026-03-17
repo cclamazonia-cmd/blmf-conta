@@ -565,12 +565,14 @@ button[type="submit"] *,
       font-size:.9rem;
       color:rgba(255,255,255,.86);
     }
-    #chipContaServico{
+    .service-inline{
+      margin-top:12px;
+      margin-bottom:0 !important;
       background:#fff3f3;
       color:#7b1f25;
       border:1px solid rgba(177,30,36,.22);
     }
-    .service-inline{margin-top:12px;margin-bottom:0 !important}
+    .service-inline .small{ color:#7b1f25; }
     .tabs-layout{margin-top:0}
     .tabs-nav{width:270px}
     .tab-btn{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14)}
@@ -701,7 +703,6 @@ button[type="submit"] *,
           <span class="chip" id="chipContaCadastro">Cadastro: —</span>
           <span class="chip" id="chipContaReservas">Reservas ativas: —</span>
           <span class="chip" id="chipContaEmprestimos">Empréstimos em curso: —</span>
-          <span class="chip" id="chipContaServico">Funcionamento: —</span>
         </div>
         <div id="serviceStateNotice" class="notice service-inline" style="display:none;"></div>
       </div>
@@ -1194,7 +1195,6 @@ button[type="submit"] *,
     const chipContaCadastro = $("chipContaCadastro");
     const chipContaReservas = $("chipContaReservas");
     const chipContaEmprestimos = $("chipContaEmprestimos");
-    const chipContaServico = $("chipContaServico");
 
     function setChipText(el, label, value) {
       if (!el) return;
@@ -1291,8 +1291,6 @@ button[type="submit"] *,
         serviceStateNotice.style.display = "block";
         serviceStateNotice.innerHTML = `<b>Funcionamento: ${escapeHtml(modeLabel)}</b><div class="small">${escapeHtml(message)}</div>`;
       }
-      setChipText(chipContaServico, "Funcionamento", modeLabel);
-
       const reservationsClosed = publicServiceState ? publicServiceState.allow_reservations === false : false;
       if (reserveServiceNotice) {
         if (reservationsClosed) {
