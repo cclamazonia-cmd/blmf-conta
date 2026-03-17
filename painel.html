@@ -2314,7 +2314,7 @@
           if (r?.fulfilled_at || r?.cancelled_at) return false;
           if (!status) return true;
           return ['ativa', 'ativo', 'pending', 'pendente'].includes(status)
-            || ['solicitada', 'em_preparacao', 'aviso_enviado', 'retirada_a_combinar', 'retirada_agendada', 'pronta_para_retirada'].includes(status);
+            || ['solicitada', 'em_preparacao', 'aviso_enviado', 'retirada_a_combinar', 'retirada_agendada', 're-retirada_agendada', 'pronta_para_retirada', 'nao_retirada', 'liberada_para_circulacao'].includes(status);
         });
 
         if (rows.length) {
@@ -2648,7 +2648,10 @@
         aviso_enviado: 'Aviso enviado',
         retirada_a_combinar: 'Retirada a combinar',
         retirada_agendada: 'Retirada agendada',
+        're-retirada_agendada': 'Retirada reagendada',
         pronta_para_retirada: 'Pronta para retirada',
+        nao_retirada: 'Não retirada',
+        liberada_para_circulacao: 'Liberada para circulação',
         retirada_efetivada: 'Retirada efetivada',
         cancelada_leitor: 'Cancelada pelo leitor',
         cancelada_biblioteca: 'Cancelada pela biblioteca',
@@ -2663,7 +2666,10 @@
         aviso_enviado: 'warn',
         retirada_a_combinar: 'warn',
         retirada_agendada: 'ok',
+        're-retirada_agendada': 'ok',
         pronta_para_retirada: 'ok',
+        nao_retirada: 'bad',
+        liberada_para_circulacao: 'warn',
         retirada_efetivada: 'ok',
         cancelada_leitor: 'bad',
         cancelada_biblioteca: 'bad',
@@ -2932,7 +2938,8 @@
       };
       if (stage === 'em_preparacao') payload.prepared_at = now;
       if (stage === 'aviso_enviado') payload.notified_at = now;
-      if (stage === 'retirada_agendada') payload.pickup_scheduled_for = pickupScheduledFor || null;
+      if (stage === 'retirada_agendada' || stage === 're-retirada_agendada') payload.pickup_scheduled_for = pickupScheduledFor || null;
+      if (['retirada_a_combinar', 'nao_retirada', 'liberada_para_circulacao'].includes(stage)) payload.pickup_scheduled_for = null;
       if (stage === 'pronta_para_retirada') payload.ready_for_pickup_at = now;
       return payload;
     }
@@ -2947,8 +2954,8 @@
         setStatus(targetStatusId, msg, 'warn');
         return;
       }
-      if (stage === 'retirada_agendada' && !pickupScheduledFor) {
-        setStatus(targetStatusId, 'Informe data e hora para agendar a retirada.', 'warn');
+      if ((stage === 'retirada_agendada' || stage === 're-retirada_agendada') && !pickupScheduledFor) {
+        setStatus(targetStatusId, stage === 're-retirada_agendada' ? 'Informe data e hora para reagendar a retirada.' : 'Informe data e hora para agendar a retirada.', 'warn');
         return;
       }
 
