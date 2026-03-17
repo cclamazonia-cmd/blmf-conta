@@ -131,14 +131,58 @@
       border-radius:12px;
       line-height:1.1;
     }
-    .loan-actions{ display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:10px; }
+    .loan-actions,
+    .reservation-actions{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:8px;
+      align-items:stretch;
+      margin-top:8px;
+    }
+    .loan-actions{ margin-left:0; }
+    .loan-actions > *,
+    .reservation-actions > *{ min-width:0; }
+    .loan-actions .mini-btn,
+    .reservation-actions .mini-btn{
+      width:100%;
+      min-height:36px;
+      justify-content:center;
+      text-align:center;
+    }
+    .action-slot-empty{
+      display:block;
+      min-height:36px;
+      border-radius:12px;
+      visibility:hidden;
+      pointer-events:none;
+    }
+    .action-slot-note{
+      grid-column:1 / -1;
+      color:#cfcfcf;
+      font-size:.9rem;
+      line-height:1.25;
+      padding:6px 0;
+    }
     .tag-muted{ color:#cfcfcf; font-size:.9rem; }
-    .return-meta{ margin-top:6px; color:#cfcfcf; font-size:.9rem; line-height:1.35; }
-    .return-editor{ display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:8px; }
+    .return-meta{ margin-top:8px; color:#cfcfcf; font-size:.9rem; line-height:1.35; }
+    .return-editor{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) auto;
+      gap:8px;
+      align-items:flex-end;
+      margin-top:8px;
+    }
     .return-editor-field{ display:flex; flex-direction:column; gap:4px; }
     .return-editor-field span{ color:#cfcfcf; font-size:.85rem; }
     .return-editor input[type="date"],
-    .return-editor input[type="time"]{ max-width:230px; }
+    .return-editor input[type="time"]{ width:100%; max-width:none; }
+    .return-editor .mini-btn{ white-space:nowrap; }
+    @media (max-width: 760px){
+      .loan-actions,
+      .reservation-actions{ grid-template-columns:1fr; }
+      .action-slot-empty{ display:none; }
+      .return-editor{ grid-template-columns:1fr; }
+    }
 
   
     .list-table{ width:100%; border-collapse:collapse; margin-top:10px; }
@@ -994,20 +1038,16 @@ button[type="submit"] *,
     function fmtDateTimeBelem(v) {
       if (!v) return "—";
       const d = new Date(v);
-      if (Number.isNaN(d.getTime())) return String(v);
-      const parts = new Intl.DateTimeFormat("en-CA", {
+      return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString("pt-BR", {
         timeZone: "America/Belem",
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
+        second: "2-digit",
         hour12: false
-      }).formatToParts(d).reduce((acc, part) => {
-        if (part.type !== "literal") acc[part.type] = part.value;
-        return acc;
-      }, {});
-      return `${parts.day}-${parts.month}-${parts.year} ${parts.hour}:${parts.minute}`;
+      });
     }
 
     function addDays(v, days) {
@@ -1460,19 +1500,45 @@ button[type="submit"] *,
       });
     }
 
+    function actionSlotEmpty() {
+      return `<span class="action-slot-empty" aria-hidden="true"></span>`;
+    }
+
+    function actionSlotNote(message) {
+      return `<span class="action-slot-note">${escapeHtml(message)}</span>`;
+    }
+
+    function buildActionGrid(items, className = "loan-actions") {
+      const slots = Array.isArray(items) ? items.filter(Boolean).slice(0, 3) : [];
+      while (slots.length < 3) slots.push(actionSlotEmpty());
+      return `<div class="${className}">${slots.join("")}</div>`;
+    }
+
+    function buildLoanRenewButtonV2(emprestimoId) {
+      return !userIsRestricted
+        ? `<button type="button" class="secondary mini-btn" data-renew-v2="${emprestimoId}">Renovar (uma única vez)</button>`
+        : `<button type="button" class="secondary mini-btn" disabled>Renovação bloqueada</button>`;
+    }
+
+    function buildLoanRenewButtonOld(loanId, canRenew, reasonText) {
+      return canRenew
+        ? `<button type="button" class="secondary mini-btn" data-renew-old="${loanId}">Renovar (uma única vez)</button>`
+        : `<button type="button" class="secondary mini-btn" disabled>${escapeHtml(reasonText || "Renovação indisponível")}</button>`;
+    }
+
     function reservationPickupReplyActions(row) {
+      const cancelBtn = `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
       if (String(row?.workflow_stage_effective || "") !== "retirada_agendada") {
-        return `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
+        return buildActionGrid([actionSlotEmpty(), actionSlotEmpty(), cancelBtn], "reservation-actions");
       }
       if (String(row?.pickup_reply_status || "").trim()) {
-        return `<button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>`;
+        return buildActionGrid([actionSlotEmpty(), actionSlotEmpty(), cancelBtn], "reservation-actions");
       }
-      return `
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button type="button" class="secondary mini-btn" data-pickup-reply="${row.reserva_id}|${row.line_no}|confirmado_leitor">Confirmar horário</button>
-          <button type="button" class="secondary mini-btn" data-pickup-reply="${row.reserva_id}|${row.line_no}|recusado_leitor">Não posso nesse horário</button>
-          <button type="button" class="secondary mini-btn" data-cancel-v2="${row.reserva_id}|${row.line_no}">Cancelar</button>
-        </div>`;
+      return buildActionGrid([
+        `<button type="button" class="secondary mini-btn" data-pickup-reply="${row.reserva_id}|${row.line_no}|confirmado_leitor">Confirmar horário</button>`,
+        `<button type="button" class="secondary mini-btn" data-pickup-reply="${row.reserva_id}|${row.line_no}|recusado_leitor">Não posso nesse horário</button>`,
+        cancelBtn
+      ], "reservation-actions");
     }
 
     async function renderActiveReservations() {
@@ -1626,7 +1692,7 @@ button[type="submit"] *,
             <td>${escapeHtml(fmtDateOnly(r.created_at))}</td>
             <td>${escapeHtml(fmtDateOnly(validade))}</td>
             <td>${escapeHtml(reservationStatusLabel(r.status, r))}${r.cancelled_reason ? `<br><small>${escapeHtml(r.cancelled_reason)}</small>` : ""}</td>
-            <td>${canCancel ? `<button type="button" class="secondary mini-btn" data-cancel-old="${r.id}">Cancelar</button>` : `<span class="tag-muted">Sem ação</span>`}</td>
+            <td>${canCancel ? buildActionGrid([actionSlotEmpty(), actionSlotEmpty(), `<button type="button" class="secondary mini-btn" data-cancel-old="${r.id}">Cancelar</button>`], "reservation-actions") : `<div class="reservation-actions">${actionSlotNote("Sem ação")}</div>`}</td>
           </tr>`;
       }).join("");
       const mobileCards = oldRes.data.map((r) => {
@@ -1650,7 +1716,7 @@ button[type="submit"] *,
               <div class="k">Situação</div><div class="v">${escapeHtml(reservationStatusLabel(r.status, r))}${r.cancelled_reason ? `<br><small>${escapeHtml(r.cancelled_reason)}</small>` : ""}</div>
             </div>
             <div class="mobile-actions">
-              ${canCancel ? `<button type="button" class="secondary mini-btn" data-cancel-old="${r.id}">Cancelar</button>` : `<span class="tag-muted">Sem ação</span>`}
+              ${canCancel ? buildActionGrid([actionSlotEmpty(), actionSlotEmpty(), `<button type="button" class="secondary mini-btn" data-cancel-old="${r.id}">Cancelar</button>`], "reservation-actions") : `<div class="reservation-actions">${actionSlotNote("Sem ação")}</div>`}
             </div>
           </article>`;
       }).join("");
@@ -1831,9 +1897,7 @@ button[type="submit"] *,
 
       if (!v2.error && (v2.data || []).length) {
         const rows = v2.data.map((r) => {
-          const renewBtn = !userIsRestricted
-            ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>`
-            : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+          const renewBtn = buildLoanRenewButtonV2(r.emprestimo_id);
 
           const key = `${r.emprestimo_id}|${r.line_no}`;
           const dueShown = r.extended_until || r.due_at;
@@ -1861,11 +1925,11 @@ button[type="submit"] *,
               <small>${escapeHtml(statusLabel)}</small>
             </td>
             <td>
-              <div class="loan-actions">
-                ${renewBtn}
-                <button type="button" class="secondary mini-btn" data-open-return-editor="${key}">${scheduleBtnLabel}</button>
-                ${r.return_scheduled_for ? `<button type="button" class="secondary mini-btn" data-clear-return-schedule="${key}">Cancelar agendamento</button>` : ``}
-              </div>
+              ${buildActionGrid([
+                renewBtn,
+                `<button type="button" class="secondary mini-btn" data-open-return-editor="${key}">${scheduleBtnLabel}</button>`,
+                r.return_scheduled_for ? `<button type="button" class="secondary mini-btn" data-clear-return-schedule="${key}">Cancelar agendamento</button>` : actionSlotEmpty()
+              ])}
               <div class="return-meta">
                 ${escapeHtml(returnMeta)}
                 ${r.extension_note ? `<br><small>Obs.: ${escapeHtml(r.extension_note)}</small>` : ``}
@@ -1879,9 +1943,7 @@ button[type="submit"] *,
           </tr>`;
         }).join("");
         const mobileCards = v2.data.map((r) => {
-          const renewBtn = !userIsRestricted
-            ? `<button type="button" class="secondary mini-btn" data-renew-v2="${r.emprestimo_id}">Renovar (uma única vez)</button>`
-            : `<span class="tag-muted">Renovação bloqueada: cadastro restrito</span>`;
+          const renewBtn = buildLoanRenewButtonV2(r.emprestimo_id);
 
           const key = `${r.emprestimo_id}|${r.line_no}`;
           const dueShown = r.extended_until || r.due_at;
@@ -1911,11 +1973,11 @@ button[type="submit"] *,
                 <div class="k">Devolução</div><div class="v">${escapeHtml(returnMeta)}</div>
               </div>
               ${r.extension_note ? `<p class="small" style="margin:8px 0 0;">Obs.: ${escapeHtml(r.extension_note)}</p>` : ""}
-              <div class="mobile-actions">
-                ${renewBtn}
-                <button type="button" class="secondary mini-btn" data-open-return-editor="${key}">${scheduleBtnLabel}</button>
-                ${r.return_scheduled_for ? `<button type="button" class="secondary mini-btn" data-clear-return-schedule="${key}">Cancelar agendamento</button>` : ``}
-              </div>
+              ${buildActionGrid([
+                renewBtn,
+                `<button type="button" class="secondary mini-btn" data-open-return-editor="${key}">${scheduleBtnLabel}</button>`,
+                r.return_scheduled_for ? `<button type="button" class="secondary mini-btn" data-clear-return-schedule="${key}">Cancelar agendamento</button>` : actionSlotEmpty()
+              ])}
               <div class="return-editor" data-return-editor="${key}" hidden>
                 <label class="return-editor-field"><span>Data</span><input type="date" value="${escapeHtml(toDateInputValue(r.return_scheduled_for))}"></label>
                 <label class="return-editor-field"><span>Hora (Belém)</span><input type="time" value="${escapeHtml(toTimeInputValue(r.return_scheduled_for))}" step="60"></label>
@@ -1940,9 +2002,12 @@ button[type="submit"] *,
           const overdue = diffDays < 0 ? Math.abs(diffDays) : 0;
           const statusLine = overdue > 0 ? `Atraso: ${overdue} dia(s)` : `Faltam ${Math.max(diffDays, 0)} dia(s)`;
           const canRenew = !userIsRestricted && !l.extended_once && overdue === 0;
-          const actionHtml = canRenew
-            ? `<button type="button" class="secondary mini-btn" data-renew-old="${l.id}">Renovar (uma única vez)</button>`
-            : `<span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada" : (overdue > 0 ? "Renovação indisponível: atraso" : "Renovação indisponível"))}</span>`;
+          const renewReason = userIsRestricted ? "Renovação bloqueada" : (l.extended_once ? "Renovação já utilizada" : (overdue > 0 ? "Renovação indisponível: atraso" : "Renovação indisponível"));
+          const actionHtml = buildActionGrid([
+            buildLoanRenewButtonOld(l.id, canRenew, renewReason),
+            actionSlotEmpty(),
+            actionSlotEmpty()
+          ]);
           return `<tr>
             <td>#${l.id}</td>
             <td class="mono">—</td>
@@ -1968,9 +2033,12 @@ button[type="submit"] *,
           const overdue = diffDays < 0 ? Math.abs(diffDays) : 0;
           const statusLine = overdue > 0 ? `Atraso: ${overdue} dia(s)` : `Faltam ${Math.max(diffDays, 0)} dia(s)`;
           const canRenew = !userIsRestricted && !l.extended_once && overdue === 0;
-          const actionHtml = canRenew
-            ? `<button type="button" class="secondary mini-btn" data-renew-old="${l.id}">Renovar (uma única vez)</button>`
-            : `<span class="tag-muted">${userIsRestricted ? "Renovação bloqueada: cadastro restrito" : (l.extended_once ? "Renovação já utilizada" : (overdue > 0 ? "Renovação indisponível: atraso" : "Renovação indisponível"))}</span>`;
+          const renewReason = userIsRestricted ? "Renovação bloqueada" : (l.extended_once ? "Renovação já utilizada" : (overdue > 0 ? "Renovação indisponível: atraso" : "Renovação indisponível"));
+          const actionHtml = buildActionGrid([
+            buildLoanRenewButtonOld(l.id, canRenew, renewReason),
+            actionSlotEmpty(),
+            actionSlotEmpty()
+          ]);
           return `
             <article class="mobile-card">
               <h4>${escapeHtml(title)}</h4>
