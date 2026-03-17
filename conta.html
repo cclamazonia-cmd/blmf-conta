@@ -479,38 +479,139 @@ button[type="submit"] *,
   -webkit-text-fill-color:#ffffff !important;
 }
 
+
+    :root{
+      --panel:rgba(18,18,18,.96);
+      --text:#f2f2f2;
+      --muted:rgba(255,255,255,.74);
+      --red:#b30018;
+      --red2:#e11d2f;
+      --line:rgba(255,255,255,.10);
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --ok:#4ade80;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+    a,a:visited{color:inherit;text-decoration:none}
+    .wrap{max-width:1680px;margin:0 auto;padding:24px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:0}
+    .brand img.logo{height:64px;width:auto;max-width:170px;object-fit:contain;display:block;flex-shrink:0;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
+    .topbar-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .header-btn,
+    .header-btn:link,
+    .header-btn:visited,
+    .header-btn:active,
+    .logout-btn,
+    .logout-btn:hover,
+    .logout-btn:focus,
+    .logout-btn:active{
+      border:1px solid var(--line) !important;
+      background:rgba(18,18,18,.92) !important;
+      color:var(--text) !important;
+      border-radius:14px !important;
+      padding:10px 12px !important;
+      cursor:pointer;
+      box-shadow:var(--shadow);
+      font-weight:900;
+      font-size:.95rem;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      margin:0 !important;
+      min-height:44px;
+    }
+    .logout-btn{
+      border:none !important;
+      background:linear-gradient(135deg,var(--red2),var(--red)) !important;
+    }
+    .header-btn:hover,
+    .header-btn:focus,
+    .logout-btn:hover,
+    .logout-btn:focus{transform:translateY(-1px);filter:brightness(1.05)}
+    main.card{
+      width:auto;
+      max-width:none;
+      margin:0;
+      padding:18px;
+      background:var(--panel);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      backdrop-filter:none;
+    }
+    .hero{
+      padding:16px 18px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(179,0,24,.12), rgba(255,255,255,.03));
+      margin-bottom:14px;
+    }
+    .hero h1{margin:0 0 6px;font-size:1.5rem}
+    .hero p{margin:0;color:rgba(255,255,255,.92)}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:.82rem;background:rgba(255,255,255,.04)}
+    .service-inline{margin-top:12px;margin-bottom:0 !important}
+    .tabs-layout{margin-top:0}
+    .tabs-nav{width:270px}
+    .tab-btn{padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14)}
+    .tab-btn.active{background:rgba(200,0,0,.26);border-color:rgba(255,255,255,.28)}
+    @media (max-width:980px){
+      .wrap{padding:16px}
+      .topbar{align-items:stretch}
+      .topbar-actions{width:100%}
+      .topbar-actions > *{flex:1 1 180px}
+      .tabs-layout{flex-direction:column}
+      .tabs-nav{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:visible;padding-bottom:0}
+      .tab-btn{width:100%;min-height:56px;white-space:normal;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;line-height:1.2;padding:12px 10px}
+      .tab-btn .hint{display:none}
+    }
+    @media (max-width:420px){
+      .tabs-nav{grid-template-columns:1fr}
+    }
+
 </style>
 </head>
 
 <body>
-  <main class="card">
-    <div class="brand">
-      <img
-        src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png"
-        alt="Logotipo BLMF"
-        onerror="this.style.display='none'"
-      />
-      <div style="flex:1;">
-        <div class="row" style="justify-content:space-between;">
-          <div>
-            <h1 style="margin:0;">Conta — Biblioteca Libertária Maxwell Ferreira</h1>
-            <p class="subtitle">Área do/a/e leitor/a/e</p>
-          </div>
-        </div>
-
-        <div class="header-actions">
-          <a id="btnCatalogo" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
-          <a id="goPainelBiblio" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none;">Ir para modo bibliotecário</a>
-          <a class="header-btn" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
-          <a id="btnRegimento" class="header-btn" href="#" target="_blank" rel="noopener noreferrer">Regimento (PDF)</a>
-          <button id="logout" class="logout-btn" type="button">Sair</button>
-        </div>
-        <div id="serviceStateNotice" class="notice" style="display:none; margin-top:12px;"></div>
-        </div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <img
+          class="logo"
+          src="https://cclamazonia.noblogs.org/files/2026/03/logo_detoure_BLMF.png"
+          alt="Logotipo BLMF"
+          onerror="this.style.display='none'"
+        />
+      </div>
+      <div class="topbar-actions">
+        <a id="btnCatalogo" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-catalogo/">Voltar ao catálogo</a>
+        <a id="goPainelBiblio" class="header-btn" href="https://cclamazonia-cmd.github.io/blmf-conta/painel.html" style="display:none;">Ir para modo bibliotecário</a>
+        <a id="btnBlog" class="header-btn" href="https://cclamazonia.noblogs.org">Voltar ao blogue</a>
+        <a id="btnRegimento" class="header-btn" href="#" target="_blank" rel="noopener noreferrer">Regimento (PDF)</a>
+        <button id="logout" class="logout-btn" type="button">Sair</button>
       </div>
     </div>
 
-    <div class="tabs-layout">
+    <main class="card">
+      <div class="hero">
+        <h1>Conta — Biblioteca Libertária Maxwell Ferreira</h1>
+        <p>Área do/a/e leitor/a/e</p>
+        <div class="chips">
+          <span class="chip" id="chipContaEspaco">Espaço: leitor/a/e</span>
+          <span class="chip" id="chipContaEmail">E-mail: —</span>
+          <span class="chip" id="chipContaCadastro">Cadastro: —</span>
+          <span class="chip" id="chipContaReservas">Reservas ativas: —</span>
+          <span class="chip" id="chipContaEmprestimos">Empréstimos em curso: —</span>
+          <span class="chip" id="chipContaServico">Funcionamento: —</span>
+        </div>
+        <div id="serviceStateNotice" class="notice service-inline" style="display:none;"></div>
+      </div>
+
+      <div class="tabs-layout">
       <nav class="tabs-nav" role="tablist" aria-label="Seções do painel">
         <button class="tab-btn active" type="button" data-tab="perfil" role="tab" aria-selected="true" aria-controls="tab-perfil">
           Dados pessoais
@@ -921,6 +1022,7 @@ button[type="submit"] *,
 </div>
     </div>
   </main>
+  </div>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -993,6 +1095,16 @@ button[type="submit"] *,
     const reserveFormEl = $("reserveForm");
     const reserveSubmitBtn = $("reserveSubmitBtn");
     const bibRefInput = $("bibRef");
+    const chipContaEmail = $("chipContaEmail");
+    const chipContaCadastro = $("chipContaCadastro");
+    const chipContaReservas = $("chipContaReservas");
+    const chipContaEmprestimos = $("chipContaEmprestimos");
+    const chipContaServico = $("chipContaServico");
+
+    function setChipText(el, label, value) {
+      if (!el) return;
+      el.textContent = `${label}: ${value ?? "—"}`;
+    }
 
     let mustChangePassword = false;
     let userIsRestricted = false;
@@ -1084,6 +1196,7 @@ button[type="submit"] *,
         serviceStateNotice.style.display = "block";
         serviceStateNotice.innerHTML = `<b>Funcionamento: ${escapeHtml(modeLabel)}</b><div class="small">${escapeHtml(message)}</div>`;
       }
+      setChipText(chipContaServico, "Funcionamento", modeLabel);
 
       const reservationsClosed = publicServiceState ? publicServiceState.allow_reservations === false : false;
       if (reserveServiceNotice) {
@@ -1409,6 +1522,10 @@ button[type="submit"] *,
       if (typeof data.must_change_password === "boolean") enforcePasswordChangeUI(data.must_change_password);
       if (typeof data.is_restricted === "boolean") enforceRestrictionUI(data.is_restricted, data.restricted_reason);
 
+      setChipText(chipContaEmail, "E-mail", data.email || session?.user?.email || "—");
+      const cadastroLabel = data.is_restricted ? "restrito" : (data.must_change_password ? "requer troca de senha" : "regular");
+      setChipText(chipContaCadastro, "Cadastro", cadastroLabel);
+
       isLibrarian = !!data.is_librarian;
       const go = $("goPainelBiblio");
       if (go) {
@@ -1556,6 +1673,7 @@ button[type="submit"] *,
         .order("line_no", { ascending: true });
 
       if (!v2.error && (v2.data || []).length) {
+        setChipText(chipContaReservas, "Reservas ativas", String((v2.data || []).length));
         const rotulosMap = await fetchRotulosMapByBibRefs((v2.data || []).map((r) => r.bib_ref));
         const rows = v2.data.map((r) => {
           const rotulo = r.rotulo || rotulosMap.get(String(r.bib_ref || "").trim()) || "—";
@@ -1664,14 +1782,19 @@ button[type="submit"] *,
         .from("reservas")
         .select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason")
         .eq("user_id", session.user.id)
-        .in("status", ["pending", "cancelled_by_staff_temp", "cancelled_by_staff_perm"])
+        .eq("status", "pending")
         .order("created_at", { ascending: false });
 
       if (oldRes.error) {
         console.error("renderActiveReservations error:", oldRes.error);
         return showEmpty(activeReservationsEl, "Não foi possível carregar suas reservas ativas.");
       }
-      if (!oldRes.data || !oldRes.data.length) return showEmpty(activeReservationsEl, "Você não tem reservas ativas no momento.");
+      if (!oldRes.data || !oldRes.data.length) {
+        setChipText(chipContaReservas, "Reservas ativas", "0");
+        return showEmpty(activeReservationsEl, "Você não tem reservas ativas no momento.");
+      }
+
+      setChipText(chipContaReservas, "Reservas ativas", String((oldRes.data || []).length));
 
       const booksMap = await fetchBooksMapByBibRefs(oldRes.data.map((r) => r.bib_ref));
       const rotulosMap = await fetchRotulosMapByBibRefs(oldRes.data.map((r) => r.bib_ref));
@@ -1886,6 +2009,7 @@ button[type="submit"] *,
         .order("due_date", { ascending: true });
 
       let sections = [];
+      let activeLoanCount = 0;
 
       if (v2.error || oldQ.error) {
         console.error("renderLoans errors", { v2: v2.error, oldQ: oldQ.error });
@@ -1896,6 +2020,7 @@ button[type="submit"] *,
       }
 
       if (!v2.error && (v2.data || []).length) {
+        activeLoanCount += (v2.data || []).length;
         const rows = v2.data.map((r) => {
           const renewBtn = buildLoanRenewButtonV2(r.emprestimo_id);
 
@@ -1989,6 +2114,7 @@ button[type="submit"] *,
       }
 
       if (!oldQ.error && (oldQ.data || []).length) {
+        activeLoanCount += (oldQ.data || []).length;
         const rows = oldQ.data.map((l) => {
           const book = Array.isArray(l.books) ? l.books[0] : l.books;
           const title = book?.titulo || "Livro";
@@ -2059,9 +2185,11 @@ button[type="submit"] *,
       }
 
       if (!sections.length) {
+        setChipText(chipContaEmprestimos, "Empréstimos em curso", "0");
         loansEl.innerHTML = "<p>Não há empréstimos em curso.</p>";
         return;
       }
+      setChipText(chipContaEmprestimos, "Empréstimos em curso", String(activeLoanCount));
       loansEl.innerHTML = sections.join("");
 
       loansEl.querySelectorAll("[data-open-return-editor]").forEach((btn) => {
@@ -2220,7 +2348,7 @@ button[type="submit"] *,
         supabase.schema("api").from("emprestimo_itens_ui").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
         supabase.schema("api").from("loans_detalhes").select("id, batch_id, due_date, checkout_date, returned_date, books").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(300),
         supabase.schema("api").from("reserva_itens_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
-        supabase.schema("api").from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).not("status", "in", "(pending,cancelled_by_staff_temp,cancelled_by_staff_perm)").order("created_at", { ascending:false }).limit(100)
+        supabase.schema("api").from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).neq("status", "pending").order("created_at", { ascending:false }).limit(100)
       ]);
 
       const items = [];
@@ -2250,7 +2378,7 @@ button[type="submit"] *,
           const book = booksMap.get(String(r.bib_ref)) || {};
           items.push({
             when: r.cancelled_at || r.fulfilled_at || r.created_at,
-            html: `<li><b>Reserva #${escapeHtml(r.id)}</b> — ${escapeHtml(book.titulo || ('Referência ' + r.bib_ref))} — ${escapeHtml(reservationStatusLabel(r.status, r))}</li>`
+            html: `<li><b>Reserva #${escapeHtml(r.id)}</b> — ${escapeHtml(book.titulo || ('Referência ' + r.bib_ref))} — ${escapeHtml(reservationStatusLabel(r.status, r))}${r.cancelled_reason ? ` — ${escapeHtml(r.cancelled_reason)}` : ""}</li>`
           });
         }
       }
