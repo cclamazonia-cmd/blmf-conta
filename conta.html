@@ -1795,20 +1795,18 @@ button[type="submit"] *,
 
       const v2 = await supabase
         .from("v_reserva_itens_v2_ui")
-        .select("reserva_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, item_status, reserva_created_at, expires_at, reserva_status, fulfilled_at, cancelled_at, emprestimo_item_id, workflow_stage_effective, workflow_note, pickup_scheduled_for, workflow_stage_updated_at_effective, pickup_reply_status, pickup_reply_note, pickup_reply_at")
+        .select("reserva_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, item_status, reserva_created_at, expires_at, reserva_status, emprestimo_item_id, workflow_stage_effective, workflow_note, pickup_scheduled_for, workflow_stage_updated_at_effective, pickup_reply_status, pickup_reply_note, pickup_reply_at, fulfilled_at, cancelled_at")
         .eq("user_id", session.user.id)
         .order("reserva_id", { ascending: false })
         .order("line_no", { ascending: true });
 
-      const v2ActiveRows = !v2.error
-        ? (v2.data || []).filter((r) => {
-            const status = String(r?.item_status || r?.reserva_status || "").toLowerCase();
-            if (r?.fulfilled_at || r?.cancelled_at) return false;
-            if (!status) return true;
-            return ["ativa", "ativo", "pending", "pendente"].includes(status)
-              || ["solicitada", "em_preparacao", "aviso_enviado", "retirada_a_combinar", "retirada_agendada", "re-retirada_agendada", "pronta_para_retirada", "nao_retirada", "liberada_para_circulacao"].includes(status);
-          })
-        : [];
+      const v2ActiveRows = (v2.data || []).filter((r) => {
+        const status = String(r?.item_status || r?.reserva_status || r?.status || "").toLowerCase();
+        if (r?.fulfilled_at || r?.cancelled_at) return false;
+        if (!status) return true;
+        return ["ativa", "ativo", "pending", "pendente"].includes(status)
+          || ["solicitada", "em_preparacao", "aviso_enviado", "retirada_a_combinar", "retirada_agendada", "re-retirada_agendada", "pronta_para_retirada", "nao_retirada", "liberada_para_circulacao"].includes(status);
+      });
 
       if (!v2.error && v2ActiveRows.length) {
         setChipText(chipContaReservas, "Reservas ativas", String(v2ActiveRows.length));
