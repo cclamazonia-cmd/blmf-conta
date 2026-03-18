@@ -1795,16 +1795,25 @@ button[type="submit"] *,
 
       const v2 = await supabase
         .from("v_reserva_itens_v2_ui")
-        .select("reserva_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, item_status, reserva_created_at, expires_at, reserva_status, emprestimo_item_id, workflow_stage_effective, workflow_note, pickup_scheduled_for, workflow_stage_updated_at_effective, pickup_reply_status, pickup_reply_note, pickup_reply_at")
+        .select("reserva_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, item_status, reserva_created_at, expires_at, reserva_status, fulfilled_at, cancelled_at, emprestimo_item_id, workflow_stage_effective, workflow_note, pickup_scheduled_for, workflow_stage_updated_at_effective, pickup_reply_status, pickup_reply_note, pickup_reply_at")
         .eq("user_id", session.user.id)
-        .eq("item_status", "ativa")
         .order("reserva_id", { ascending: false })
         .order("line_no", { ascending: true });
 
-      if (!v2.error && (v2.data || []).length) {
-        setChipText(chipContaReservas, "Reservas ativas", String((v2.data || []).length));
-        const rotulosMap = await fetchRotulosMapByBibRefs((v2.data || []).map((r) => r.bib_ref));
-        const rows = v2.data.map((r) => {
+      const v2ActiveRows = !v2.error
+        ? (v2.data || []).filter((r) => {
+            const status = String(r?.item_status || r?.reserva_status || "").toLowerCase();
+            if (r?.fulfilled_at || r?.cancelled_at) return false;
+            if (!status) return true;
+            return ["ativa", "ativo", "pending", "pendente"].includes(status)
+              || ["solicitada", "em_preparacao", "aviso_enviado", "retirada_a_combinar", "retirada_agendada", "re-retirada_agendada", "pronta_para_retirada", "nao_retirada", "liberada_para_circulacao"].includes(status);
+          })
+        : [];
+
+      if (!v2.error && v2ActiveRows.length) {
+        setChipText(chipContaReservas, "Reservas ativas", String(v2ActiveRows.length));
+        const rotulosMap = await fetchRotulosMapByBibRefs(v2ActiveRows.map((r) => r.bib_ref));
+        const rows = v2ActiveRows.map((r) => {
           const rotulo = r.rotulo || rotulosMap.get(String(r.bib_ref || "").trim()) || "—";
           const validade = r.expires_at || addDays(r.reserva_created_at || Date.now(), 14);
           const workflowLabel = reservationWorkflowLabel(r);
@@ -1822,7 +1831,7 @@ button[type="submit"] *,
             <td>${reservationPickupReplyActions(r)}</td>
           </tr>`;
         }).join("");
-        const mobileCards = v2.data.map((r) => {
+        const mobileCards = v2ActiveRows.map((r) => {
           const rotulo = r.rotulo || rotulosMap.get(String(r.bib_ref || "").trim()) || "—";
           const validade = r.expires_at || addDays(r.reserva_created_at || Date.now(), 14);
           const workflowLabel = reservationWorkflowLabel(r);
@@ -2122,7 +2131,7 @@ button[type="submit"] *,
 
       const v2 = await supabase
         .from("v_emprestimo_itens_v2_ui_fix")
-        .select("*")
+        .select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, extended_until, extension_note, item_status, returned_at, return_scheduled_for, return_schedule_status, return_completed_at, return_missed_at")
         .eq("user_id", session.user.id)
         .eq("item_status", "aberto")
         .order("emprestimo_id", { ascending: false })
