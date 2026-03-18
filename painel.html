@@ -2301,14 +2301,13 @@
     }
 
     async function fetchActiveReservations(){
-      const v2Views = ['reserva_itens_followup_ui'];
+      const v2Views = ['v_reserva_itens_v2_ui'];
       let v2Rows = [];
       let lastV2Error = null;
       let hadV2ReadableSource = false;
 
       for (const viewName of v2Views) {
         const qv2 = await supabase
-          .schema('api')
           .from(viewName)
           .select('*')
           .limit(500);
@@ -2440,8 +2439,7 @@
 
     async function fetchActiveLoans(){
       const qv2 = await supabase
-        .schema('api')
-        .from('emprestimo_itens_ui')
+        .from('v_emprestimo_itens_v2_ui_fix')
         .select('*')
         .eq('item_status', 'aberto')
         .order('due_at', { ascending:true })
@@ -3532,8 +3530,7 @@
       const [v2, old] = await Promise.all([
         cleanRefs.length
           ? supabase
-              .schema('api')
-              .from('emprestimo_itens_ui')
+              .from('v_emprestimo_itens_v2_ui_fix')
               .select('bib_ref')
               .in('bib_ref', cleanRefs)
               .eq('item_status', 'aberto')
@@ -3568,8 +3565,7 @@
     async function countOpenLoansForUserHybrid(userId){
       const [v2, old] = await Promise.all([
         supabase
-          .schema('api')
-          .from('emprestimo_itens_ui')
+          .from('v_emprestimo_itens_v2_ui_fix')
           .select('emprestimo_item_id', { count: 'exact', head: true })
           .eq('user_id', userId)
           .eq('item_status', 'aberto'),
