@@ -1794,8 +1794,7 @@ button[type="submit"] *,
       activeReservationsEl.textContent = "Carregando...";
 
       const v2 = await supabase
-        .schema("api")
-        .from("reserva_itens_followup_ui")
+        .from("v_reserva_itens_v2_ui")
         .select("reserva_id, sub_id, line_no, titulo, autor, bib_ref, rotulo, item_status, reserva_created_at, expires_at, reserva_status, emprestimo_item_id, workflow_stage_effective, workflow_note, pickup_scheduled_for, workflow_stage_updated_at_effective, pickup_reply_status, pickup_reply_note, pickup_reply_at")
         .eq("user_id", session.user.id)
         .eq("item_status", "ativa")
@@ -2122,8 +2121,7 @@ button[type="submit"] *,
       loansEl.textContent = "Carregando...";
 
       const v2 = await supabase
-        .schema("api")
-        .from("emprestimo_itens_ui")
+        .from("v_emprestimo_itens_v2_ui_fix")
         .select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, extended_until, extension_note, item_status, returned_at, return_scheduled_for, return_schedule_status, return_completed_at, return_missed_at")
         .eq("user_id", session.user.id)
         .eq("item_status", "aberto")
@@ -2475,9 +2473,9 @@ button[type="submit"] *,
       if (historyMsg) historyMsg.textContent = "";
 
       const [v2Loans, oldLoans, v2Reservas, oldReservas] = await Promise.all([
-        supabase.schema("api").from("emprestimo_itens_ui").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
+        supabase.from("v_emprestimo_itens_v2_ui_fix").select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, item_status, returned_at").eq("user_id", session.user.id).order("emprestimo_created_at", { ascending:false }).limit(200),
         supabase.schema("api").from("loans_detalhes").select("id, batch_id, due_date, checkout_date, returned_date, books").eq("user_id", session.user.id).order("checkout_date", { ascending:false }).limit(300),
-        supabase.schema("api").from("reserva_itens_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
+        supabase.from("v_reserva_itens_v2_ui").select("reserva_id, sub_id, titulo, autor, bib_ref, rotulo, reserva_created_at, expires_at, item_status, converted_at, cancelled_at").eq("user_id", session.user.id).neq("item_status", "ativa").order("reserva_created_at", { ascending:false }).limit(200),
         supabase.schema("api").from("reservas").select("id, bib_ref, created_at, status, fulfilled_at, fulfilled_loan_id, cancelled_at, cancelled_reason").eq("user_id", session.user.id).neq("status", "pending").order("created_at", { ascending:false }).limit(100)
       ]);
 
