@@ -770,8 +770,7 @@
                   <select class="input" id="resWorkflowStage">
                     <option value="">Selecione uma etapa…</option>
                     <option value="em_preparacao">1. Em preparação</option>
-                    <option value="aviso_enviado">2. Registrar aviso enviado</option>
-                    <option value="retirada_a_combinar">3. Retirada a combinar</option>
+                                        <option value="retirada_a_combinar">3. Retirada a combinar</option>
                     <option value="retirada_agendada">4. Retirada agendada</option>
                     <option value="re-retirada_agendada">4b. Retirada reagendada</option>
                     <option value="pronta_para_retirada">5. Pronta para retirada</option>
@@ -2731,6 +2730,26 @@
       return activeReservations.filter((r) => selectedReservaIds.has(r.id));
     }
 
+    function getReservationCurrentStage(row){
+      return String(row?.workflow_stage_effective || row?.workflow_stage || 'solicitada').trim() || 'solicitada';
+    }
+
+    function reservationCanMoveToReady(rows){
+      const activeRows = (rows || []).filter(Boolean);
+      if (!activeRows.length) return true;
+      return activeRows.every((row) => !['retirada_agendada', 're-retirada_agendada'].includes(getReservationCurrentStage(row)));
+    }
+
+    function updateReservationWorkflowStageOptions(){
+      const select = $('resWorkflowStage');
+      if (!select) return;
+      const disableReady = !reservationCanMoveToReady(selectedReservationRows());
+      Array.from(select.options || []).forEach((option) => {
+        if (String(option?.value || '') === 'pronta_para_retirada') option.disabled = disableReady;
+      });
+      if ((select.value || '') === 'pronta_para_retirada' && disableReady) select.value = '';
+    }
+
     function syncResScheduleAtParts(){
       const date = String($('resScheduleDate')?.value || '').trim();
       const time = String($('resScheduleTime')?.value || '').trim();
@@ -2966,6 +2985,14 @@
         setStatus(targetStatusId, msg, 'warn');
         return;
       }
+      if (String(stage || '') === 'aviso_enviado') {
+        setStatus(targetStatusId, 'A etapa “Registrar aviso enviado” foi retirada do fluxo de uso do painel.', 'warn');
+        return;
+      }
+      if (String(stage || '') === 'pronta_para_retirada' && !reservationCanMoveToReady(cleanRows)) {
+        setStatus(targetStatusId, '“Pronta para retirada” só pode ser aplicada antes de agendar ou reagendar a retirada.', 'warn');
+        return;
+      }
       if (isReservationPickupScheduledStage(stage) && !pickupScheduledFor) {
         setStatus(targetStatusId, stage === 're-retirada_agendada' ? 'Informe data e hora para reagendar a retirada.' : 'Informe data e hora para agendar a retirada.', 'warn');
         return;
@@ -3047,6 +3074,7 @@
     function renderReservationTable(){
       const tbody = $('tbodyRes');
       renderReservationFollowUpSummary();
+      updateReservationWorkflowStageOptions();
       if (!activeReservations.length){
         tbody.innerHTML = '<tr><td colspan="8">Sem reservas ativas.</td></tr>';
         return;
