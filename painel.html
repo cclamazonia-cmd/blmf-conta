@@ -759,7 +759,7 @@
               <div class="row" style="align-items:end">
                 <div>
                   <label for="resWorkflowNote">Nota interna da etapa (opcional)</label>
-                  <input class="input" id="resWorkflowNote" type="text" placeholder="Ex.: livro separado na estante, leitor avisado, retirada combinada...">
+                  <input class="input" id="resWorkflowNote" type="text" placeholder="Ex.: livro separado, pronto para retirada, retirada combinada, leitor ausente no plantão...">
                 </div>
                 <div>
                   <label for="resScheduleAt">Data e hora da retirada (para “Agendar” ou “Reagendar retirada”)</label>
@@ -770,10 +770,10 @@
                   <select class="input" id="resWorkflowStage">
                     <option value="">Selecione uma etapa…</option>
                     <option value="em_preparacao">1. Em preparação</option>
-                                        <option value="retirada_a_combinar">2. Retirada a combinar</option>
-                    <option value="retirada_agendada">3. Retirada agendada</option>
-                    <option value="re-retirada_agendada">3b. Retirada reagendada</option>
-                    <option value="pronta_para_retirada">4. Pronta para retirada</option>
+                    <option value="pronta_para_retirada">2. Pronta para retirada</option>
+                    <option value="retirada_a_combinar">3. Retirada a combinar</option>
+                    <option value="retirada_agendada">4. Retirada agendada</option>
+                    <option value="re-retirada_agendada">4b. Retirada reagendada</option>
                     <option value="nao_retirada">5. Não retirada</option>
                     <option value="liberada_para_circulacao">6. Liberada para circulação</option>
                   </select>
@@ -2656,7 +2656,7 @@
       return ({
         solicitada: 'Solicitada',
         em_preparacao: 'Em preparação',
-        aviso_enviado: 'Aviso registrado pela biblioteca',
+        aviso_enviado: 'Livro pronto para retirada (legado)',
         retirada_a_combinar: 'Retirada a combinar',
         retirada_agendada: 'Retirada agendada',
         're-retirada_agendada': 'Retirada reagendada',
@@ -2674,7 +2674,7 @@
       return ({
         solicitada: 'warn',
         em_preparacao: 'warn',
-        aviso_enviado: 'warn',
+        aviso_enviado: 'ok',
         retirada_a_combinar: 'warn',
         retirada_agendada: 'ok',
         're-retirada_agendada': 'ok',
@@ -2734,20 +2734,41 @@
       return String(row?.workflow_stage_effective || row?.workflow_stage || 'solicitada').trim() || 'solicitada';
     }
 
-    function reservationCanMoveToReady(rows){
+    function getReservationAllowedNextStages(stage){
+      const current = String(stage || 'solicitada').trim() || 'solicitada';
+      const matrix = {
+        solicitada: ['em_preparacao'],
+        em_preparacao: ['pronta_para_retirada'],
+        pronta_para_retirada: ['retirada_a_combinar'],
+        retirada_a_combinar: ['retirada_agendada', 're-retirada_agendada'],
+        retirada_agendada: ['retirada_agendada', 're-retirada_agendada', 'retirada_a_combinar', 'nao_retirada'],
+        're-retirada_agendada': ['re-retirada_agendada', 'retirada_a_combinar', 'nao_retirada'],
+        nao_retirada: ['retirada_a_combinar', 're-retirada_agendada', 'liberada_para_circulacao'],
+        liberada_para_circulacao: [],
+        aviso_enviado: ['pronta_para_retirada'],
+      };
+      return matrix[current] || [];
+    }
+
+    function reservationCanMoveToStage(rows, targetStage){
       const activeRows = (rows || []).filter(Boolean);
       if (!activeRows.length) return true;
-      return activeRows.every((row) => !['retirada_agendada', 're-retirada_agendada'].includes(getReservationCurrentStage(row)));
+      const target = String(targetStage || '').trim();
+      if (!target) return true;
+      return activeRows.every((row) => getReservationAllowedNextStages(getReservationCurrentStage(row)).includes(target));
     }
 
     function updateReservationWorkflowStageOptions(){
       const select = $('resWorkflowStage');
       if (!select) return;
-      const disableReady = !reservationCanMoveToReady(selectedReservationRows());
+      const rows = selectedReservationRows();
       Array.from(select.options || []).forEach((option) => {
-        if (String(option?.value || '') === 'pronta_para_retirada') option.disabled = disableReady;
+        const value = String(option?.value || '').trim();
+        if (!value) return;
+        option.disabled = !reservationCanMoveToStage(rows, value);
       });
-      if ((select.value || '') === 'pronta_para_retirada' && disableReady) select.value = '';
+      const currentValue = String(select.value || '').trim();
+      if (currentValue && !reservationCanMoveToStage(rows, currentValue)) select.value = '';
     }
 
     function syncResScheduleAtParts(){
@@ -2968,10 +2989,12 @@
         last_stage_changed_at: now,
       };
       if (stage === 'em_preparacao') payload.prepared_at = now;
-      if (stage === 'aviso_enviado') payload.notified_at = now;
       if (isReservationPickupScheduledStage(stage)) payload.pickup_scheduled_for = pickupScheduledFor || null;
-      if (['retirada_a_combinar', 'nao_retirada', 'liberada_para_circulacao'].includes(stage)) payload.pickup_scheduled_for = null;
-      if (stage === 'pronta_para_retirada') payload.ready_for_pickup_at = now;
+      if (['pronta_para_retirada', 'retirada_a_combinar', 'nao_retirada', 'liberada_para_circulacao'].includes(stage)) payload.pickup_scheduled_for = null;
+      if (stage === 'pronta_para_retirada') {
+        payload.ready_for_pickup_at = now;
+        payload.notified_at = now;
+      }
       return payload;
     }
 
@@ -2986,11 +3009,11 @@
         return;
       }
       if (String(stage || '') === 'aviso_enviado') {
-        setStatus(targetStatusId, 'A etapa “Registrar aviso enviado” foi retirada do fluxo de uso do painel.', 'warn');
+        setStatus(targetStatusId, 'A etapa “Aviso enviado” foi retirada do fluxo vivo. Use “Pronta para retirada”.', 'warn');
         return;
       }
-      if (String(stage || '') === 'pronta_para_retirada' && !reservationCanMoveToReady(cleanRows)) {
-        setStatus(targetStatusId, '“Pronta para retirada” só pode ser aplicada antes de agendar ou reagendar a retirada.', 'warn');
+      if (!reservationCanMoveToStage(cleanRows, stage)) {
+        setStatus(targetStatusId, `A etapa selecionada não é válida para o estado atual das reservas selecionadas.`, 'warn');
         return;
       }
       if (isReservationPickupScheduledStage(stage) && !pickupScheduledFor) {
