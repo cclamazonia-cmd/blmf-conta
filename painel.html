@@ -770,7 +770,7 @@
                   <select class="input" id="resWorkflowStage">
                     <option value="">Selecione uma etapa…</option>
                     <option value="em_preparacao">1. Em preparação</option>
-                    <option value="aviso_enviado">2. Aviso enviado</option>
+                    <option value="aviso_enviado">2. Registrar aviso enviado</option>
                     <option value="retirada_a_combinar">3. Retirada a combinar</option>
                     <option value="retirada_agendada">4. Retirada agendada</option>
                     <option value="re-retirada_agendada">4b. Retirada reagendada</option>
@@ -1407,7 +1407,7 @@
         hour12: false
       });
     };
-    const todayISO = () => new Date().toISOString().slice(0,10);
+    const todayISO = () => belemNowParts().ymd;
     const nowISO = () => new Date().toISOString();
     function addDays(dateLike, days){
       const base = new Date(dateLike || Date.now());
@@ -2083,7 +2083,7 @@
           });
         }
         if (stage === 'pronta_para_retirada'){
-          tasks.push({ priority: validadeDiff != null && validadeDiff <= 1 ? 'alta' : 'media', bucket: validadeDiff != null && validadeDiff <= 1 ? 'hoje' : 'atencao', kind:'Reserva pronta para retirada', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTime(r.validade)}${r.workflow_note ? ' · ' + r.workflow_note : ''}`, actionType:'reserva', reserva_id:r.reserva_id });
+          tasks.push({ priority: validadeDiff != null && validadeDiff <= 1 ? 'alta' : 'media', bucket: validadeDiff != null && validadeDiff <= 1 ? 'hoje' : 'atencao', kind:'Reserva pronta para retirada', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTimeBelem(r.validade)} (Belém)${r.workflow_note ? ' · ' + r.workflow_note : ''}`, actionType:'reserva', reserva_id:r.reserva_id });
         }
         if (String(r.pickup_reply_status || '') === 'recusado_leitor'){
           tasks.push({ priority:'alta', bucket:'atencao', kind:'Leitor recusou o horário', label:`${r.user_name} · ${r.titulo}`, detail:r.pickup_reply_note || 'Reagendar retirada.', actionType:'reserva', reserva_id:r.reserva_id });
@@ -2095,7 +2095,7 @@
           tasks.push({ priority:'media', bucket:'acompanhamento', kind:'Exemplar liberado para circulação', label:`${r.user_name} · ${r.titulo}`, detail:r.workflow_note || 'Reserva ainda ativa, mas sem exemplar separado.', actionType:'reserva', reserva_id:r.reserva_id });
         }
         if (validadeDiff != null && validadeDiff < 0){
-          tasks.push({ priority:'alta', bucket:'atencao', kind:'Reserva com prazo vencido', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTime(r.validade)}`, actionType:'reserva', reserva_id:r.reserva_id });
+          tasks.push({ priority:'alta', bucket:'atencao', kind:'Reserva com prazo vencido', label:`${r.user_name} · ${r.titulo}`, detail:`Validade: ${fmtDateTimeBelem(r.validade)} (Belém)`, actionType:'reserva', reserva_id:r.reserva_id });
         }
       });
 
@@ -2657,7 +2657,7 @@
       return ({
         solicitada: 'Solicitada',
         em_preparacao: 'Em preparação',
-        aviso_enviado: 'Aviso enviado',
+        aviso_enviado: 'Aviso registrado pela biblioteca',
         retirada_a_combinar: 'Retirada a combinar',
         retirada_agendada: 'Retirada agendada',
         're-retirada_agendada': 'Retirada reagendada',
@@ -3069,8 +3069,8 @@
             <td>${esc(r.titulo)}${r.autor ? `<br><span class="mini subtle">${esc(r.autor)}</span>` : ''}</td>
             <td class="mono">${esc(r.bib_ref)}</td>
             <td>${esc(r.rotulo || '—')}</td>
-            <td>${esc(fmtDateTime(r.reserva_em))}<br><span class="pill ${esc(reservationWorkflowStageClass(r.workflow_stage))}">${esc(workflowLabel)}</span>${r.workflow_stage_updated_at ? `<br><span class="mini subtle">Atualizado: ${esc(fmtDateTime(r.workflow_stage_updated_at))}</span>` : ''}${workflowDetail ? `<br><span class="mini subtle">${esc(workflowDetail)}</span>` : ''}</td>
-            <td>${esc(fmtDateTime(r.validade))}<br><span class="pill ${esc(followUp.className)}">${esc(followUp.label)}</span><br><span class="mini subtle">${esc(followUp.detail)}</span></td>
+            <td>${esc(fmtDateTimeBelem(r.reserva_em))} (Belém)<br><span class="pill ${esc(reservationWorkflowStageClass(r.workflow_stage))}">${esc(workflowLabel)}</span>${r.workflow_stage_updated_at ? `<br><span class="mini subtle">Atualizado: ${esc(fmtDateTimeBelem(r.workflow_stage_updated_at))} (Belém)</span>` : ''}${workflowDetail ? `<br><span class="mini subtle">${esc(workflowDetail)}</span>` : ''}</td>
+            <td>${esc(fmtDateTimeBelem(r.validade))} (Belém)<br><span class="pill ${esc(followUp.className)}">${esc(followUp.label)}</span><br><span class="mini subtle">${esc(followUp.detail)}</span></td>
           </tr>`;
       }).join('');
     }
