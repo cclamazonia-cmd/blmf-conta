@@ -2122,7 +2122,7 @@ button[type="submit"] *,
 
       const v2 = await supabase
         .from("v_emprestimo_itens_v2_ui_fix")
-        .select("emprestimo_id, line_no, sub_id, titulo, autor, bib_ref, rotulo, emprestimo_created_at, due_at, extension_note, item_status, returned_at, return_scheduled_for, return_schedule_status, return_completed_at, return_missed_at")
+        .select("*")
         .eq("user_id", session.user.id)
         .eq("item_status", "aberto")
         .order("emprestimo_id", { ascending: false })
@@ -2153,7 +2153,7 @@ button[type="submit"] *,
           const renewBtn = buildLoanRenewButtonV2(r.emprestimo_id);
 
           const key = `${r.emprestimo_id}|${r.line_no}`;
-          const dueShown = r.due_at;
+          const dueShown = r.extended_until || r.due_at;
           const statusLabel = getReturnScheduleLabel(r.return_schedule_status);
           const scheduleBtnLabel = r.return_schedule_status === "devolucao_nao_realizada"
             ? "Reagendar devolução"
@@ -2199,7 +2199,7 @@ button[type="submit"] *,
           const renewBtn = buildLoanRenewButtonV2(r.emprestimo_id);
 
           const key = `${r.emprestimo_id}|${r.line_no}`;
-          const dueShown = r.due_at;
+          const dueShown = r.extended_until || r.due_at;
           const statusLabel = getReturnScheduleLabel(r.return_schedule_status);
           const scheduleBtnLabel = r.return_schedule_status === "devolucao_nao_realizada"
             ? "Reagendar devolução"
